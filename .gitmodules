@@ -1,0 +1,3 @@
+[submodule "LoveFrames"]
+	path = LoveFrames
+	url = https://github.com/linux-man/LoveFrames

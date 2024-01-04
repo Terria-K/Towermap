@@ -1,5 +1,5 @@
 # Towermap
-A in-game level editor designed for creating TowerFall levels.
+A alternative TowerFall Level editor that supports more game elements and game mode.
 
 ## WORK IN PROGRESS
 This level editor is still work in poggers, and it still effectively being developed by a

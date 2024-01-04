@@ -1,6 +1,6 @@
 local open = false;
 
-return function()
+return function(onClose)
     if (open) then
         return
     end
@@ -9,9 +9,13 @@ return function()
     settings:SetName("Map Settings")
     settings:SetPos((960 * 0.5) - 500 * 0.5, (640 * 0.5) - 400 * 0.5)
     settings:SetSize(500, 400)
+    settings:SetDraggable(false)
 
     settings.OnClose = function()
         open = false
+        if onClose then
+            onClose()
+        end
     end
 
     local tab = Loveframes.Create("tabs", settings)
@@ -19,9 +23,9 @@ return function()
     tab:SetSize(450, 330)
 
     local function CreateTab(text)
-        local someTab = Loveframes.Create("panel")
-        tab:AddTab(text, someTab)
-        return someTab
+        local tabPanel = Loveframes.Create("panel")
+        tab:AddTab(text, tabPanel)
+        return tabPanel
     end
 
     local versus = CreateTab("Versus")

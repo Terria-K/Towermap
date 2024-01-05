@@ -40,4 +40,9 @@ function history:popCommit()
     return newCommit
 end
 
+function history:clearHistory()
+    self.tileCommit = {}
+    self.currentCommit = 0
+end
+
 return history

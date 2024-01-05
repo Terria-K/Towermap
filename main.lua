@@ -96,17 +96,22 @@ function love.load()
          editor:changeLayer("SolidTiles")
          if entityList then
             entityList:Remove()
+            entityList = nil
          end
     end)
     LayerButton("BGTiles", layer, function()
         editor:changeLayer("BGTiles")
         if entityList then
            entityList:Remove()
+           entityList = nil
         end
     end)
     LayerButton("Entities", layer,
     function()
         editor:changeLayer("Entities")
+        if entityList then
+            return
+        end
         entityList = Entities(layer, function(name, o)
             editor:setCurrentEntity(name, o)
         end)

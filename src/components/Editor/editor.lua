@@ -8,6 +8,7 @@ local history = require("src.components.Editor.history")
 local Tiler = require("src.components.Editor.tiler")
 local Decor = require("src.components.Editor.decor")
 local Spritesheet = require("src.components.spritesheet")
+local Atlas = require("src.components.atlas")
 local tileRenderer = require("src.components.Editor.tileRenderer")
 local mousePressed = false
 local mouseButton = 0
@@ -105,6 +106,7 @@ local editor = {
     bgDecor = {},
     toolType = 0,
     currentID = 0,
+    atlas = {},
     dirty = true
 }
 
@@ -121,11 +123,18 @@ function editor:init()
         end
     end
     RegisterVanilla()
-    local solidSpritesheet = Spritesheet:new("assets/flight.png")
+    local imageAtlas = love.graphics.newImage("assets/atlas.png")
+    local str = love.filesystem.read("assets/atlas.xml")
+    local xmlHandler = handler:new()
+    local parser = xml2lua.parser(xmlHandler)
+    parser:parse(str)
+
+    self.atlas = Atlas:new(xmlHandler, imageAtlas)
+    local solidSpritesheet = self.atlas:createSpriteSheet("tilesets/flight", imageAtlas)
     self.solidTiler = Tiler:new(solidSpritesheet)
     self.solidTiler:init("assets/tilesetData.xml", 7)
     self.solidDecor = Decor:new(solidSpritesheet)
-    local bgSpritesheet = Spritesheet:new("assets/flightBG.png")
+    local bgSpritesheet = self.atlas:createSpriteSheet("tilesets/flightBG", imageAtlas)
     self.bgTiler = Tiler:new(bgSpritesheet)
     self.bgTiler:init("assets/tilesetData.xml", 8)
     self.bgDecor = Decor:new(bgSpritesheet)
@@ -154,6 +163,7 @@ function editor:clearItems()
 end
 
 function editor:setLevel(file)
+    history:clearHistory()
     self.dirty = true
     self:removeAllEntities()
     local str = love.filesystem.read(file)
@@ -331,7 +341,7 @@ function editor:draw()
     self.solidDecor:draw(self.solidTiles)
 
     for i = 1, #self.entities do
-        self.entities[i]:draw()
+        self.entities[i]:draw(self.atlas.image)
     end
     if self.toolType == 0 and self.layerType == 2 and self.currentEntity.width then
         local rx = (love.mouse.getX() - 130) / 2
@@ -483,8 +493,8 @@ function editor:addEntity(x, y, id)
         self.currentEntity.height,
         self.currentEntity.originX,
         self.currentEntity.originY,
-        nil,
-        id or self.currentID)
+        self.currentEntity.texture,
+        id or self.currentID, self.atlas)
     ent.attributes = self.currentEntity.attributes
     table.insert(self.entities, #self.entities + 1, ent)
     self.currentID = self.currentID + 1

@@ -1,15 +1,50 @@
 local lfs = require("src.lib.lfs.lfs")
 local tinyxmlwriter = require("src.lib.lua-tinyxmlwriter.tinyxmlwriter")
 local xml2lua = require("src.lib.xml2lua.xml2lua")
-local json = require("src.lib.json.json")
 local handler = require("src.lib.xml2lua.xmlhandler.tree")
 local Entity = require("src.components.Editor.Entities.entity")
 local RegisterVanilla = require("src.components.Editor.Entities.vanilla")
 local history = require("src.components.Editor.history")
 local Tiler = require("src.components.Editor.tiler")
+local Decor = require("src.components.Editor.decor")
 local Spritesheet = require("src.components.spritesheet")
+local tileRenderer = require("src.components.Editor.tileRenderer")
 local mousePressed = false
 local mouseButton = 0
+
+local function split(str)
+    return str:gmatch("[^\r\n]*\n?")
+end
+
+local function stringCSVToArray(str)
+    local arr = {}
+
+    for x1 = 1, 32 do
+        arr[x1] = {}
+        for y1 =1, 24 do
+            arr[x1][y1] = -1
+        end
+    end
+    local rows = {}
+    for line in split(str) do
+        table.insert(rows, line);
+    end
+
+    local y = 1
+    while y <= 24 and y <= #rows do
+        local nums = SplitCSVToNumber(rows[y], ',')
+        local x = 1
+        while x <= 32 and x <= #nums do
+            local num = tonumber(nums[x])
+            if num then
+                arr[x][y] = num
+            end
+            x = x + 1
+        end
+        y = y + 1
+    end
+    return arr
+end
 
 local function stringToArray(str)
     local arr = {}
@@ -49,11 +84,13 @@ end
 
 
 local editor = {
+    -- Layers
     solids = {},
     bgs = {},
     entities = {},
     bgTiles = {},
     solidTiles = {},
+    -- Editor
     items = {},
     framebuffer = {},
     currentTile = {},
@@ -63,11 +100,17 @@ local editor = {
     layerType = 0,
     currentEntity = {},
     solidTiler = {},
-    bgTiler = {}
+    bgTiler = {},
+    solidDecor = {},
+    bgDecor = {},
+    toolType = 0,
+    currentID = 0,
+    dirty = true
 }
 
 function editor:init()
     self.framebuffer = love.graphics.newCanvas(320, 240)
+    tileRenderer:init()
 
     for x = 1, 24 do
         self.bgs[x] = {}
@@ -81,15 +124,17 @@ function editor:init()
     local solidSpritesheet = Spritesheet:new("assets/flight.png")
     self.solidTiler = Tiler:new(solidSpritesheet)
     self.solidTiler:init("assets/tilesetData.xml", 7)
+    self.solidDecor = Decor:new(solidSpritesheet)
     local bgSpritesheet = Spritesheet:new("assets/flightBG.png")
     self.bgTiler = Tiler:new(bgSpritesheet)
     self.bgTiler:init("assets/tilesetData.xml", 8)
+    self.bgDecor = Decor:new(bgSpritesheet)
 end
 
 function editor:setFolder(folder)
     local items = {}
     for file in lfs.dir(folder) do
-        if file:sub(-#"oel") == "oel" or file:sub(-#"json") == "json" then
+        if file:sub(-#"oel") == "oel" then
             table.insert(items, file)
         end
     end
@@ -109,6 +154,8 @@ function editor:clearItems()
 end
 
 function editor:setLevel(file)
+    self.dirty = true
+    self:removeAllEntities()
     local str = love.filesystem.read(file)
     if not FileExists(file) then
         for i = 1, #self.items do
@@ -118,23 +165,69 @@ function editor:setLevel(file)
         end
         return
     end
-    if file:sub(-#"oel") == "oel" then
-        local xmlHandler = handler:new()
-        local parser = xml2lua.parser(xmlHandler)
-        parser:parse(str)
-        self.solids = stringToArray(xmlHandler.root.level.Solids[1])
-        self.bgs = stringToArray(xmlHandler.root.level.BG[1])
-        self.solidTiles = xmlHandler.root.level.SolidTiles[1]
-        self.bgTiles = xmlHandler.root.level.BGTiles[1]
-        self.xml = xmlHandler.root
-    else
-        local decoded = json.decode(str)
-        self.xml = {}
-        self.solids = stringToArray(decoded.layers.Solids)
-        self.bgs = stringToArray(decoded.layers.BG)
+    local xmlHandler = handler:new()
+    local parser = xml2lua.parser(xmlHandler)
+    parser:parse(str)
+
+    self.solids = stringToArray(xmlHandler.root.level.Solids[1])
+    self.bgs = stringToArray(xmlHandler.root.level.BG[1])
+    if xmlHandler.root.level.SolidTiles[1] then
+        self.solidTiles = stringCSVToArray(xmlHandler.root.level.SolidTiles[1])
     end
+    if xmlHandler.root.level.BGTiles[1] then
+        self.bgTiles = stringCSVToArray(xmlHandler.root.level.BGTiles[1])
+    end
+    self.xml = xmlHandler.root
+    self:addAllEntities(xmlHandler.root.level.Entities)
+
     self.currentTile = self.solids
     self.filename = file
+end
+
+function editor:removeAllEntities()
+    for _ = 1, #self.entities do
+        table.remove(self.entities, 1)
+    end
+end
+
+function editor:assignAttributes(entity)
+    for k, v in pairs(entity._attr) do
+        if k == "id" then
+            if entity._attr.id - 0 > self.currentID then
+                self.currentID = tonumber(entity._attr.id)
+            end
+            self.currentEntity.id = tonumber(v)
+        elseif k == "width" then
+            self.currentEntity.width = entity._attr.width
+        elseif k == "height" then
+            self.currentEntity.height = entity._attr.height
+        else
+            self.currentEntity.attributes[k] = v
+        end
+    end
+end
+
+function editor:addAllEntities(xml)
+    for k, v in pairs(xml) do
+        local metadata = GetEntityMetadata(k)
+        if metadata then
+            self.currentEntity = metadata
+            self.currentEntity.name = k
+            if v[1] then
+                for i = 1, #v do
+                    local entity = v[i]
+                    self:assignAttributes(entity)
+                    self:addEntity(entity._attr.x, entity._attr.y, self.currentEntity.id)
+                end
+            elseif v then
+                local entity = v
+                self:assignAttributes(entity)
+                self:addEntity(entity._attr.x, entity._attr.y, self.currentEntity.id)
+            else
+                print("Missing entity: '" .. k .. "'")
+            end
+        end
+    end
 end
 
 local function save_xml(xml, filename)
@@ -173,6 +266,22 @@ function editor:save()
         xml:addAttribut("exportMode", "TrimmedCSV")
         xml:writeValue(self.xml.level.SolidTiles[1])
         xml:closeElement("SolidTiles")
+
+        xml:startElement("Entities")
+            for _, v in ipairs(self.entities) do
+                xml:singleElement(v.name)
+                xml:addAttribut("id", v.id)
+                xml:addAttribut("x", v.x)
+                xml:addAttribut("y", v.y)
+                xml:addAttribut("width", v.width)
+                xml:addAttribut("height", v.height)
+                for k2, v2 in pairs(v.attributes) do
+                    if not (k2 == "x" or k2 == "y") then
+                        xml:addAttribut(k2, v2)
+                    end
+                end
+            end
+        xml:closeElement("Entities")
     xml:closeElement("level")
 
     local output = xml:get(tinyxmlwriter.FORMAT_LINEBREAKS)
@@ -196,6 +305,14 @@ function editor:drawArray(arr, atlas, quad)
 end
 
 function editor:draw()
+    if self.dirty then
+        tileRenderer:beginDraw()
+        self.bgTiler:draw(self.bgs, self.solids)
+        self.solidTiler:draw(self.solids)
+        tileRenderer:endDraw()
+        self.dirty = false
+    end
+
     love.graphics.setCanvas(self.framebuffer)
     love.graphics.clear()
     love.graphics.setColor(255, 255, 255, 0.3)
@@ -208,14 +325,15 @@ function editor:draw()
         love.graphics.line(i * 10, 0, i * 10, 240)
     end
     love.graphics.setColor(255, 255, 255, 1)
-    -- self:drawArray(self.solids, self.atlas, solidQuad)
-    self.bgTiler:tile(self.bgs, self.solids)
-    self.solidTiler:tile(self.solids)
+
+    tileRenderer:draw()
+    self.bgDecor:draw(self.bgTiles)
+    self.solidDecor:draw(self.solidTiles)
 
     for i = 1, #self.entities do
         self.entities[i]:draw()
     end
-    if self.layerType == 2 and self.currentEntity.width then
+    if self.toolType == 0 and self.layerType == 2 and self.currentEntity.width then
         local rx = (love.mouse.getX() - 130) / 2
         local ry = (love.mouse.getY() - 90) / 2
         local snapX = math.floor(rx / 5) * 5
@@ -224,7 +342,7 @@ function editor:draw()
         local height = self.currentEntity.height
         love.graphics.rectangle("line",
         snapX - self.currentEntity.originX, snapY - self.currentEntity.originY,
-        width, height)
+            width, height)
     end
 
     love.graphics.setCanvas()
@@ -246,16 +364,21 @@ end
 
 function editor:setCurrentEntity(name, o)
     self.currentEntity = o
+    self.currentEntity.name = name
 end
 
 function editor:mousepressed(x, y, button)
+    if button == 3 then
+        print(Dump(self.entities))
+    end
     if not mousePressed and self.shouldDraw then
         local rx = (x - 130) / 2
         local ry = (y - 90) / 2
 
         if not (rx < 0 or ry < 0 or rx > 320 or ry > 240) then
-            if self.layerType == 2 and button == 1 then
+            if self.toolType == 0 and self.layerType == 2 and button == 1 then
                 self:addEntity(rx, ry)
+                self.toolType = 1
             end
             if self.layerType == 0 or self.layerType == 1 then
                 history:pushCommit(self.layerType, self.currentTile)
@@ -269,12 +392,12 @@ function editor:mousepressed(x, y, button)
     if self.layerType == 2 then
         local toRemove = { }
         for i = 1, #self.entities do
-            local shouldStay = self.entities[i]:mousepressed(x, y, button)
+            local shouldStay = self.entities[i]:mousepressed(x, y, button, editor)
             if not shouldStay then
                 table.insert(toRemove, i)
             end
         end
-        for k, v in ipairs(toRemove) do
+        for _, v in ipairs(toRemove) do
             table.remove(self.entities, v)
         end
     end
@@ -315,6 +438,7 @@ function editor:update()
                         self.currentTile = self.bgs
                     end
                 end
+                self.dirty = true
                 undo = true
             end
         elseif undo and not love.keyboard.isDown("z") then
@@ -351,26 +475,32 @@ function editor:update()
     end
 end
 
-function editor:addEntity(x, y)
+function editor:addEntity(x, y, id)
     local snapX = math.floor(x / 5) * 5
     local snapY = math.floor(y / 5) * 5
-    local ent = Entity:new(snapX, snapY,
+    local ent = Entity:new(self.currentEntity.name, snapX, snapY,
         self.currentEntity.width,
         self.currentEntity.height,
         self.currentEntity.originX,
-        self.currentEntity.originY)
+        self.currentEntity.originY,
+        nil,
+        id or self.currentID)
+    ent.attributes = self.currentEntity.attributes
     table.insert(self.entities, #self.entities + 1, ent)
+    self.currentID = self.currentID + 1
 end
 
 function editor:placeTile(x, y)
-    if self.currentTile and self.currentTile[1] then
+    if self.currentTile and self.currentTile[1] and not self.currentTile[y][x] then
         self.currentTile[y][x] = true
+        self.dirty = true
     end
 end
 
 function editor:removeTile(x, y)
-    if self.currentTile and self.currentTile[1] then
+    if self.currentTile and self.currentTile[1] and self.currentTile[y][x] then
         self.currentTile[y][x] = false
+        self.dirty = true
     end
 end
 

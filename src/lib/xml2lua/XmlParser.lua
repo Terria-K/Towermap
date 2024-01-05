@@ -420,7 +420,7 @@ function XmlParser:parse(xml, parseAttributes)
         f.startText = f.match
         f.endText = f.match + string.len(f.text) - 1
         f.match = f.match + string.len(f.text)
-        f.text = parseEntities(self, stripWS(self, f.text))
+        f.text = parseEntities(self, f.text)
         if f.text ~= "" and fexists(self.handler, 'text') then
             self.handler:text(f.text, nil, f.match, f.endText)
         end

@@ -81,7 +81,11 @@ function tree:reduce(node, key, parent)
     end
     if #node == 1 and not self.options.noreduce[key] and 
         node._attr == nil then
-        parent[key] = node[1]
+-- checked, so that it won't cause some problems with bg tiles
+-- - Terria
+        if key then 
+            parent[key] = node[1]
+        end
     end
 end
 

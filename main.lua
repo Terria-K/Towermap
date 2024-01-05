@@ -1,6 +1,7 @@
 local nfd = require("nfd")
 require("src.utils.fs")
 require("src.utils.dump")
+require("src.utils.stringutils")
 Loveframes = require("LoveFrames.loveframes")
 local editor = require("src.components.Editor.editor")
 local toolbarTool = require("src.components.Editor.toolbar")
@@ -23,12 +24,16 @@ function love.load()
 
     toolbarTool:init()
 
-    toolbarTool:addItem("Pen")
-    toolbarTool:addItem("Rect")
-    toolbarTool:addItem("HSym", function()
+    toolbarTool:addItem("Pen (1)", function()
+        editor.toolType = 0
+    end)
+    toolbarTool:addItem("Rect (2)", function()
+        editor.toolType = 1
+    end)
+    toolbarTool:addItem("HSym (h)", function()
         editor:horizontalSymmetry()
     end)
-    toolbarTool:addItem("VSym", function()
+    toolbarTool:addItem("VSym (v)", function()
         editor:verticalSymmetry()
     end)
 
@@ -61,10 +66,9 @@ function love.load()
             callback = function()
                 local res = nfd.openFolder("")
 
-                editor:clearItems()
                 if res then
+                    editor:clearItems()
                     editor:setFolder(res)
-
                 end
             end
         },
@@ -73,8 +77,7 @@ function love.load()
             callback = function()
                 editor:save()
             end
-        },
-        { text = "Convert .oel to .json" },
+        }
     })
     ToolButton("Settings", 40, 80, {
         {
@@ -151,6 +154,18 @@ function love.keypressed(key, isrepeat)
 end
 
 function love.keyreleased(key)
+    if key == '1' then
+        editor.toolType = 0
+    end
+    if key == '2' then
+        editor.toolType = 1
+    end
+    if key == 'h' then
+        editor:horizontalSymmetry()
+    end
+    if key == 'v' then
+        editor:verticalSymmetry()
+    end
 	Loveframes.keyreleased(key)
 end
 

@@ -54,6 +54,10 @@ THE SOFTWARE.
         table.insert(self.doc.elements, { name = name, pos = "start" } )
     end
 
+    function mt.__index:singleElement(name)
+        table.insert(self.doc.elements, { name = name, pos = "singleElement" } )
+    end
+
 
     function mt.__index:addAttribut(attrname, attrvalue)
         local a = { attrname, escape(attrvalue) }
@@ -66,6 +70,7 @@ THE SOFTWARE.
 
 
     function mt.__index:closeElement(name)
+        print(name)
         table.insert(self.doc.elements, { name = name, pos = "close" } )
     end
 
@@ -125,6 +130,24 @@ THE SOFTWARE.
 
           elseif element.pos == "single" then
               table.insert(t, "<"..element.name..">"..element.value.."</"..element.name..">")
+
+          elseif element.pos == "singleElement" then
+            if element.attr then
+                local at = {}
+                    for a,v in ipairs(element.attr) do
+                        table.insert(at, v[1]..'="'..v[2]..'"')
+                    end 
+                attributes = table.concat(at, " ")
+            else
+                attributes = ""
+            end
+
+            --
+            if element.attr then
+                table.insert(t, "<"..element.name.." "..attributes.."/>")
+            else
+                table.insert(t, "<"..element.name.."/>")
+            end
           end
 
        end

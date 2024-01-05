@@ -5,6 +5,7 @@ Tiler = {}
 Tiler.__index = Tiler
 
 function Tiler:new(spritesheet)
+    self.framebuffer = love.graphics.newCanvas(320, 240)
     self = setmetatable({}, Tiler)
     self.spritesheet = spritesheet
     self.bit = {
@@ -42,38 +43,28 @@ function Tiler:init(dataFile, idx)
     self:assignBit(flight)
 end
 
-local function splitCSV(inputstr, sep)
-    if sep == nil then
-            sep = "%s"
-    end
-    local t={}
-    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-            table.insert(t, tonumber(str))
-    end
-    return t
-end
 
 function Tiler:assignBit(tileData)
-    self.bit.center = splitCSV(tileData.Center, ',')
-    self.bit.right = splitCSV(tileData.Right, ',')
-    self.bit.left = splitCSV(tileData.Left, ',')
-    self.bit.top = splitCSV(tileData.Top, ',')
-    self.bit.bottom = splitCSV(tileData.Bottom, ',')
-    self.bit.topLeft = splitCSV(tileData.TopLeft, ',')
-    self.bit.topRight = splitCSV(tileData.TopRight, ',')
-    self.bit.bottomLeft = splitCSV(tileData.BottomLeft, ',')
-    self.bit.bottomRight = splitCSV(tileData.BottomRight, ',')
-    self.bit.single = splitCSV(tileData.Single, ',')
-    self.bit.insideBottomLeft = splitCSV(tileData.InsideBottomLeft, ',')
-    self.bit.insideBottomRight = splitCSV(tileData.InsideBottomRight, ',')
-    self.bit.insideTopLeft = splitCSV(tileData.InsideTopLeft, ',')
-    self.bit.insideTopRight = splitCSV(tileData.InsideTopRight, ',')
-    self.bit.singleHorizontalCenter = splitCSV(tileData.SingleHorizontalCenter, ',')
-    self.bit.singleHorizontalLeft = splitCSV(tileData.SingleHorizontalLeft, ',')
-    self.bit.singleHorizontalRight = splitCSV(tileData.SingleHorizontalRight, ',')
-    self.bit.singleVerticalBottom = splitCSV(tileData.SingleVerticalBottom, ',')
-    self.bit.singleVerticalCenter = splitCSV(tileData.SingleVerticalCenter, ',')
-    self.bit.singleVerticalTop = splitCSV(tileData.SingleVerticalTop, ',')
+    self.bit.center = SplitCSVToNumber(tileData.Center, ',')
+    self.bit.right = SplitCSVToNumber(tileData.Right, ',')
+    self.bit.left = SplitCSVToNumber(tileData.Left, ',')
+    self.bit.top = SplitCSVToNumber(tileData.Top, ',')
+    self.bit.bottom = SplitCSVToNumber(tileData.Bottom, ',')
+    self.bit.topLeft = SplitCSVToNumber(tileData.TopLeft, ',')
+    self.bit.topRight = SplitCSVToNumber(tileData.TopRight, ',')
+    self.bit.bottomLeft = SplitCSVToNumber(tileData.BottomLeft, ',')
+    self.bit.bottomRight = SplitCSVToNumber(tileData.BottomRight, ',')
+    self.bit.single = SplitCSVToNumber(tileData.Single, ',')
+    self.bit.insideBottomLeft = SplitCSVToNumber(tileData.InsideBottomLeft, ',')
+    self.bit.insideBottomRight = SplitCSVToNumber(tileData.InsideBottomRight, ',')
+    self.bit.insideTopLeft = SplitCSVToNumber(tileData.InsideTopLeft, ',')
+    self.bit.insideTopRight = SplitCSVToNumber(tileData.InsideTopRight, ',')
+    self.bit.singleHorizontalCenter = SplitCSVToNumber(tileData.SingleHorizontalCenter, ',')
+    self.bit.singleHorizontalLeft = SplitCSVToNumber(tileData.SingleHorizontalLeft, ',')
+    self.bit.singleHorizontalRight = SplitCSVToNumber(tileData.SingleHorizontalRight, ',')
+    self.bit.singleVerticalBottom = SplitCSVToNumber(tileData.SingleVerticalBottom, ',')
+    self.bit.singleVerticalCenter = SplitCSVToNumber(tileData.SingleVerticalCenter, ',')
+    self.bit.singleVerticalTop = SplitCSVToNumber(tileData.SingleVerticalTop, ',')
 end
 
 function Tiler:reset()
@@ -139,9 +130,9 @@ function Tiler:tile(bits, also)
 
             local tiles = self:tileHandle()
             if tiles then
-                local idx = tiles[1]
+                local idx = tiles[((self.tileY * self.tileX + #tiles) % #tiles + 1)]
                 if idx then
-                    self:draw(idx, self.tileY, self.tileX)
+                    self.spritesheet:draw(self.tileY, self.tileX, idx)
                 end
             end
             self.tileY = self.tileY + 1
@@ -150,11 +141,10 @@ function Tiler:tile(bits, also)
         self.tileX = self.tileX + 1
     end
 end
-function Tiler:draw(idx, x, y)
-    self.spritesheet:draw(x, y, idx)
+
+function Tiler:draw(bits, also)
+    self:tile(bits, also)
 end
-
-
 
 function Tiler:tileHandle()
     if self.current then

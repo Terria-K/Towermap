@@ -36,7 +36,6 @@ function history:popCommit()
     }
     table.remove(self.tileCommit, self.currentCommit)
     self.currentCommit = self.currentCommit - 1
-    print(Dump(self.tileCommit))
 
     return newCommit
 end

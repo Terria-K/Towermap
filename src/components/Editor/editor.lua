@@ -6,8 +6,8 @@ local handler = require("src.lib.xml2lua.xmlhandler.tree")
 local Entity = require("src.components.Editor.Entities.entity")
 local RegisterVanilla = require("src.components.Editor.Entities.vanilla")
 local history = require("src.components.Editor.history")
-local solidQuad = {}
-local bgQuad = {}
+local Tiler = require("src.components.Editor.tiler")
+local Spritesheet = require("src.components.spritesheet")
 local mousePressed = false
 local mouseButton = 0
 
@@ -55,23 +55,20 @@ local editor = {
     bgTiles = {},
     solidTiles = {},
     items = {},
-    atlas = {},
-    bgAtlas = {},
     framebuffer = {},
     currentTile = {},
     xml = {},
     filename = "",
     shouldDraw = true,
     layerType = 0,
-    currentEntity = {}
+    currentEntity = {},
+    solidTiler = {},
+    bgTiler = {}
 }
 
 function editor:init()
-    self.atlas = love.graphics.newImage("assets/flight.png")
-    self.bgAtlas = love.graphics.newImage("assets/flightBG.png")
     self.framebuffer = love.graphics.newCanvas(320, 240)
-    solidQuad = love.graphics.newQuad(10, 80, 10, 10, self.atlas)
-    bgQuad = love.graphics.newQuad(0, 0, 10, 10, self.bgAtlas)
+
     for x = 1, 24 do
         self.bgs[x] = {}
         self.solids[x] = {}
@@ -81,11 +78,16 @@ function editor:init()
         end
     end
     RegisterVanilla()
+    local solidSpritesheet = Spritesheet:new("assets/flight.png")
+    self.solidTiler = Tiler:new(solidSpritesheet)
+    self.solidTiler:init("assets/tilesetData.xml", 7)
+    local bgSpritesheet = Spritesheet:new("assets/flightBG.png")
+    self.bgTiler = Tiler:new(bgSpritesheet)
+    self.bgTiler:init("assets/tilesetData.xml", 8)
 end
 
 function editor:setFolder(folder)
     local items = {}
-    local x = 1
     for file in lfs.dir(folder) do
         if file:sub(-#"oel") == "oel" or file:sub(-#"json") == "json" then
             table.insert(items, file)
@@ -177,7 +179,6 @@ function editor:save()
 
     save_xml(output, filename)
     xml:flush()
-    -- save_json(levelJson, filename)
 end
 
 
@@ -206,8 +207,10 @@ function editor:draw()
     for i = 1, 32 do
         love.graphics.line(i * 10, 0, i * 10, 240)
     end
-    self:drawArray(self.bgs, self.bgAtlas, bgQuad)
-    self:drawArray(self.solids, self.atlas, solidQuad)
+    love.graphics.setColor(255, 255, 255, 1)
+    -- self:drawArray(self.solids, self.atlas, solidQuad)
+    self.bgTiler:tile(self.bgs, self.solids)
+    self.solidTiler:tile(self.solids)
 
     for i = 1, #self.entities do
         self.entities[i]:draw()
@@ -251,7 +254,7 @@ function editor:mousepressed(x, y, button)
         local ry = (y - 90) / 2
 
         if not (rx < 0 or ry < 0 or rx > 320 or ry > 240) then
-            if self.layerType == 2 then
+            if self.layerType == 2 and button == 1 then
                 self:addEntity(rx, ry)
             end
             if self.layerType == 0 or self.layerType == 1 then
@@ -262,11 +265,30 @@ function editor:mousepressed(x, y, button)
 
     mousePressed = true
     mouseButton = button
+
+    if self.layerType == 2 then
+        local toRemove = { }
+        for i = 1, #self.entities do
+            local shouldStay = self.entities[i]:mousepressed(x, y, button)
+            if not shouldStay then
+                table.insert(toRemove, i)
+            end
+        end
+        for k, v in ipairs(toRemove) do
+            table.remove(self.entities, v)
+        end
+    end
 end
 
 function editor:mousereleased(x, y, button)
     mousePressed = false
     mouseButton = button
+
+    if self.layerType == 2 then
+        for i = 1, #self.entities do
+            self.entities[i]:mousereleased(x, y, button)
+        end
+    end
 end
 
 local saved = false
@@ -279,15 +301,19 @@ function editor:update()
                 saved = true
                 self:save()
             end
-        elseif love.keyboard.isDown("z") and not undo then
+        elseif love.keyboard.isDown("z") and not undo and not mousePressed then
             if history.currentCommit ~= 0 then
                 local commit = history:popCommit()
                 if commit.layerType == 0 then
                     self.solids = commit.tiles
-                    self.currentTile = self.solids
+                    if self.layerType == 0 then
+                        self.currentTile = self.solids
+                    end
                 elseif commit.layerType == 1 then
                     self.bgs = commit.tiles
-                    self.currentTile = self.bgs
+                    if self.layerType == 1 then
+                        self.currentTile = self.bgs
+                    end
                 end
                 undo = true
             end
@@ -304,6 +330,13 @@ function editor:update()
     end
     local x = love.mouse.getX()
     local y = love.mouse.getY()
+
+    if self.layerType == 2 then
+        for i = 1, #self.entities do
+            self.entities[i]:update((x - 130) / 2, (y - 90) / 2)
+        end
+    end
+
     if (self.layerType == 0 or self.layerType == 1) and self.shouldDraw and mousePressed then
         x = math.floor((x - 130) / (10 * 2) + 1)
         y = math.floor((y - 90) / (10 * 2) + 1)
@@ -338,6 +371,24 @@ end
 function editor:removeTile(x, y)
     if self.currentTile and self.currentTile[1] then
         self.currentTile[y][x] = false
+    end
+end
+
+function editor:horizontalSymmetry()
+    history:pushCommit(self.layerType, self.currentTile)
+    for y = 1, 24 do
+        for x = 1, 32 * 0.5 do
+            self.currentTile[y][33 - x] = self.currentTile[y][x]
+        end
+    end
+end
+
+function editor:verticalSymmetry()
+    history:pushCommit(self.layerType, self.currentTile)
+    for y = 1, 24 * 0.5 do
+        for x = 1, 32 do
+            self.currentTile[25 - y][x] = self.currentTile[y][x]
+        end
     end
 end
 

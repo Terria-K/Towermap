@@ -26,20 +26,10 @@ function love.load()
     toolbarTool:addItem("Pen")
     toolbarTool:addItem("Rect")
     toolbarTool:addItem("HSym", function()
-        history:pushCommit(editor.layerType, editor.currentTile)
-        for y = 1, 24 do
-            for x = 1, 32 * 0.5 do
-                editor.currentTile[y][33 - x] = editor.currentTile[y][x]
-            end
-        end
+        editor:horizontalSymmetry()
     end)
     toolbarTool:addItem("VSym", function()
-        history:pushCommit(editor.layerType, editor.currentTile)
-        for y = 1, 24 * 0.5 do
-            for x = 1, 32 do
-                editor.currentTile[25 - y][x] = editor.currentTile[y][x]
-            end
-        end
+        editor:verticalSymmetry()
     end)
 
     local toolbar = Loveframes.Create("panel")
@@ -58,7 +48,7 @@ function love.load()
     FileTree = Loveframes.Create("tree", levelFrame)
     FileTree:SetPos(5, 30)
     FileTree:SetSize(110, love.graphics.getHeight() - 60)
-    FileTree.OnSelectNode = function(parent, node)
+    FileTree.OnSelectNode = function(_, node)
         editor:setLevel("assets/".. node.text)
     end
 

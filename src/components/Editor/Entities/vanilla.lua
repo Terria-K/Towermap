@@ -24,10 +24,20 @@ return function()
         originX = 10, originY = 10,
         texture = { name = "spawnPortal", width = 20, height = 20}
     })
+    RegisterEntityMetadata("EndlessPortal", {
+        width = 50, height = 50,
+        originX = 20, originY = 20,
+        texture = { name = "nextLevelPortal", width = 50, height = 50}
+    })
     RegisterEntityMetadata("TreasureChest", {
         width = 10, height = 10,
         originX = 5, originY = 5,
         texture = { name = "treasureChest", width = 10, height = 10}
+    })
+    RegisterEntityMetadata("BigTreasureChest", {
+        width = 20, height = 20,
+        originX = 10, originY = 10,
+        texture = { name = "bigChest", width = 20, height = 20}
     })
     RegisterEntityMetadata("BGLantern", {
         width = 10, height = 10,
@@ -47,10 +57,11 @@ return function()
         originX = 0, originY = 0,
         texture = "jumpPadOff"
     })
-    RegisterEntityMetadata("EndlessPortal", {
-        width = 50, height = 50,
-        originX = 20, originY = 20,
-        texture = { name = "nextLevelPortal", width = 50, height = 50}
+    RegisterEntityMetadata("CrackedWall", {
+        width = 20, height = 20,
+        originX = 0, originY = 0,
+        texture = "crackedWall"
     })
+
     -- TODO all vanilla entities 
 end

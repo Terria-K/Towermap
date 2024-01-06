@@ -15,6 +15,7 @@ local history  = require("src.components.Editor.history")
 
 local width = 960;
 local entityList
+local entityData
 
 
 function love.load()
@@ -54,6 +55,8 @@ function love.load()
     FileTree:SetPos(5, 30)
     FileTree:SetSize(110, love.graphics.getHeight() - 400)
     FileTree.OnSelectNode = function(_, node)
+        if editor.unsaved then
+        end
         editor:setLevel("assets/".. node.text)
     end
 
@@ -88,25 +91,34 @@ function love.load()
             end
         }
     })
+    ToolButton("Level", love.graphics.getWidth() - 80, 80, {
+        {
+            text = "Settings",
+            callback = function ()
+                editor.shouldDraw = false
+                Settings(function() editor.shouldDraw = true end)
+            end
+        }
+    })
 
 
     local layer = Layer()
 
-    LayerButton("SolidTiles", layer, function()
+    LayerButton("SolidTiles (q)", layer, function()
          editor:changeLayer("SolidTiles")
          if entityList then
             entityList:Remove()
             entityList = nil
          end
     end)
-    LayerButton("BGTiles", layer, function()
+    LayerButton("BGTiles (w)", layer, function()
         editor:changeLayer("BGTiles")
         if entityList then
            entityList:Remove()
            entityList = nil
         end
     end)
-    LayerButton("Entities", layer,
+    LayerButton("Entities (e)", layer,
     function()
         editor:changeLayer("Entities")
         if entityList then
@@ -115,14 +127,90 @@ function love.load()
         entityList = Entities(layer, function(name, o)
             editor:setCurrentEntity(name, o)
         end)
+
     end)
-    LayerButton("BG", layer)
-    LayerButton("Solids", layer)
+    LayerButton("BG (r)", layer,
+    function()
+        editor:changeLayer("BG")
+        if entityList then
+           entityList:Remove()
+           entityList = nil
+        end
+    end)
+    LayerButton("Solids (t)", layer,
+    function()
+        editor:changeLayer("Solids")
+        if entityList then
+           entityList:Remove()
+           entityList = nil
+        end
+    end)
 
     editor.offset = {
         x = 180,
         y = 90
     }
+    editor.onSelectEntity = function(entity)
+        if entityData then
+            entityData:Remove()
+            entityData = nil
+        end
+        entityData = Loveframes.Create("panel", layer.frame)
+        entityData:SetPos(5, 360)
+        entityData:SetSize(170, 250)
+
+        local idText = Loveframes.Create("text", entityData)
+        idText:SetPos(5, 5)
+        idText:SetText("ID: " .. entity.id)
+
+        local posText = Loveframes.Create("text", entityData)
+        posText:SetPos(5, 20)
+        posText:SetText("X: " .. entity.x .. " Y: " .. entity.y)
+
+        local uiWidth = 20
+
+        uiWidth = uiWidth + 20
+        local ewidth = Loveframes.Create("text", entityData)
+        ewidth:SetPos(5, uiWidth)
+        ewidth:SetText("Width: " .. entity.width)
+
+        uiWidth = uiWidth + 20
+        local widthSlider = Loveframes.Create("slider", entityData)
+        widthSlider:SetPos(5, uiWidth)
+        widthSlider:SetMinMax(10, 240)
+        widthSlider:SetWidth(165)
+        widthSlider:SetScrollIncrease(10)
+        widthSlider:SetScrollDecrease(10)
+        widthSlider:SetValue(editor.currentSelectedEntity.width - 0)
+        widthSlider.OnValueChanged = function(o, v)
+            local value = math.floor(v / 10) * 10
+            editor.currentSelectedEntity.width = value
+        end
+
+        uiWidth = uiWidth + 20
+        local eheight = Loveframes.Create("text", entityData)
+        eheight:SetPos(5, uiWidth)
+        eheight:SetText("Height: " .. entity.height)
+
+        uiWidth = uiWidth + 20
+        local heightSlider = Loveframes.Create("slider", entityData)
+        heightSlider:SetPos(5, uiWidth)
+        heightSlider:SetMinMax(10, 240)
+        heightSlider:SetWidth(165)
+        heightSlider:SetScrollIncrease(10)
+        heightSlider:SetScrollDecrease(10)
+        heightSlider:SetValue(editor.currentSelectedEntity.height - 0)
+        heightSlider.OnValueChanged = function(o, v)
+            local value = math.floor(v / 10) * 10
+            editor.currentSelectedEntity.height = value
+        end
+    end
+    editor.onUnselectEntity = function(entity)
+        if entityData then
+            entityData:Remove()
+            entityData = nil
+        end
+    end
 end
 
 
@@ -134,6 +222,7 @@ end
 function love.draw()
     editor:draw()
     Loveframes.draw();
+    editor:afterdraw()
 end
 
 function love.mousepressed(x, y, button)

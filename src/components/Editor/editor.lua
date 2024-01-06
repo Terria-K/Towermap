@@ -8,6 +8,7 @@ local history = require("src.components.Editor.history")
 local Tiler = require("src.components.Editor.tiler")
 local Decor = require("src.components.Editor.decor")
 local Atlas = require("src.components.atlas")
+local decorpanel = require("src.components.Editor.decorpanel")
 local backdropRenderer = require("src.components.Editor.backdropRenderer")
 local tileRenderer = require("src.components.Editor.tileRenderer")
 local mousePressed = false
@@ -122,8 +123,11 @@ local editor = {
     currentID = 0,
     atlas = {},
     bgAtlas = {},
-    currentSelectedEntity = {},
-    dirty = true
+    currentSelectedEntity = nil,
+    onSelectEntity = nil,
+    onUnselectEntity = nil,
+    dirty = true,
+    unsaved = false
 }
 
 function editor:init()
@@ -163,6 +167,7 @@ function editor:init()
     self.bgTiler = Tiler:new(bgSpritesheet)
     self.bgTiler:init("assets/tilesetData.xml", 8)
     self.bgDecor = Decor:new(bgSpritesheet)
+
 end
 
 function editor:setFolder(folder)
@@ -321,6 +326,7 @@ function editor:save()
 
     save_xml(output, filename)
     xml:flush()
+    self.unsaved = false
 end
 
 
@@ -384,15 +390,34 @@ function editor:draw()
     love.graphics.draw(self.framebuffer, 130, 90, 0, 2)
 end
 
+function editor:afterdraw()
+    decorpanel:draw()
+end
+
 function editor:changeLayer(layerName)
     if layerName == "SolidTiles" then
         self.currentTile = self.solids
         self.layerType = 0
+        self:unselectEntity()
+        decorpanel:destroy()
     elseif layerName == "BGTiles" then
         self.currentTile = self.bgs
         self.layerType = 1
+        self:unselectEntity()
+        decorpanel:destroy()
     elseif layerName == "Entities" then
         self.layerType = 2
+        decorpanel:destroy()
+    elseif layerName == "BG" then
+        decorpanel:destroy()
+        self.layerType = 3
+        local flightBGAtlas = self.atlas:getTexture("tilesets/flightBG")
+        decorpanel:init(self.atlas.image, flightBGAtlas.quad, flightBGAtlas.width, flightBGAtlas.height, self.layerType)
+    elseif layerName == "Solids" then
+        decorpanel:destroy()
+        self.layerType = 4
+        local flightAtlas = self.atlas:getTexture("tilesets/flight")
+        decorpanel:init(self.atlas.image, flightAtlas.quad, flightAtlas.width, flightAtlas.height, self.layerType)
     end
 end
 
@@ -402,11 +427,22 @@ function editor:setCurrentEntity(name, o)
 end
 
 function editor:selectEntity(entity)
-    if self.currentSelectedEntity then
-        self.currentSelectedEntity.selected = false
-    end
+    self:unselectEntity()
     entity.selected = true
     self.currentSelectedEntity = entity
+    if self.onSelectEntity then
+        self.onSelectEntity(entity)
+    end
+end
+
+function editor:unselectEntity()
+    if self.onUnselectEntity then
+        self.onUnselectEntity(self.currentSelectedEntity)
+    end
+    if self.currentSelectedEntity then
+        self.currentSelectedEntity.selected = false
+        self.currentSelectedEntity = nil
+    end
 end
 
 function editor:mousepressed(x, y, button)
@@ -434,7 +470,7 @@ function editor:mousepressed(x, y, button)
     if self.layerType == 2 then
         local toRemove = { }
         for i = 1, #self.entities do
-            local shouldStay = self.entities[i]:mousepressed(x, y, button, editor)
+            local shouldStay = self.entities[i]:mousepressed(x, y, button, self)
             if not shouldStay then
                 table.insert(toRemove, i)
                 break
@@ -444,6 +480,7 @@ function editor:mousepressed(x, y, button)
             table.remove(self.entities, v)
         end
     end
+    decorpanel:mousepressed(x, y, button)
 end
 
 function editor:mousereleased(x, y, button)
@@ -452,15 +489,20 @@ function editor:mousereleased(x, y, button)
 
     if self.layerType == 2 then
         for i = 1, #self.entities do
-            self.entities[i]:mousereleased(x, y, button)
+            self.entities[i]:mousereleased(x, y, button, self)
         end
     end
+
+    decorpanel:mousereleased(x, y, button)
 end
 
 local saved = false
 local undo = false
 
 function editor:update()
+    if not mousePressed then
+        self.shouldDraw = not decorpanel:isHovering()
+    end
     if love.keyboard.isDown("lctrl") then
         if love.keyboard.isDown("s") then
             if not saved then
@@ -504,18 +546,27 @@ function editor:update()
         end
     end
 
-    if (self.layerType == 0 or self.layerType == 1) and self.shouldDraw and mousePressed then
+    if (self.layerType == 0 or self.layerType == 1 or self.layerType == 3 or self.layerType == 4) 
+        and self.shouldDraw and mousePressed then
         x = math.floor((x - 130) / (10 * 2) + 1)
         y = math.floor((y - 90) / (10 * 2) + 1)
         if x <= 0 or y <= 0 or x > 40 or y > 24 then
             return
         end
-        if mouseButton == 1 then
+        if mouseButton == 1 and (self.layerType == 0 or self.layerType == 1) then
             self:placeTile(x, y)
+        elseif mouseButton == 1 and (self.layerType == 3 or self.layerType == 4) then
+            local idxs = decorpanel:getIndexes()
+            for idx = 1, #idxs do
+                for idy = 1, #idxs[1] do
+                    self:placeTileIndex(x + idx - 1, y + idy - 1, idxs[idx][idy])
+                end
+            end
         elseif mouseButton == 2 then
             self:removeTile(x, y)
         end
     end
+    decorpanel:update(x, y)
 end
 
 function editor:addEntity(x, y, id)
@@ -531,19 +582,35 @@ function editor:addEntity(x, y, id)
     ent.attributes = self.currentEntity.attributes
     table.insert(self.entities, #self.entities + 1, ent)
     self.currentID = self.currentID + 1
+    self.unsaved = true
 end
 
 function editor:placeTile(x, y)
-    if self.currentTile and self.currentTile[1] and not self.currentTile[y][x] then
+    if (self.layerType == 0 or self.layerType == 1) and self.currentTile and self.currentTile[1] and not self.currentTile[y][x] then
         self.currentTile[y][x] = true
         self.dirty = true
+        self.unsaved = true
     end
 end
 
 function editor:removeTile(x, y)
-    if self.currentTile and self.currentTile[1] and self.currentTile[y][x] then
+    if (self.layerType == 0 or self.layerType == 1) and self.currentTile and self.currentTile[1] and self.currentTile[y][x] then
         self.currentTile[y][x] = false
         self.dirty = true
+        self.unsaved = true
+    elseif self.layerType == 3 then
+        self.bgTiles[x][y] = -1
+    elseif self.layerType == 4 then
+         self.solidTiles[x][y] = -1
+    end
+end
+
+function editor:placeTileIndex(x, y, i)
+    if x > 32 or x < 1 or y > 24 or y < 1 then return end
+    if self.layerType == 3 then
+        self.bgTiles[x][y] = i
+    elseif self.layerType == 4 then
+         self.solidTiles[x][y] = i
     end
 end
 
@@ -555,6 +622,7 @@ function editor:horizontalSymmetry()
             self.currentTile[y][33 - x] = self.currentTile[y][x]
         end
     end
+    self.unsaved = true
 end
 
 function editor:verticalSymmetry()
@@ -565,6 +633,7 @@ function editor:verticalSymmetry()
             self.currentTile[25 - y][x] = self.currentTile[y][x]
         end
     end
+    self.unsaved = true
 end
 
 return editor

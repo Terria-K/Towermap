@@ -74,8 +74,9 @@ function Entity:mousepressed(x, y, button, editor)
     return true
 end
 
-function Entity:mousereleased(x, y, button)
+function Entity:mousereleased(x, y, button, editor)
     self.holding = false
+    editor.unsaved = true
 end
 
 function Entity:imageDraw(offsetX, offsetY, atlas)

@@ -74,7 +74,6 @@ THE SOFTWARE.
 
 
     function mt.__index:closeElement(name)
-        print(name)
         table.insert(self.doc.elements, { name = name, pos = "close" } )
     end
 

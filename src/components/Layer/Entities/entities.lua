@@ -8,7 +8,7 @@ end
 return function (layer, callback)
     local entityList = Loveframes.Create("list", layer.frame)
     entityList:SetPos(5, 180)
-    entityList:SetSize(170, 400)
+    entityList:SetSize(170, 170)
     entityList:SetPadding(0)
     entityList:SetSpacing(0)
 

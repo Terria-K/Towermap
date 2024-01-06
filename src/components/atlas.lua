@@ -18,8 +18,8 @@ function Atlas:new(xml, texture)
         local quad = love.graphics.newQuad(x, y, width, height, texture)
 
         self.textures[name] = {
-            x = x, y = y,
-            width = width, height = height,
+            x = tonumber(x), y = tonumber(y),
+            width = tonumber(width), height = tonumber(height),
             quad = quad
         }
     end

@@ -54,6 +54,10 @@ THE SOFTWARE.
         table.insert(self.doc.elements, { name = name, pos = "start" } )
     end
 
+    function mt.__index:startCloseElement(name)
+        table.insert(self.doc.elements, { name = name, pos = "startClose" } )
+    end
+
     function mt.__index:singleElement(name)
         table.insert(self.doc.elements, { name = name, pos = "singleElement" } )
     end
@@ -101,6 +105,33 @@ THE SOFTWARE.
         table.insert(t, '<?xml version="'..doc_t['version']..'" encoding="'..doc_t['encoding']..'"?>') 
 
         for i, element in ipairs(doc_t.elements) do
+            if element.pos == "startClose" then
+                if element.attr then
+                    local at = {}
+                        for a,v in ipairs(element.attr) do
+                            table.insert(at, v[1]..'="'..v[2]..'"')
+                        end 
+                    attributes = table.concat(at, " ")
+                else
+                    attributes = ""
+                end
+
+                --
+                if element.attr then
+                    if element.value then
+                        table.insert(t, "<"..element.name.." "..attributes..">".. element.value.."</"..element.name..">")
+                    else
+                        table.insert(t, "<"..element.name.." "..attributes..">".."</"..element.name..">")
+                    end
+                else
+                    if element.value then
+                        table.insert(t, "<"..element.name..">".. element.value.."</"..element.name..">")
+                    else
+                        table.insert(t, "<"..element.name..">".."</"..element.name..">")
+                    end
+                end
+            end
+
             if element.pos == "start" then
 
                 if element.attr then
@@ -115,13 +146,17 @@ THE SOFTWARE.
 
                 --
                 if element.attr then
-                    table.insert(t, "<"..element.name.." "..attributes..">")
+                    if element.value then
+                        table.insert(t, "<"..element.name.." "..attributes..">".. element.value)
+                    else
+                        table.insert(t, "<"..element.name.." "..attributes..">")
+                    end
                 else
-                    table.insert(t, "<"..element.name..">")
-                end
-
-                if element.value then
-                    table.insert(t, element.value)
+                    if element.value then
+                        table.insert(t, "<"..element.name..">".. element.value)
+                    else
+                        table.insert(t, "<"..element.name..">")
+                    end
                 end
 
           elseif element.pos == "close" then

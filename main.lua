@@ -52,7 +52,7 @@ function love.load()
 
     FileTree = Loveframes.Create("tree", levelFrame)
     FileTree:SetPos(5, 30)
-    FileTree:SetSize(110, love.graphics.getHeight() - 60)
+    FileTree:SetSize(110, love.graphics.getHeight() - 400)
     FileTree.OnSelectNode = function(_, node)
         editor:setLevel("assets/".. node.text)
     end

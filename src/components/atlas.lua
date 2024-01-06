@@ -1,3 +1,5 @@
+local Spritesheet = require("src.components.spritesheet")
+
 Atlas = {}
 Atlas.__index = Atlas
 

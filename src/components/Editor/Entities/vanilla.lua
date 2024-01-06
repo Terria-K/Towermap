@@ -2,11 +2,22 @@ return function()
     RegisterEntityMetadata("PlayerSpawn", {
         width = 20, height = 20,
         originX = 10, originY = 10,
-        texture = "player/statues/greenAlt"
+        texture = { name = "player/statues/greenAlt", canFlip = true }
     })
     RegisterEntityMetadata("TeamSpawn", {
         width = 20, height = 20,
-        originX = 10, originY = 10
+        originX = 10, originY = 10,
+        texture = { name = "player/statues/pink", canFlip = true }
+    })
+    RegisterEntityMetadata("TeamSpawnA", {
+        width = 20, height = 20,
+        originX = 10, originY = 10,
+        texture = { name = "player/statues/blue", canFlip = true }
+    })
+    RegisterEntityMetadata("TeamSpawnB", {
+        width = 20, height = 20,
+        originX = 10, originY = 10,
+        texture = { name = "player/statues/red", canFlip = true }
     })
     RegisterEntityMetadata("Spawner", {
         width = 20, height = 20,
@@ -37,8 +48,9 @@ return function()
         texture = "jumpPadOff"
     })
     RegisterEntityMetadata("EndlessPortal", {
-        width = 40, height = 40,
-        originX = 20, originY = 20
+        width = 50, height = 50,
+        originX = 20, originY = 20,
+        texture = { name = "nextLevelPortal", width = 50, height = 50}
     })
     -- TODO all vanilla entities 
 end

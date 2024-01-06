@@ -7,15 +7,11 @@ local RegisterVanilla = require("src.components.Editor.Entities.vanilla")
 local history = require("src.components.Editor.history")
 local Tiler = require("src.components.Editor.tiler")
 local Decor = require("src.components.Editor.decor")
-local Spritesheet = require("src.components.spritesheet")
 local Atlas = require("src.components.atlas")
+local backdropRenderer = require("src.components.Editor.backdropRenderer")
 local tileRenderer = require("src.components.Editor.tileRenderer")
 local mousePressed = false
 local mouseButton = 0
-
-local function split(str)
-    return str:gmatch("[^\r\n]*\n?")
-end
 
 local function stringCSVToArray(str)
     local arr = {}
@@ -27,7 +23,7 @@ local function stringCSVToArray(str)
         end
     end
     local rows = {}
-    for line in split(str) do
+    for line in str:gmatch("[^\n]*\n?") do
         table.insert(rows, line);
     end
 
@@ -47,7 +43,22 @@ local function stringCSVToArray(str)
     return arr
 end
 
+local function arrayToStringCSV(arr)
+    local str = ""
+    for y = 1, 24 do
+        for x = 1, 32 do
+            str = str .. arr[x][y]
+            if x ~= 32 then
+                str = str .. ','
+            end
+        end
+        str = str .. '\n'
+    end
+    return str
+end
+
 local function stringToArray(str)
+    str = str:match'^%s*(.*)'
     local arr = {}
     local x = 1
     local y = 1
@@ -78,8 +89,11 @@ local function arrayToString(arr)
                 str = str .. "0"
             end
         end
-        str = str .. "\n"
+        if x ~= 24 then
+            str = str .. "\n"
+        end
     end
+    str = str:match'^(.*%S)%s*$'
     return str
 end
 
@@ -107,6 +121,7 @@ local editor = {
     toolType = 0,
     currentID = 0,
     atlas = {},
+    bgAtlas = {},
     dirty = true
 }
 
@@ -128,6 +143,15 @@ function editor:init()
     local xmlHandler = handler:new()
     local parser = xml2lua.parser(xmlHandler)
     parser:parse(str)
+
+    local bgAtlas = love.graphics.newImage("assets/bgAtlas.png")
+    local str2 = love.filesystem.read("assets/bgAtlas.xml")
+    local xmlBgAtlas = handler:new()
+    local parser2 = xml2lua.parser(xmlBgAtlas)
+    parser2:parse(str2)
+
+    self.bgAtlas = Atlas:new(xmlBgAtlas, bgAtlas)
+    backdropRenderer:init("Flight", self.bgAtlas)
 
     self.atlas = Atlas:new(xmlHandler, imageAtlas)
     local solidSpritesheet = self.atlas:createSpriteSheet("tilesets/flight", imageAtlas)
@@ -253,29 +277,27 @@ function editor:save()
     local xml = tinyxmlwriter:new()
     local solidStr = arrayToString(self.solids)
     local bgStr = arrayToString(self.bgs)
+    local bgTilesStr = arrayToStringCSV(self.bgTiles)
+    local solidTilesStr = arrayToStringCSV(self.solidTiles)
     local filename = self.filename
 
     xml:startDocument("1.0", "utf-8")
     xml:startElement("level")
-        xml:startElement("Solids")
-        xml:addAttribut("exportMode", "BitString")
+        xml:startCloseElement("Solids")
+        xml:addAttribut("exportMode", "Bitstring")
         xml:writeValue(solidStr)
-        xml:closeElement("Solids")
 
-        xml:startElement("BG")
-        xml:addAttribut("exportMode", "BitString")
+        xml:startCloseElement("BG")
+        xml:addAttribut("exportMode", "Bitstring")
         xml:writeValue(bgStr)
-        xml:closeElement("BG")
 
-        xml:startElement("BGTiles")
+        xml:startCloseElement("BGTiles")
         xml:addAttribut("exportMode", "TrimmedCSV")
-        xml:writeValue(self.xml.level.BGTiles[1])
-        xml:closeElement("BGTiles")
+        xml:writeValue(bgTilesStr)
 
-        xml:startElement("SolidTiles")
+        xml:startCloseElement("SolidTiles")
         xml:addAttribut("exportMode", "TrimmedCSV")
-        xml:writeValue(self.xml.level.SolidTiles[1])
-        xml:closeElement("SolidTiles")
+        xml:writeValue(solidTilesStr)
 
         xml:startElement("Entities")
             for _, v in ipairs(self.entities) do
@@ -325,6 +347,7 @@ function editor:draw()
 
     love.graphics.setCanvas(self.framebuffer)
     love.graphics.clear()
+    backdropRenderer:draw()
     love.graphics.setColor(255, 255, 255, 0.3)
     love.graphics.setLineWidth(1)
     love.graphics.setLineStyle("rough")
@@ -405,6 +428,7 @@ function editor:mousepressed(x, y, button)
             local shouldStay = self.entities[i]:mousepressed(x, y, button, editor)
             if not shouldStay then
                 table.insert(toRemove, i)
+                break
             end
         end
         for _, v in ipairs(toRemove) do
@@ -515,6 +539,7 @@ function editor:removeTile(x, y)
 end
 
 function editor:horizontalSymmetry()
+    editor.dirty = true
     history:pushCommit(self.layerType, self.currentTile)
     for y = 1, 24 do
         for x = 1, 32 * 0.5 do
@@ -524,6 +549,7 @@ function editor:horizontalSymmetry()
 end
 
 function editor:verticalSymmetry()
+    editor.dirty = true
     history:pushCommit(self.layerType, self.currentTile)
     for y = 1, 24 * 0.5 do
         for x = 1, 32 do

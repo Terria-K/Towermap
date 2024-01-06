@@ -14,9 +14,14 @@ function Entity:new(name, x, y, width, height, originX, originY, texture, id, at
     self.originX = originX or 0
     self.originY = originY or 0
     if type(texture) == "table" then
-        self.texture = atlas:newTextureQuad(texture.name, texture.width, texture.height)
+        if texture.width or texture.height then
+            self.texture = { tex = atlas:newTextureQuad(texture.name, texture.width, texture.height),
+                flip = texture.flip }
+        else
+            self.texture = { tex = atlas:getTexture(texture.name).quad, canFlip = texture.canFlip }
+        end
     elseif texture then
-        self.texture = atlas:getTexture(texture).quad
+        self.texture = { tex = atlas:getTexture(texture).quad }
     end
     self.attributes = {}
 
@@ -71,46 +76,46 @@ function Entity:mousereleased(x, y, button)
     self.holding = false
 end
 
+function Entity:imageDraw(offsetX, offsetY, atlas)
+    if self.texture then
+        if self.texture.canFlip and self.x > 320 * 0.5 then
+            love.graphics.draw(atlas, self.texture.tex, self:getPositionX() + offsetX, self:getPositionY() + offsetY, 0, -1, 1, self.width, 0)
+        else
+            love.graphics.draw(atlas, self.texture.tex, self:getPositionX() + offsetX, self:getPositionY() + offsetY)
+        end
+    end
+end
+
 function Entity:draw(atlas)
     if self:getPositionY() > (240 - self.height) then
-        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.2)
+        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.3)
         love.graphics.rectangle("fill", self:getPositionX(), self:getPositionY() - 240, self.width, self.height)
         love.graphics.setColor(1, 1, 1, 1)
-        if self.texture then
-            love.graphics.draw(atlas, self.texture, self:getPositionX(), self:getPositionY() - 240)
-        end
+        self:imageDraw(0, -240, atlas)
     end
     if self:getPositionX() > (320 - self.width) then
-        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.2)
+        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.3)
         love.graphics.rectangle("fill", self:getPositionX() - 320, self:getPositionY(), self.width, self.height)
         love.graphics.setColor(1, 1, 1, 1)
-        if self.texture then
-            love.graphics.draw(atlas, self.texture, self:getPositionX() - 320, self:getPositionY())
-        end
+        self:imageDraw(-320, 0, atlas)
     end
     if self:getPositionX() < (self.width - 0) then
-        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.2)
+        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.3)
         love.graphics.rectangle("fill", self:getPositionX() + 320, self:getPositionY(), self.width, self.height)
         love.graphics.setColor(1, 1, 1, 1)
-        if self.texture then
-            love.graphics.draw(atlas, self.texture, self:getPositionX() + 320, self:getPositionY())
-        end
+        self:imageDraw(320, 0, atlas)
     end
     if self:getPositionY() < self.height - 0 then
-        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.2)
+        love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.3)
         love.graphics.rectangle("fill", self:getPositionX(), self:getPositionY() + 240, self.width, self.height)
         love.graphics.setColor(1, 1, 1, 1)
-        if self.texture then
-            love.graphics.draw(atlas, self.texture, self:getPositionX(), self:getPositionY() + 240)
-        end
+        self:imageDraw(0, 240, atlas)
     end
-    love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.2)
+    love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.3)
     love.graphics.rectangle("fill", self:getPositionX(), self:getPositionY(), self.width, self.height)
     love.graphics.setColor(1, 1, 1, 1)
-    if self.texture then
-        love.graphics.draw(atlas, self.texture, self:getPositionX(), self:getPositionY())
-    end
-    love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.2)
+    self:imageDraw(0, 0, atlas)
+    love.graphics.setColor(0xf1/255.0, 0xe0/255.0, 0x0e/255.0, 0.3)
     if self.colliding then
         if self:getPositionY() - 3 > (240 - self.height + 6) then
             love.graphics.rectangle("fill", self:getPositionX() - 3, self:getPositionY() - 240 - 3, self.width + 6, self.height + 6)

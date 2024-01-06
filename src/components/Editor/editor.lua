@@ -122,6 +122,7 @@ local editor = {
     currentID = 0,
     atlas = {},
     bgAtlas = {},
+    currentSelectedEntity = {},
     dirty = true
 }
 
@@ -398,6 +399,14 @@ end
 function editor:setCurrentEntity(name, o)
     self.currentEntity = o
     self.currentEntity.name = name
+end
+
+function editor:selectEntity(entity)
+    if self.currentSelectedEntity then
+        self.currentSelectedEntity.selected = false
+    end
+    entity.selected = true
+    self.currentSelectedEntity = entity
 end
 
 function editor:mousepressed(x, y, button)

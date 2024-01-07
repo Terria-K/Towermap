@@ -13,7 +13,7 @@ return function (layer, callback)
     entityList:SetSpacing(0)
 
     for k, v in pairs(GetAllMetadatas()) do
-        addEntity(k, entityList, function() 
+        addEntity(k, entityList, function()
             callback(k, v)
         end)
     end

@@ -10,15 +10,17 @@ local Entities = require("src.components.Layer.Entities.entities")
 local Layer = require("src.components.Layer.layer")
 local LayerButton = require("src.components.Layer.layerbutton")
 local Settings = require("src.components.Settings.settings")
-local history  = require("src.components.Editor.history")
+local tower = require("src.components.tower")
 
 
 local width = 960;
 local entityList
 local entityData
 
+local modalOpen = false
 
 function love.load()
+    tower.loadTower("assets/tower.xml")
     love.graphics.setDefaultFilter("nearest", "nearest")
     editor:init()
     Loveframes.SetActiveSkin("Dark blue")
@@ -86,8 +88,13 @@ function love.load()
         {
             text = "Map Settings",
             callback = function ()
-                editor.shouldDraw = false
-                Settings(function() editor.shouldDraw = true end)
+                modalOpen = true
+                local settings = Settings(tower, function() modalOpen = false end)
+
+                settings.versusEvents.onThemeChange = function(choice)
+                    tower.data.theme = choice
+                    editor:setTheme(choice)
+                end
             end
         }
     })
@@ -95,8 +102,7 @@ function love.load()
         {
             text = "Settings",
             callback = function ()
-                editor.shouldDraw = false
-                Settings(function() editor.shouldDraw = true end)
+                modalOpen = true
             end
         }
     })
@@ -216,23 +222,33 @@ end
 
 function love.update(dt)
     Loveframes.update(dt);
-    editor:update()
+    if not modalOpen then
+        editor:update()
+    end
 end
 
 function love.draw()
-    editor:draw()
+    if not modalOpen then
+        editor:draw()
+    end
     Loveframes.draw();
-    editor:afterdraw()
+    if not modalOpen then
+        editor:afterdraw()
+    end
 end
 
 function love.mousepressed(x, y, button)
 	Loveframes.mousepressed(x, y, button)
-    editor:mousepressed(x, y, button)
+    if not modalOpen then
+        editor:mousepressed(x, y, button)
+    end
 end
 
 function love.mousereleased(x, y, button)
 	Loveframes.mousereleased(x, y, button)
-    editor:mousereleased(x, y, button)
+    if not modalOpen then
+        editor:mousereleased(x, y, button)
+    end
 end
 
 function love.wheelmoved(x, y)
@@ -248,17 +264,19 @@ function love.keypressed(key, isrepeat)
 end
 
 function love.keyreleased(key)
-    if key == '1' then
-        editor.toolType = 0
-    end
-    if key == '2' then
-        editor.toolType = 1
-    end
-    if key == 'h' then
-        editor:horizontalSymmetry()
-    end
-    if key == 'v' then
-        editor:verticalSymmetry()
+    if not modalOpen then
+        if key == '1' then
+            editor.toolType = 0
+        end
+        if key == '2' then
+            editor.toolType = 1
+        end
+        if key == 'h' then
+            editor:horizontalSymmetry()
+        end
+        if key == 'v' then
+            editor:verticalSymmetry()
+        end
     end
 	Loveframes.keyreleased(key)
 end

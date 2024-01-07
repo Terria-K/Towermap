@@ -1,24 +1,24 @@
-local open = false;
+local settings = {
+    versusEvents = {
+        onThemeChange = nil
+    }
+}
 
-return function(onClose)
-    if (open) then
-        return
-    end
-    open = true
-    local settings = Loveframes.Create("frame")
-    settings:SetName("Map Settings")
-    settings:SetPos((960 * 0.5) - 500 * 0.5, (640 * 0.5) - 400 * 0.5)
-    settings:SetSize(500, 400)
-    settings:SetDraggable(false)
+return function(tower, onClose)
+    local settingsFrame = Loveframes.Create("frame")
+    settingsFrame:SetName("Map Settings")
+    settingsFrame:SetPos((960 * 0.5) - 500 * 0.5, (640 * 0.5) - 400 * 0.5)
+    settingsFrame:SetSize(500, 400)
+    settingsFrame:SetDraggable(false)
+    settingsFrame:SetModal(true)
 
-    settings.OnClose = function()
-        open = false
+    settingsFrame.OnClose = function()
         if onClose then
             onClose()
         end
     end
 
-    local tab = Loveframes.Create("tabs", settings)
+    local tab = Loveframes.Create("tabs", settingsFrame)
     tab:SetPos(5, 30)
     tab:SetSize(450, 330)
 
@@ -40,6 +40,34 @@ return function(onClose)
     multiChoice:AddChoice("TwilightSpire")
     multiChoice:AddChoice("Backfire")
     multiChoice:AddChoice("Flight")
+    multiChoice:AddChoice("Mirage")
+    multiChoice:AddChoice("Thornwood")
+    multiChoice:AddChoice("KingsCourt")
+    multiChoice:AddChoice("FrostfangKeep")
+    multiChoice:AddChoice("SunkenCity")
+    multiChoice:AddChoice("Moonstone")
+    multiChoice:AddChoice("TowerForge")
+    multiChoice:AddChoice("Ascension")
+    multiChoice:AddChoice("GauntletA")
+    multiChoice:AddChoice("GauntletB")
+    multiChoice:AddChoice("TheAmaranth")
+    multiChoice:AddChoice("Dreadwood")
+    multiChoice:AddChoice("Darkfang")
+    multiChoice:AddChoice("Cataclysm")
+    multiChoice:AddChoice("DarkGauntlet")
+
+    multiChoice:SelectChoice(tower.data.theme)
+    multiChoice.OnChoiceSelected = function(choice)
+        settings.versusEvents.onThemeChange(choice:GetChoice())
+    end
+
+    local treasureChoice = Loveframes.Create("multichoice", versus)
+    treasureChoice:SetPos(100, 50)
+    treasureChoice:AddChoice("Arrows")
+    treasureChoice:AddChoice("BombArrows")
+    treasureChoice:AddChoice("Shield")
+    treasureChoice:AddChoice("Wings")
+    treasureChoice:AddChoice("ChaosOrb")
 
     local button = Loveframes.Create("button", versus)
     button:SetText("+ Treasure")
@@ -48,16 +76,15 @@ return function(onClose)
     local treasures = Loveframes.Create("list", versus)
     treasures:SetPos(5, 80)
 
-    local treasureItem = Loveframes.Create("text")
-    treasureItem:SetText("ChaosOrb")
+    for i = 1, #tower.data.treasure do
+        local text = Loveframes.Create("text")
+        text:SetText(tower.data.treasure[i])
+        treasures:AddItem(text)
+    end
 
-    local arrow= Loveframes.Create("text")
-    arrow:SetText("Arrows")
-
-    treasures:AddItem(arrow)
-    treasures:AddItem(treasureItem)
 
     CreateTab("Trials")
     CreateTab("Quest")
     CreateTab("Dark World")
+    return settings
 end

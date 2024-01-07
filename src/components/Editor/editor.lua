@@ -1,7 +1,5 @@
 local lfs = require("src.lib.lfs.lfs")
 local tinyxmlwriter = require("src.lib.lua-tinyxmlwriter.tinyxmlwriter")
-local xml2lua = require("src.lib.xml2lua.xml2lua")
-local handler = require("src.lib.xml2lua.xmlhandler.tree")
 local Entity = require("src.components.Editor.Entities.entity")
 local RegisterVanilla = require("src.components.Editor.Entities.vanilla")
 local history = require("src.components.Editor.history")
@@ -11,93 +9,14 @@ local Atlas = require("src.components.atlas")
 local decorpanel = require("src.components.Editor.decorpanel")
 local backdropRenderer = require("src.components.Editor.backdropRenderer")
 local tileRenderer = require("src.components.Editor.tileRenderer")
+local arrayUtils = require("src.utils.arrayutils")
+local fs = require("src.utils.fs")
+local tile = require("src.components.Editor.tile")
+local theme = require("src.components.theme")
+local worldmouse = require("src.worldmouse")
+local xmlloader = require("src.utils.xmlloader")
 local mousePressed = false
 local mouseButton = 0
-
-local function stringCSVToArray(str)
-    local arr = {}
-
-    for x1 = 1, 32 do
-        arr[x1] = {}
-        for y1 =1, 24 do
-            arr[x1][y1] = -1
-        end
-    end
-    local rows = {}
-    for line in str:gmatch("[^\n]*\n?") do
-        table.insert(rows, line);
-    end
-
-    local y = 1
-    while y <= 24 and y <= #rows do
-        local nums = SplitCSVToNumber(rows[y], ',')
-        local x = 1
-        while x <= 32 and x <= #nums do
-            local num = tonumber(nums[x])
-            if num then
-                arr[x][y] = num
-            end
-            x = x + 1
-        end
-        y = y + 1
-    end
-    return arr
-end
-
-local function arrayToStringCSV(arr)
-    local str = ""
-    for y = 1, 24 do
-        for x = 1, 32 do
-            str = str .. arr[x][y]
-            if x ~= 32 then
-                str = str .. ','
-            end
-        end
-        str = str .. '\n'
-    end
-    return str
-end
-
-local function stringToArray(str)
-    str = str:match'^%s*(.*)'
-    local arr = {}
-    local x = 1
-    local y = 1
-    arr[y] = {}
-    for c in str:gmatch"." do
-        if c == '\n' then
-            x = 1
-            y = y + 1
-            arr[y] = {}
-        elseif c == '0' then
-            arr[y][x] = false
-            x = x + 1
-        else
-            arr[y][x] = true
-            x = x + 1
-        end
-    end
-    return arr
-end
-
-local function arrayToString(arr)
-    local str = ""
-    for x = 1, 24 do
-        for y = 1, 32 do
-            if arr[x][y] then
-                str = str .. "1"
-            else
-                str = str .. "0"
-            end
-        end
-        if x ~= 24 then
-            str = str .. "\n"
-        end
-    end
-    str = str:match'^(.*%S)%s*$'
-    return str
-end
-
 
 local editor = {
     -- Layers
@@ -123,6 +42,7 @@ local editor = {
     currentID = 0,
     atlas = {},
     bgAtlas = {},
+    themeName = "",
     currentSelectedEntity = nil,
     onSelectEntity = nil,
     onUnselectEntity = nil,
@@ -131,7 +51,7 @@ local editor = {
 }
 
 function editor:init()
-    self.framebuffer = love.graphics.newCanvas(320, 240)
+    self.framebuffer = love.graphics.newCanvas(worldmouse.width, worldmouse.height)
     tileRenderer:init()
 
     for x = 1, 24 do
@@ -143,31 +63,33 @@ function editor:init()
         end
     end
     RegisterVanilla()
-    local imageAtlas = love.graphics.newImage("assets/atlas.png")
-    local str = love.filesystem.read("assets/atlas.xml")
-    local xmlHandler = handler:new()
-    local parser = xml2lua.parser(xmlHandler)
-    parser:parse(str)
+    local atlas = love.graphics.newImage("assets/atlas.png")
+    local xmlAtlas = xmlloader.load("assets/atlas.xml")
 
     local bgAtlas = love.graphics.newImage("assets/bgAtlas.png")
-    local str2 = love.filesystem.read("assets/bgAtlas.xml")
-    local xmlBgAtlas = handler:new()
-    local parser2 = xml2lua.parser(xmlBgAtlas)
-    parser2:parse(str2)
+    local xmlBgAtlas = xmlloader.load("assets/bgAtlas.xml")
 
     self.bgAtlas = Atlas:new(xmlBgAtlas, bgAtlas)
     backdropRenderer:init("Flight", self.bgAtlas)
+    self.atlas = Atlas:new(xmlAtlas, atlas)
 
-    self.atlas = Atlas:new(xmlHandler, imageAtlas)
-    local solidSpritesheet = self.atlas:createSpriteSheet("tilesets/flight", imageAtlas)
+    editor:setTheme("Flight")
+
+end
+
+function editor:setTheme(themeName)
+    self.themeName = themeName
+    self.dirty = true
+    local t = theme[themeName]
+
+    local solidSpritesheet = self.atlas:createSpriteSheet(t.solidTiles, self.atlas.image)
     self.solidTiler = Tiler:new(solidSpritesheet)
-    self.solidTiler:init("assets/tilesetData.xml", 7)
+    self.solidTiler:init("assets/tilesetData.xml", t.tileIndex * 2 - 1)
     self.solidDecor = Decor:new(solidSpritesheet)
-    local bgSpritesheet = self.atlas:createSpriteSheet("tilesets/flightBG", imageAtlas)
+    local bgSpritesheet = self.atlas:createSpriteSheet(t.bgTiles, self.atlas.image)
     self.bgTiler = Tiler:new(bgSpritesheet)
-    self.bgTiler:init("assets/tilesetData.xml", 8)
+    self.bgTiler:init("assets/tilesetData.xml", t.tileIndex * 2)
     self.bgDecor = Decor:new(bgSpritesheet)
-
 end
 
 function editor:setFolder(folder)
@@ -197,7 +119,7 @@ function editor:setLevel(file)
     self.dirty = true
     self:removeAllEntities()
     local str = love.filesystem.read(file)
-    if not FileExists(file) then
+    if not fs.fileExists(file) then
         for i = 1, #self.items do
             if self.items[i] == file then
                 table.remove(self.items, i)
@@ -205,17 +127,16 @@ function editor:setLevel(file)
         end
         return
     end
-    local xmlHandler = handler:new()
-    local parser = xml2lua.parser(xmlHandler)
-    parser:parse(str)
 
-    self.solids = stringToArray(xmlHandler.root.level.Solids[1])
-    self.bgs = stringToArray(xmlHandler.root.level.BG[1])
+    local xmlHandler = xmlloader.parse(str)
+
+    self.solids = arrayUtils.stringToArray(xmlHandler.root.level.Solids[1])
+    self.bgs = arrayUtils.stringToArray(xmlHandler.root.level.BG[1])
     if xmlHandler.root.level.SolidTiles[1] then
-        self.solidTiles = stringCSVToArray(xmlHandler.root.level.SolidTiles[1])
+        self.solidTiles = arrayUtils.stringCSVToArray(xmlHandler.root.level.SolidTiles[1])
     end
     if xmlHandler.root.level.BGTiles[1] then
-        self.bgTiles = stringCSVToArray(xmlHandler.root.level.BGTiles[1])
+        self.bgTiles = arrayUtils.stringCSVToArray(xmlHandler.root.level.BGTiles[1])
     end
     self.xml = xmlHandler.root
     self:addAllEntities(xmlHandler.root.level.Entities)
@@ -281,10 +202,10 @@ end
 
 function editor:save()
     local xml = tinyxmlwriter:new()
-    local solidStr = arrayToString(self.solids)
-    local bgStr = arrayToString(self.bgs)
-    local bgTilesStr = arrayToStringCSV(self.bgTiles)
-    local solidTilesStr = arrayToStringCSV(self.solidTiles)
+    local solidStr = arrayUtils.arrayToString(self.solids)
+    local bgStr = arrayUtils.arrayToString(self.bgs)
+    local bgTilesStr = arrayUtils.arrayToStringCSV(self.bgTiles)
+    local solidTilesStr = arrayUtils.arrayToStringCSV(self.solidTiles)
     local filename = self.filename
 
     xml:startDocument("1.0", "utf-8")
@@ -358,11 +279,11 @@ function editor:draw()
     love.graphics.setColor(255, 255, 255, 0.3)
     love.graphics.setLineWidth(1)
     love.graphics.setLineStyle("rough")
-    for i = 1, 24 do
-        love.graphics.line(0, i * 10, 320, i * 10)
+    for i = 1, worldmouse.height / 10 do
+        love.graphics.line(0, i * 10, worldmouse.width, i * 10)
     end
-    for i = 1, 32 do
-        love.graphics.line(i * 10, 0, i * 10, 240)
+    for i = 1, worldmouse.width / 10 do
+        love.graphics.line(i * 10, 0, i * 10, worldmouse.height)
     end
     love.graphics.setColor(255, 255, 255, 1)
 
@@ -374,20 +295,20 @@ function editor:draw()
         self.entities[i]:draw(self.atlas.image)
     end
     if self.toolType == 0 and self.layerType == 2 and self.currentEntity.width then
-        local rx = (love.mouse.getX() - 130) / 2
-        local ry = (love.mouse.getY() - 90) / 2
-        local snapX = math.floor(rx / 5) * 5
-        local snapY = math.floor(ry / 5) * 5
+        local mousePos = worldmouse.getMouseWorldCoords()
+        local snap = worldmouse.snapCoords(mousePos.x, mousePos.y, 5)
         local width = self.currentEntity.width
         local height = self.currentEntity.height
         love.graphics.rectangle("line",
-        snapX - self.currentEntity.originX, snapY - self.currentEntity.originY,
+        snap.x - self.currentEntity.originX, snap.y - self.currentEntity.originY,
             width, height)
     end
 
+    tile:draw()
+
     love.graphics.setCanvas()
 
-    love.graphics.draw(self.framebuffer, 130, 90, 0, 2)
+    love.graphics.draw(self.framebuffer, worldmouse.x, worldmouse.y, 0, worldmouse.size)
 end
 
 function editor:afterdraw()
@@ -411,13 +332,13 @@ function editor:changeLayer(layerName)
     elseif layerName == "BG" then
         decorpanel:destroy()
         self.layerType = 3
-        local flightBGAtlas = self.atlas:getTexture("tilesets/flightBG")
-        decorpanel:init(self.atlas.image, flightBGAtlas.quad, flightBGAtlas.width, flightBGAtlas.height, self.layerType)
+        local atlas = self.atlas:getTexture(theme[self.themeName].bgTiles)
+        decorpanel:init(self.atlas.image, atlas.quad, atlas.width, atlas.height, self.layerType)
     elseif layerName == "Solids" then
         decorpanel:destroy()
         self.layerType = 4
-        local flightAtlas = self.atlas:getTexture("tilesets/flight")
-        decorpanel:init(self.atlas.image, flightAtlas.quad, flightAtlas.width, flightAtlas.height, self.layerType)
+        local atlas = self.atlas:getTexture(theme[self.themeName].solidTiles)
+        decorpanel:init(self.atlas.image, atlas.quad, atlas.width, atlas.height, self.layerType)
     end
 end
 
@@ -450,16 +371,19 @@ function editor:mousepressed(x, y, button)
         print(Dump(self.entities))
     end
     if not mousePressed and self.shouldDraw then
-        local rx = (x - 130) / 2
-        local ry = (y - 90) / 2
+        local mousePos = worldmouse.getMouseWorldCoords()
 
-        if not (rx < 0 or ry < 0 or rx > 320 or ry > 240) then
+        if editor.isInWorldBounds(mousePos.x, mousePos.y) then
             if self.toolType == 0 and self.layerType == 2 and button == 1 then
-                self:addEntity(rx, ry)
+                self:addEntity(mousePos.x, mousePos.y)
                 self.toolType = 1
             end
             if self.layerType == 0 or self.layerType == 1 then
                 history:pushCommit(self.layerType, self.currentTile)
+            elseif self.layerType == 3 then
+                history:pushCommit(self.layerType, self.bgTiles)
+            elseif self.layerType == 4 then
+                history:pushCommit(self.layerType, self.solidTiles)
             end
         end
     end
@@ -493,6 +417,32 @@ function editor:mousereleased(x, y, button)
         end
     end
 
+    if tile.started then
+        tile.started = false
+        tile:adjustIfNeeded()
+
+        local dx = 0
+        while dx < tile.width / 10 do
+            local dy = 0
+            while dy < tile.height / 10 do
+                local gridX = worldmouse.toGrid(tile.x) + dx + 1
+                local gridY = worldmouse.toGrid(tile.y) + dy + 1
+                if editor.isInGridBounds(gridX, gridY) then
+                    if mouseButton == 1 then
+                        editor:placeTile(gridX, gridY)
+                    elseif mouseButton == 2 then
+                        editor:removeTile(gridX, gridY)
+                    end
+                end
+
+                dy = dy + 1
+            end
+            dx = dx + 1
+        end
+        tile.width = 0
+        tile.height = 0
+    end
+
     decorpanel:mousereleased(x, y, button)
 end
 
@@ -522,6 +472,10 @@ function editor:update()
                     if self.layerType == 1 then
                         self.currentTile = self.bgs
                     end
+                elseif commit.layerType == 3 then
+                    self.bgTiles = commit.tiles
+                elseif commit.layerType == 4 then
+                    self.solidTiles = commit.tiles
                 end
                 self.dirty = true
                 undo = true
@@ -542,37 +496,49 @@ function editor:update()
 
     if self.layerType == 2 then
         for i = 1, #self.entities do
-            self.entities[i]:update((x - 130) / 2, (y - 90) / 2)
+            self.entities[i]:update((x - worldmouse.x) / worldmouse.size, (y - worldmouse.y) / worldmouse.size)
         end
     end
 
-    if (self.layerType == 0 or self.layerType == 1 or self.layerType == 3 or self.layerType == 4) 
-        and self.shouldDraw and mousePressed then
-        x = math.floor((x - 130) / (10 * 2) + 1)
-        y = math.floor((y - 90) / (10 * 2) + 1)
-        if x <= 0 or y <= 0 or x > 40 or y > 24 then
+    if tile.started then
+        tile:update(x, y)
+    end
+
+    if (self.layerType == 0 or self.layerType == 1 or self.layerType == 3 or self.layerType == 4)
+        and self.shouldDraw and not self.modalOpen and mousePressed then
+        local gridX = math.floor((x - worldmouse.x) / (10 * worldmouse.size) + 1)
+        local gridY = math.floor((y - worldmouse.y) / (10 * worldmouse.size) + 1)
+        if not self.isInGridBounds(gridX, gridY) then
             return
         end
-        if mouseButton == 1 and (self.layerType == 0 or self.layerType == 1) then
-            self:placeTile(x, y)
-        elseif mouseButton == 1 and (self.layerType == 3 or self.layerType == 4) then
-            local idxs = decorpanel:getIndexes()
-            for idx = 1, #idxs do
-                for idy = 1, #idxs[1] do
-                    self:placeTileIndex(x + idx - 1, y + idy - 1, idxs[idx][idy])
-                end
+
+        if self.toolType == 1 then
+            if not tile.started then
+                local snap = worldmouse.snapCoords((x - worldmouse.x) / worldmouse.size, 
+                (y - worldmouse.y) / worldmouse.size, 10)
+                tile.start(snap.x, snap.y, mouseButton)
             end
-        elseif mouseButton == 2 then
-            self:removeTile(x, y)
+        else
+            if mouseButton == 1 and (self.layerType == 0 or self.layerType == 1) then
+                    self:placeTile(gridX, gridY)
+            elseif mouseButton == 1 and (self.layerType == 3 or self.layerType == 4) then
+                local idxs = decorpanel:getIndexes()
+                for idx = 1, #idxs do
+                    for idy = 1, #idxs[1] do
+                        self:placeTileIndex(gridX + idx - 1, gridY + idy - 1, idxs[idx][idy])
+                    end
+                end
+            elseif mouseButton == 2 then
+                self:removeTile(gridX, gridY)
+            end
         end
     end
     decorpanel:update(x, y)
 end
 
 function editor:addEntity(x, y, id)
-    local snapX = math.floor(x / 5) * 5
-    local snapY = math.floor(y / 5) * 5
-    local ent = Entity:new(self.currentEntity.name, snapX, snapY,
+    local snap = worldmouse.snapCoords(x, y, 5)
+    local ent = Entity:new(self.currentEntity.name, snap.x, snap.y,
         self.currentEntity.width,
         self.currentEntity.height,
         self.currentEntity.originX,
@@ -606,7 +572,7 @@ function editor:removeTile(x, y)
 end
 
 function editor:placeTileIndex(x, y, i)
-    if x > 32 or x < 1 or y > 24 or y < 1 then return end
+    if not editor.isInGridBounds(x, y) then return end
     if self.layerType == 3 then
         self.bgTiles[x][y] = i
     elseif self.layerType == 4 then
@@ -617,23 +583,40 @@ end
 function editor:horizontalSymmetry()
     editor.dirty = true
     history:pushCommit(self.layerType, self.currentTile)
-    for y = 1, 24 do
-        for x = 1, 32 * 0.5 do
-            self.currentTile[y][33 - x] = self.currentTile[y][x]
+    print(worldmouse.height / 10)
+    for y = 1, worldmouse.height / 10 do
+        for x = 1, worldmouse.width / 10 * 0.5 do
+            self.currentTile[y][(worldmouse.width / 10 + 1) - x] = self.currentTile[y][x]
         end
     end
+
     self.unsaved = true
 end
 
 function editor:verticalSymmetry()
     editor.dirty = true
     history:pushCommit(self.layerType, self.currentTile)
-    for y = 1, 24 * 0.5 do
-        for x = 1, 32 do
-            self.currentTile[25 - y][x] = self.currentTile[y][x]
+    for y = 1, worldmouse.height / 10 * 0.5 do
+        for x = 1, worldmouse.width / 10 do
+            self.currentTile[(worldmouse.height / 10 + 1) - y][x] = self.currentTile[y][x]
         end
     end
+
     self.unsaved = true
+end
+
+function editor.isInWorldBounds(x, y) 
+    if x < 0 or y < 0 or x > worldmouse.width or y > worldmouse.height then
+        return false
+    end
+    return true
+end
+
+function editor.isInGridBounds(x, y)
+    if x < 1 or y < 1 or x > worldmouse.width / 10 or y > worldmouse.height / 10 then
+        return false
+    end
+    return true
 end
 
 return editor

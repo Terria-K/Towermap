@@ -5,7 +5,7 @@ An alternative TowerFall Level editor that supports more game elements and game 
 This level editor is still work in poggers, and it still effectively being developed by a
 single person.
 
-![preview](./images/preview.png)
+![preview](./images/latestpreview.png)
 
 ## Contributing
 If you want to contribute in this project, make sure you have TowerFall, as the editor needs

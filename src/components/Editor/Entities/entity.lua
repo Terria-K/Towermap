@@ -3,7 +3,7 @@ local RegisteredEntities = {}
 Entity = {}
 Entity.__index = Entity
 
-function Entity:new(name, x, y, width, height, originX, originY, texture, id, atlas)
+function Entity:new(name, x, y, width, height, originX, originY, texture, id, atlas, renderer)
     self = setmetatable({}, Entity)
     self.id = id
     self.name = name
@@ -13,12 +13,12 @@ function Entity:new(name, x, y, width, height, originX, originY, texture, id, at
     self.height = height or 20
     self.originX = originX or 0
     self.originY = originY or 0
+    self.renderer = renderer
     if type(texture) == "table" then
         if texture.width or texture.height then
-            self.texture = { tex = atlas:newTextureQuad(texture.name, texture.width, texture.height),
-                flip = texture.flip }
+            self.texture = { tex = atlas:newTextureQuad(texture.name, texture.width, texture.height) }
         else
-            self.texture = { tex = atlas:getTexture(texture.name).quad, canFlip = texture.canFlip }
+            self.texture = { tex = atlas:getTexture(texture.name).quad }
         end
     elseif texture then
         self.texture = { tex = atlas:getTexture(texture).quad }
@@ -80,12 +80,12 @@ function Entity:mousereleased(x, y, button, editor)
 end
 
 function Entity:imageDraw(offsetX, offsetY, atlas)
+    if self.renderer then
+        self.renderer(self, { x = self.x, y = self.y }, offsetX, offsetY)
+        return
+    end
     if self.texture then
-        if self.texture.canFlip and self.x > 320 * 0.5 then
-            love.graphics.draw(atlas, self.texture.tex, self:getPositionX() + offsetX, self:getPositionY() + offsetY, 0, -1, 1, self.width, 0)
-        else
-            love.graphics.draw(atlas, self.texture.tex, self:getPositionX() + offsetX, self:getPositionY() + offsetY)
-        end
+        love.graphics.draw(atlas, self.texture.tex, self:getPositionX() + offsetX, self:getPositionY() + offsetY)
     end
 end
 
@@ -160,6 +160,7 @@ function RegisterEntityMetadata(name, o)
         originX = o.originX,
         originY = o.originY,
         texture = o.texture,
+        renderer = o.renderer,
         attributes = o.attributes or {}
     }
     RegisteredEntities[name] = entity

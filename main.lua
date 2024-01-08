@@ -183,7 +183,7 @@ function love.load()
         uiWidth = uiWidth + 20
         local widthSlider = Loveframes.Create("slider", entityData)
         widthSlider:SetPos(5, uiWidth)
-        widthSlider:SetMinMax(10, 240)
+        widthSlider:SetMinMax(10, 320)
         widthSlider:SetWidth(165)
         widthSlider:SetScrollIncrease(10)
         widthSlider:SetScrollDecrease(10)

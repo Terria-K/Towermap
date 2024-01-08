@@ -62,7 +62,7 @@ function editor:init()
             self.solids[x][y] = false
         end
     end
-    RegisterVanilla()
+    RegisterVanilla(self)
     local atlas = love.graphics.newImage("assets/atlas.png")
     local xmlAtlas = xmlloader.load("assets/atlas.xml")
 
@@ -70,9 +70,9 @@ function editor:init()
     local xmlBgAtlas = xmlloader.load("assets/bgAtlas.xml")
 
     self.bgAtlas = Atlas:new(xmlBgAtlas, bgAtlas)
-    backdropRenderer:init("Flight", self.bgAtlas)
     self.atlas = Atlas:new(xmlAtlas, atlas)
 
+    backdropRenderer:setTheme("Flight", self.bgAtlas)
     editor:setTheme("Flight")
 
 end
@@ -90,6 +90,7 @@ function editor:setTheme(themeName)
     self.bgTiler = Tiler:new(bgSpritesheet)
     self.bgTiler:init("assets/tilesetData.xml", t.tileIndex * 2)
     self.bgDecor = Decor:new(bgSpritesheet)
+    backdropRenderer:setTheme(self.themeName, self.bgAtlas)
 end
 
 function editor:setFolder(folder)
@@ -276,7 +277,7 @@ function editor:draw()
     love.graphics.setCanvas(self.framebuffer)
     love.graphics.clear()
     backdropRenderer:draw()
-    love.graphics.setColor(255, 255, 255, 0.3)
+    love.graphics.setColor(255, 255, 255, 0.1)
     love.graphics.setLineWidth(1)
     love.graphics.setLineStyle("rough")
     for i = 1, worldmouse.height / 10 do
@@ -544,7 +545,7 @@ function editor:addEntity(x, y, id)
         self.currentEntity.originX,
         self.currentEntity.originY,
         self.currentEntity.texture,
-        id or self.currentID, self.atlas)
+        id or self.currentID, self.atlas, self.currentEntity.renderer)
     ent.attributes = self.currentEntity.attributes
     table.insert(self.entities, #self.entities + 1, ent)
     self.currentID = self.currentID + 1

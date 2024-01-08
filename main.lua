@@ -58,12 +58,19 @@ function love.load()
     FileTree:SetPos(5, 30)
     FileTree:SetSize(110, love.graphics.getHeight() - 400)
     FileTree.OnSelectNode = function(_, node)
-        if editor.unsaved then
-        end
         editor:setLevel("assets/".. node.text)
     end
 
     editor:setFolder("assets")
+
+    local toggleGrid = Loveframes.Create("checkbox")
+    toggleGrid:SetPos(400, 5)
+    toggleGrid:SetText("Toggle Grid")
+    toggleGrid:SetChecked(true)
+    toggleGrid.OnChanged = function(toggle)
+        local check = toggle:GetChecked()
+        editor.config.toggleGrid = check
+    end
 
     ToolButton("File", 0, 40, {
         { text = "New" },

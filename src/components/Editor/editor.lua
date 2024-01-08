@@ -48,7 +48,10 @@ local editor = {
     onSelectEntity = nil,
     onUnselectEntity = nil,
     dirty = true,
-    unsaved = false
+    unsaved = false,
+    config = {
+        toggleGrid = true
+    }
 }
 
 function editor:init()
@@ -296,16 +299,18 @@ function editor:draw()
     love.graphics.setCanvas(self.framebuffer)
     love.graphics.clear()
     backdropRenderer:draw()
-    love.graphics.setColor(255, 255, 255, 0.1)
-    love.graphics.setLineWidth(1)
-    love.graphics.setLineStyle("rough")
-    for i = 1, worldmouse.height / 10 do
-        love.graphics.line(0, i * 10, worldmouse.width, i * 10)
+    if editor.config.toggleGrid then
+        love.graphics.setColor(255, 255, 255, 0.1)
+        love.graphics.setLineWidth(1)
+        love.graphics.setLineStyle("rough")
+        for i = 1, worldmouse.height / 10 do
+            love.graphics.line(0, i * 10, worldmouse.width, i * 10)
+        end
+        for i = 1, worldmouse.width / 10 do
+            love.graphics.line(i * 10, 0, i * 10, worldmouse.height)
+        end
+        love.graphics.setColor(255, 255, 255, 1)
     end
-    for i = 1, worldmouse.width / 10 do
-        love.graphics.line(i * 10, 0, i * 10, worldmouse.height)
-    end
-    love.graphics.setColor(255, 255, 255, 1)
 
     tileRenderer:draw()
     self.bgDecor:draw(self.bgTiles)

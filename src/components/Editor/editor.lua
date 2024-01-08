@@ -15,6 +15,7 @@ local tile = require("src.components.Editor.tile")
 local theme = require("src.components.theme")
 local worldmouse = require("src.worldmouse")
 local xmlloader = require("src.utils.xmlloader")
+local xml2lua = require("src.lib.xml2lua.xml2lua")
 local mousePressed = false
 local mouseButton = 0
 
@@ -71,10 +72,6 @@ function editor:init()
 
     self.bgAtlas = Atlas:new(xmlBgAtlas, bgAtlas)
     self.atlas = Atlas:new(xmlAtlas, atlas)
-
-    backdropRenderer:setTheme("Flight", self.bgAtlas)
-    editor:setTheme("Flight")
-
 end
 
 function editor:setTheme(themeName)
@@ -170,34 +167,40 @@ function editor:assignAttributes(entity)
 end
 
 function editor:addAllEntities(xml)
+    local function nodeToArrVec2(nodes)
+        local arr = {}
+        for i = 1, #nodes do
+            local attr = nodes[i]._attr
+            arr[i] = { x = tonumber(attr.x), y = tonumber(attr.y) }
+        end
+        return arr
+    end
+
+    local function assignAndAdd(entity)
+        if entity.node then
+            self.currentEntity.nodes = nodeToArrVec2(entity.node)
+        end
+        self:assignAttributes(entity)
+        self:addEntity(entity._attr.x, entity._attr.y, self.currentEntity.id)
+    end
+
     for k, v in pairs(xml) do
-        local metadata = GetEntityMetadata(k)
+        local metadata = GetCopyEntityMetadata(k)
         if metadata then
             self.currentEntity = metadata
             self.currentEntity.name = k
             if v[1] then
                 for i = 1, #v do
                     local entity = v[i]
-                    self:assignAttributes(entity)
-                    self:addEntity(entity._attr.x, entity._attr.y, self.currentEntity.id)
+                    assignAndAdd(entity)
                 end
             elseif v then
                 local entity = v
-                self:assignAttributes(entity)
-                self:addEntity(entity._attr.x, entity._attr.y, self.currentEntity.id)
+                assignAndAdd(entity)
             else
                 print("Missing entity: '" .. k .. "'")
             end
         end
-    end
-end
-
-local function save_xml(xml, filename)
-    local str = xml
-    local fs = io.open(filename, "w")
-    if fs then
-        fs:write(str)
-        fs:close()
     end
 end
 
@@ -229,7 +232,11 @@ function editor:save()
 
         xml:startElement("Entities")
             for _, v in ipairs(self.entities) do
-                xml:singleElement(v.name)
+                if v.nodes then
+                    xml:startElement(v.name)
+                else
+                    xml:singleElement(v.name)
+                end
                 xml:addAttribut("id", v.id)
                 xml:addAttribut("x", v.x)
                 xml:addAttribut("y", v.y)
@@ -240,13 +247,25 @@ function editor:save()
                         xml:addAttribut(k2, v2)
                     end
                 end
+                if v.nodes then
+                    for _, n in ipairs(v.nodes) do
+                        xml:singleElement("node")
+                        xml:addAttribut("x", n.x)
+                        xml:addAttribut("y", n.y)
+                    end
+                    xml:closeElement(v.name)
+                end
             end
         xml:closeElement("Entities")
     xml:closeElement("level")
 
     local output = xml:get(tinyxmlwriter.FORMAT_LINEBREAKS)
 
-    save_xml(output, filename)
+    local file = io.open(filename, "w")
+    if file then
+        file:write(output)
+        file:close()
+    end
     xml:flush()
     self.unsaved = false
 end
@@ -545,7 +564,9 @@ function editor:addEntity(x, y, id)
         self.currentEntity.originX,
         self.currentEntity.originY,
         self.currentEntity.texture,
-        id or self.currentID, self.atlas, self.currentEntity.renderer)
+        id or self.currentID, self.atlas, 
+        self.currentEntity.renderer,
+        self.currentEntity.nodes)
     ent.attributes = self.currentEntity.attributes
     table.insert(self.entities, #self.entities + 1, ent)
     self.currentID = self.currentID + 1

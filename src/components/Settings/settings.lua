@@ -1,6 +1,6 @@
 local settings = {
     versusEvents = {
-        onThemeChange = nil
+        onSaved = nil
     }
 }
 
@@ -55,11 +55,7 @@ return function(tower, onClose)
     multiChoice:AddChoice("Darkfang")
     multiChoice:AddChoice("Cataclysm")
     multiChoice:AddChoice("DarkGauntlet")
-
     multiChoice:SelectChoice(tower.data.theme)
-    multiChoice.OnChoiceSelected = function(choice)
-        settings.versusEvents.onThemeChange(choice:GetChoice())
-    end
 
     local treasureChoice = Loveframes.Create("multichoice", versus)
     treasureChoice:SetPos(100, 50)
@@ -80,6 +76,13 @@ return function(tower, onClose)
         local text = Loveframes.Create("text")
         text:SetText(tower.data.treasure[i])
         treasures:AddItem(text)
+    end
+
+    local saveButton = Loveframes.Create("button", versus)
+    saveButton:SetText("Save")
+    saveButton:SetPos(5, 240)
+    saveButton.OnClick = function()
+        settings.versusEvents.onSaved(multiChoice:GetChoice())
     end
 
 

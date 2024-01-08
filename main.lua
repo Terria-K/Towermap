@@ -23,6 +23,7 @@ function love.load()
     tower.loadTower("assets/tower.xml")
     love.graphics.setDefaultFilter("nearest", "nearest")
     editor:init()
+    editor:setTheme(tower.data.theme)
     Loveframes.SetActiveSkin("Dark blue")
 
     toolbarTool:init()
@@ -91,9 +92,10 @@ function love.load()
                 modalOpen = true
                 local settings = Settings(tower, function() modalOpen = false end)
 
-                settings.versusEvents.onThemeChange = function(choice)
+                settings.versusEvents.onSaved = function(choice)
                     tower.data.theme = choice
                     editor:setTheme(choice)
+                    tower.save()
                 end
             end
         }

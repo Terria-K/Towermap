@@ -1,9 +1,11 @@
+local tableutils = require("src.utils.tableutils")
+
 local RegisteredEntities = {}
 
 Entity = {}
 Entity.__index = Entity
 
-function Entity:new(name, x, y, width, height, originX, originY, texture, id, atlas, renderer)
+function Entity:new(name, x, y, width, height, originX, originY, texture, id, atlas, renderer, nodes)
     self = setmetatable({}, Entity)
     self.id = id
     self.name = name
@@ -14,6 +16,7 @@ function Entity:new(name, x, y, width, height, originX, originY, texture, id, at
     self.originX = originX or 0
     self.originY = originY or 0
     self.renderer = renderer
+    self.nodes = nodes
     if type(texture) == "table" then
         if texture.width or texture.height then
             self.texture = { tex = atlas:newTextureQuad(texture.name, texture.width, texture.height) }
@@ -58,17 +61,19 @@ function Entity:update(x, y)
 end
 
 function Entity:mousepressed(x, y, button, editor)
-    if self.colliding then
-        if button == 2 then
-            return false
-        end
+    if not self.colliding then
+        return true
+    end
 
-        if button == 1 and editor.toolType == 1 then
-            editor:selectEntity(self)
-            self.lastHoldX = (self:getPositionX() - ((x - 130) / 2)) + self.originX
-            self.lastHoldY = (self:getPositionY() - ((y - 90) / 2)) + self.originY
-            self.holding = true
-        end
+    if button == 2 then
+        return false
+    end
+
+    if button == 1 and editor.toolType == 1 then
+        editor:selectEntity(self)
+        self.lastHoldX = (self:getPositionX() - ((x - 130) / 2)) + self.originX
+        self.lastHoldY = (self:getPositionY() - ((y - 90) / 2)) + self.originY
+        self.holding = true
     end
 
     return true
@@ -90,7 +95,32 @@ function Entity:imageDraw(offsetX, offsetY, atlas)
 end
 
 function Entity:draw(atlas)
-    local color 
+    if self.nodes then
+        if not self.selected then
+            love.graphics.setColor(1, 1, 1, 0.2)
+        end
+        love.graphics.setLineStyle("smooth")
+        love.graphics.setLineWidth(0.1)
+        local index = 0
+        while index <= #self.nodes do
+            local pointA
+            if index == 0 then
+                pointA = { x = self:getPositionX(), y = self:getPositionY()}
+            else
+                pointA = self.nodes[index]
+            end
+            local pointB = self.nodes[index + 1]
+            if not pointB then
+                pointB = self.nodes[1]
+            end
+            love.graphics.line(pointA.x, pointA.y, pointB.x, pointB.y)
+            index = index + 1
+        end
+        love.graphics.setLineWidth(1)
+        love.graphics.setLineStyle("rough")
+        love.graphics.setColor(1, 1, 1, 1)
+    end
+    local color
     if self.selected then
         color = {
             r = 0x20/255.0,
@@ -154,21 +184,18 @@ function Entity:draw(atlas)
 end
 
 function RegisterEntityMetadata(name, o)
-    local entity = {
-        width = o.width,
-        height = o.height,
-        originX = o.originX,
-        originY = o.originY,
-        texture = o.texture,
-        renderer = o.renderer,
-        attributes = o.attributes or {}
-    }
-    RegisteredEntities[name] = entity
+    o.attributes = o.attributes or {}
+    RegisteredEntities[name] = o
 end
 
 function GetEntityMetadata(name)
     local entity = RegisteredEntities[name]
     return entity
+end
+
+function GetCopyEntityMetadata(name)
+    local entity = RegisteredEntities[name]
+    return tableutils.deepcopy(entity)
 end
 
 function GetAllMetadatas()

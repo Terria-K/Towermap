@@ -40,7 +40,7 @@ return function(editor)
     })
     RegisterEntityMetadata("EndlessPortal", {
         width = 50, height = 50,
-        originX = 20, originY = 20,
+        originX = 25, originY = 25,
         texture = { name = "nextLevelPortal", width = 50, height = 50}
     })
     RegisterEntityMetadata("TreasureChest", {

@@ -2,3 +2,6 @@ assets
 *.dll
 *.so
 *.dylib
+runtimes/
+obj/
+bin/

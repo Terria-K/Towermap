@@ -1,5 +1,6 @@
 using MoonWorks;
 using MoonWorks.Graphics;
+using MoonWorks.Graphics.Font;
 using Riateu;
 
 namespace Towermap;
@@ -8,6 +9,7 @@ public static class Resource
 {
     public static Texture TowerFallTexture;
     public static TowerFallAtlas Atlas;
+    public static Font Font;
 }
 
 public class TowermapGame : GameApp
@@ -26,6 +28,7 @@ public class TowermapGame : GameApp
         CommandBuffer buffer = GraphicsDevice.AcquireCommandBuffer();
         Resource.TowerFallTexture = Texture.FromImageFile(GraphicsDevice, buffer, "../Assets/atlas.png");
         Resource.Atlas = TowerFallAtlas.LoadAtlas(Resource.TowerFallTexture, "../Assets/atlas.xml");
+        Resource.Font = Font.Load(GraphicsDevice, buffer, "../Assets/font/PressStart2P-Regular.ttf");
         GraphicsDevice.Submit(buffer);
     }
 }

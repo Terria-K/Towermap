@@ -32,15 +32,17 @@ public class SolidTiles : Entity
         tilemap.SetTile(x, y, grid != -1 ? sheet[grid] : null);
     }
 
-    //TODO Autotiling
-    public void SetTile(Array2D<bool> tiles) 
+    public void SetTile(Array2D<bool> tiles, Autotiler autotiler) 
     {
         for (int x = 0; x < tiles.Rows; x++) 
         {
             for (int y = 0; y < tiles.Columns; y++) 
             {
-                if (tiles[x, y])
-                    SetTile(x, y, 4); 
+                if (tiles[x, y]) 
+                {
+                    var tile = autotiler.Tile(tiles, x, y);
+                    SetTile(x, y, tile); 
+                }
             }
         }
     }

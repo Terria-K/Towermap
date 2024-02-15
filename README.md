@@ -11,6 +11,12 @@ single person.
 If you want to contribute in this project, make sure you have TowerFall, as the editor needs
 to lookup on its content. And an nfd.dll which you can build from the [repository](https://github.com/Vexatos/nativefiledialog/tree/master/lua) itself.
 
+## C# Dependencies:
++ [MoonWorks](https://gitea.moonside.games/MoonsideGames/MoonWorks) - A graphics framework used for Riateu.
++ [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.
++ [TeuJson](https://github.com/Terria-K/TeuJson) - A json de/serializer.
++ [DotNetZip](https://github.com/DinoChiesa/DotNetZip) - A tool for extracting mods inside the app.
+
 ## Dependencies:
 + [LovesFrames](https://github.com/linux-man/LoveFrames) - Modified the treenode's position
 + [xml2lua](https://github.com/manoelcampos/Xml2Lua)

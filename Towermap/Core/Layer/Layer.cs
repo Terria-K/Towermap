@@ -18,7 +18,7 @@ public class LayersPanel : ImGuiElement
     public override void DrawGui()
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.SetNextWindowSize(new Vector2(200, 200), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new Vector2(200, 620), ImGuiCond.Always);
         ImGui.SetNextWindowPos(new Vector2(1024 - 200, 20));
 
         var size = new Vector2(185, 0.0f);

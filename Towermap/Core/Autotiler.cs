@@ -92,7 +92,7 @@ public class Autotiler
 
     public int Tile(Array2D<bool> bits, int x, int y) 
     {
-        if (!(current = bits[x, y]))
+        if (!initialized || !ArrayUtils.ArrayCheck(x, y, bits) || !(current = bits[x, y]))
         {
             return -1;
         }
@@ -163,27 +163,30 @@ public class Autotiler
                 
                 if (!up && down && !left && right)
                     return TopLeft;
+
                 if (!up && down && left && !right)
                     return TopRight;
+
                 if (up && down && downLeft && !downRight)
                     return InsideTopLeft;
+
                 if (up && down && !downLeft && downRight)
                     return InsideTopRight;
+
                 if (up && down && upLeft && !upRight)
                     return InsideBottomLeft;
+
                 if (up && down && !upLeft && upRight)
                     return InsideBottomRight;
+
                 if (!down)
                     return Bottom;
                 return Top;
             }
         }
-        else 
+        else if (up)
         {
-            if (up) 
-            {
-                return Below;
-            }
+            return Below;
         }
         return null;
     }

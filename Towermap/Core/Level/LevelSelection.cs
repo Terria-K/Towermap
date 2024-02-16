@@ -14,6 +14,7 @@ public class LevelSelection : ImGuiElement
 
     public void SelectTower(string towerPath) 
     {
+        levels.Clear();
         path = towerPath;
         var files = Directory.GetFiles(towerPath);
         foreach (var file in files)

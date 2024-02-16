@@ -54,11 +54,12 @@ public class EditorScene : Scene
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
                 .Add(new MenuItem("New"))
-                .Add(new MenuItem("Open"))
-                .Add(new MenuItem("Save"))
+                .Add(new MenuItem("Open", Open))
+                .Add(new MenuItem("Save", () => Save()))
                 .Add(new MenuItem("Save As"))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
-            .Add(new MenuItem("Edit"));
+            .Add(new MenuSlot("Settings"))
+            .Add(new MenuSlot("View"));
         
         levelSelection = new LevelSelection();
         levelSelection.OnSelect = OnLevelSelected;
@@ -141,11 +142,16 @@ public class EditorScene : Scene
 
     public void SetLevel(string path) 
     {
+        solids.Clear();
+        bgs.Clear();
+        if (path == null) 
+        {
+            level = null;
+            return;
+        }
         XmlDocument document = new XmlDocument();
         document.Load(path);
 
-        solids.Clear();
-        bgs.Clear();
         var loadingLevel = document["level"];
         try 
         {
@@ -287,7 +293,19 @@ public class EditorScene : Scene
         buffer.EndRenderPass();
     }
 
-    public void Save() 
+    private void Open() 
+    {
+        NFDResult result = FileDialog.OpenFile(null, "xml");
+        if (result.IsOk) 
+        {
+            string path = Path.GetDirectoryName(result.Path);
+
+            levelSelection.SelectTower(path);
+            SetLevel(null);
+        }
+    }
+
+    public void Save(bool specifyPath = false) 
     {
         XmlDocument document = new XmlDocument();
         string solid = solids.Save();
@@ -305,6 +323,10 @@ public class EditorScene : Scene
 
         rootElement.AppendChild(SolidTiles);
         rootElement.AppendChild(BG);
+        if (specifyPath) 
+        {
+
+        }
 
         document.Save(currentPath + ".test");
     }

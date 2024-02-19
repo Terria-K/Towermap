@@ -22,7 +22,7 @@ public class LayersPanel : ImGuiElement
         ImGui.SetNextWindowPos(new Vector2(1024 - 200, 20));
 
         var size = new Vector2(185, 0.0f);
-        ImGui.Begin("Layers", ImGuiWindowFlags.NoResize);
+        ImGui.Begin("Layers", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
         for (int i = 0; i < layers.Length; i++) 
         {
             var span = layers[i];

@@ -30,7 +30,6 @@ public class Autotiler
     public int[] InsideBottomRight;
     public int[] Below;
 
-    private Spritesheet tileSheet;
     private bool initialized;
 
     private bool current = false;
@@ -44,10 +43,7 @@ public class Autotiler
     private bool downRight = false;
     private Random random = new Random(42342);
 
-    public Autotiler(Spritesheet spritesheet) 
-    {
-        tileSheet = spritesheet;
-    }
+    public Autotiler() {}
 
     private static bool Check(int x, int y, Array2D<bool> data) 
     {

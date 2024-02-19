@@ -7,20 +7,19 @@ using Riateu.Graphics;
 
 namespace Towermap;
 
-public class Tiles : Entity 
+public class GridTiles : Entity 
 {
     private static char[] Separators = ['\n'];
     private Tilemap tilemap;
     private Spritesheet sheet;
     public Array2D<bool> Bits;
 
-    public Tiles(Texture texture, Spritesheet sheet) 
+    public GridTiles(Texture texture, Spritesheet sheet) 
     {
         this.sheet = sheet;
-        // TODO dynamic width and height for sets
-        var tiles = new Array2D<SpriteTexture?>(32, 24);
+        var tiles = new Array2D<SpriteTexture?>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         tiles.Fill(null);
-        Bits = new Array2D<bool>(32, 24);
+        Bits = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         tilemap = new Tilemap(texture, tiles, 10, TilemapMode.Cull);
         AddComponent(tilemap);
     }
@@ -67,7 +66,7 @@ public class Tiles : Entity
     public void SetGrid(string bitString) 
     {
         ReadOnlySpan<char> bitSpan = bitString;
-        Array2D<bool> array = new Array2D<bool>(32, 24);
+        Array2D<bool> array = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         int x = 0;
         int y = 0;
         for (int i = 0; i < bitSpan.Length; i++) 
@@ -105,33 +104,5 @@ public class Tiles : Entity
             builder.AppendLine();
         }
         return builder.ToString();
-    }
-
-    public Array2D<bool> GetTiles(string bitString) 
-    {
-        ReadOnlySpan<char> bitSpan = bitString;
-        Array2D<bool> array = new Array2D<bool>(32, 24);
-        int x = 0;
-        int y = 0;
-        for (int i = 0; i < bitSpan.Length; i++) 
-        {
-            var c = bitSpan[i];
-            if (c == '\n') 
-            {
-                x = 0;
-                y++;
-                continue;
-            }
-            if (c == '0') 
-            {
-                array[x, y] = false;
-            }
-            else 
-            {
-                array[x, y] = true;
-            }
-            x++;
-        }
-        return array;
     }
 }

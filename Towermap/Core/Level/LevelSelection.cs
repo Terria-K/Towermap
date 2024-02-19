@@ -17,6 +17,7 @@ public class LevelSelection : ImGuiElement
         levels.Clear();
         path = towerPath;
         var files = Directory.GetFiles(towerPath);
+        Array.Sort(files);
         foreach (var file in files)
         {
             if (!file.EndsWith(".json") && !file.EndsWith(".oel"))

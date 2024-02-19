@@ -161,7 +161,7 @@ public class EditorScene : Scene
 
             var bgTiles = loadingLevel["BG"];
             bgs.SetGrid(bgTiles.InnerText);
-            bgs.UpdateTiles(bgAutotiler);
+            bgs.UpdateTiles(bgAutotiler, solids.Bits);
 
             level = loadingLevel;
             currentPath = path;
@@ -182,6 +182,33 @@ public class EditorScene : Scene
         }
     }
 
+    private void UpdateTiles(int gridX, int gridY, Array2D<bool> also) 
+    {
+        solids.UpdateTile(gridX - 1, gridY, SolidAutotiler.Tile(solids.Bits, gridX - 1, gridY));
+        solids.UpdateTile(gridX + 1, gridY, SolidAutotiler.Tile(solids.Bits, gridX + 1, gridY));
+
+        solids.UpdateTile(gridX, gridY - 1, SolidAutotiler.Tile(solids.Bits, gridX, gridY - 1));
+        solids.UpdateTile(gridX, gridY + 1, SolidAutotiler.Tile(solids.Bits, gridX, gridY + 1));
+
+        solids.UpdateTile(gridX - 1, gridY - 1, SolidAutotiler.Tile(solids.Bits, gridX - 1, gridY - 1));
+        solids.UpdateTile(gridX + 1, gridY + 1, SolidAutotiler.Tile(solids.Bits, gridX + 1, gridY + 1));
+
+        solids.UpdateTile(gridX - 1, gridY + 1, SolidAutotiler.Tile(solids.Bits, gridX - 1, gridY + 1));
+        solids.UpdateTile(gridX + 1, gridY - 1, SolidAutotiler.Tile(solids.Bits, gridX + 1, gridY - 1));
+
+        bgs.UpdateTile(gridX - 1, gridY, bgAutotiler.Tile(bgs.Bits, gridX - 1, gridY, also));
+        bgs.UpdateTile(gridX + 1, gridY, bgAutotiler.Tile(bgs.Bits, gridX + 1, gridY, also));
+
+        bgs.UpdateTile(gridX, gridY - 1, bgAutotiler.Tile(bgs.Bits, gridX, gridY - 1, also));
+        bgs.UpdateTile(gridX, gridY + 1, bgAutotiler.Tile(bgs.Bits, gridX, gridY + 1, also));
+
+        bgs.UpdateTile(gridX - 1, gridY - 1, bgAutotiler.Tile(bgs.Bits, gridX - 1, gridY - 1, also));
+        bgs.UpdateTile(gridX + 1, gridY + 1, bgAutotiler.Tile(bgs.Bits, gridX + 1, gridY + 1, also));
+
+        bgs.UpdateTile(gridX - 1, gridY + 1, bgAutotiler.Tile(bgs.Bits, gridX - 1, gridY + 1, also));
+        bgs.UpdateTile(gridX + 1, gridY - 1, bgAutotiler.Tile(bgs.Bits, gridX + 1, gridY - 1, also));
+    }
+
     public override void Update(double delta)
     {
         imGui.Update(GameInstance.Inputs, ImGuiCallback);
@@ -199,10 +226,10 @@ public class EditorScene : Scene
 
         if (Input.InputSystem.Mouse.LeftButton.IsDown && currentLayerSelected is Layers.Solids or Layers.BG) 
         {
-            (Tiles currentTile, Autotiler autotiler) = currentLayerSelected switch 
+            (Tiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
             {
-                Layers.Solids => (solids, SolidAutotiler),
-                _ => (bgs, bgAutotiler)
+                Layers.Solids => (solids, SolidAutotiler, null),
+                _ => (bgs, bgAutotiler, solids.Bits)
             };
             int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
             int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
@@ -211,28 +238,17 @@ public class EditorScene : Scene
             {
                 if (currentTile.SetGrid(gridX, gridY, true)) 
                 {
-                    currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY));
-
-                    currentTile.UpdateTile(gridX - 1, gridY, autotiler.Tile(currentTile.Bits, gridX - 1, gridY));
-                    currentTile.UpdateTile(gridX + 1, gridY, autotiler.Tile(currentTile.Bits, gridX + 1, gridY));
-
-                    currentTile.UpdateTile(gridX, gridY - 1, autotiler.Tile(currentTile.Bits, gridX, gridY - 1));
-                    currentTile.UpdateTile(gridX, gridY + 1, autotiler.Tile(currentTile.Bits, gridX, gridY + 1));
-
-                    currentTile.UpdateTile(gridX - 1, gridY - 1, autotiler.Tile(currentTile.Bits, gridX - 1, gridY - 1));
-                    currentTile.UpdateTile(gridX + 1, gridY + 1, autotiler.Tile(currentTile.Bits, gridX + 1, gridY + 1));
-
-                    currentTile.UpdateTile(gridX - 1, gridY + 1, autotiler.Tile(currentTile.Bits, gridX - 1, gridY + 1));
-                    currentTile.UpdateTile(gridX + 1, gridY - 1, autotiler.Tile(currentTile.Bits, gridX + 1, gridY - 1));
+                    currentTile.UpdateTile(gridX, gridY, SolidAutotiler.Tile(currentTile.Bits, gridX, gridY, also));
+                    UpdateTiles(gridX, gridY, solids.Bits);
                 }
             }
         }
         else if (Input.InputSystem.Mouse.RightButton.IsDown && currentLayerSelected is Layers.Solids or Layers.BG) 
         {
-            (Tiles currentTile, Autotiler autotiler) = currentLayerSelected switch 
+            (Tiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
             {
-                Layers.Solids => (solids, SolidAutotiler),
-                _ => (bgs, bgAutotiler)
+                Layers.Solids => (solids, SolidAutotiler, null),
+                _ => (bgs, bgAutotiler, solids.Bits)
             };
             int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
             int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
@@ -242,18 +258,7 @@ public class EditorScene : Scene
                 if (currentTile.SetGrid(gridX, gridY, false)) 
                 {
                     currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY));
-
-                    currentTile.UpdateTile(gridX - 1, gridY, autotiler.Tile(currentTile.Bits, gridX - 1, gridY));
-                    currentTile.UpdateTile(gridX + 1, gridY, autotiler.Tile(currentTile.Bits, gridX + 1, gridY));
-
-                    currentTile.UpdateTile(gridX, gridY - 1, autotiler.Tile(currentTile.Bits, gridX, gridY - 1));
-                    currentTile.UpdateTile(gridX, gridY + 1, autotiler.Tile(currentTile.Bits, gridX, gridY + 1));
-
-                    currentTile.UpdateTile(gridX - 1, gridY - 1, autotiler.Tile(currentTile.Bits, gridX - 1, gridY - 1));
-                    currentTile.UpdateTile(gridX + 1, gridY + 1, autotiler.Tile(currentTile.Bits, gridX + 1, gridY + 1));
-
-                    currentTile.UpdateTile(gridX - 1, gridY + 1, autotiler.Tile(currentTile.Bits, gridX - 1, gridY + 1));
-                    currentTile.UpdateTile(gridX + 1, gridY - 1, autotiler.Tile(currentTile.Bits, gridX + 1, gridY - 1));
+                    UpdateTiles(gridX, gridY, solids.Bits);
                 }
             }
         }

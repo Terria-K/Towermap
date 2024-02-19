@@ -90,22 +90,37 @@ public class Autotiler
         initialized = true;
     }
 
-    public int Tile(Array2D<bool> bits, int x, int y) 
+    public int Tile(Array2D<bool> bits, int x, int y, Array2D<bool> also = null) 
     {
         if (!initialized || !ArrayUtils.ArrayCheck(x, y, bits) || !(current = bits[x, y]))
         {
             return -1;
         }
 
-        left = Check(x - 1, y, bits);
-        right = Check(x + 1, y, bits);
-        up = Check(x, y - 1, bits);
-        down = Check(x, y + 1, bits);
+        if (also != null) 
+        {
+            left = Check(x - 1, y, bits) || Check(x - 1, y, also);
+            right = Check(x + 1, y, bits) || Check(x + 1, y, also);
+            up = Check(x, y - 1, bits) || Check(x, y - 1, also);
+            down = Check(x, y + 1, bits) || Check(x, y + 1, also);
 
-        upLeft = Check(x - 1, y - 1, bits);
-        upRight = Check(x + 1, y - 1, bits);
-        downLeft = Check(x - 1, y + 1, bits);
-        downRight = Check(x + 1, y + 1, bits);
+            upLeft = Check(x - 1, y - 1, bits) || Check(x - 1, y - 1, also);
+            upRight = Check(x + 1, y - 1, bits) || Check(x + 1, y - 1, also);
+            downLeft = Check(x - 1, y + 1, bits) || Check(x - 1, y + 1, also);
+            downRight = Check(x + 1, y + 1, bits) || Check(x + 1, y + 1, also);
+        }
+        else 
+        {
+            left = Check(x - 1, y, bits);
+            right = Check(x + 1, y, bits);
+            up = Check(x, y - 1, bits);
+            down = Check(x, y + 1, bits);
+
+            upLeft = Check(x - 1, y - 1, bits);
+            upRight = Check(x + 1, y - 1, bits);
+            downLeft = Check(x - 1, y + 1, bits);
+            downRight = Check(x + 1, y + 1, bits);
+        }
 
         int[] tiles = HandleTiles();
         return tiles[random.Next() % tiles.Length];

@@ -18,8 +18,8 @@
   </ItemGroup>
 
  <ItemGroup>
-    <Content Include="..\runtimes\x64\**\*.*">
-      <Link>%(Filename)%(Extension)</Link>
+    <Content Include="..\runtimes\lib64\**\*.*">
+      <Link>runtimes/linux-x64/native/%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

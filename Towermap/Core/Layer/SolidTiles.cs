@@ -50,7 +50,7 @@ public class Tiles : Entity
         tilemap.SetTile(x, y, grid != -1 ? sheet[grid] : null);
     }
 
-    public void UpdateTiles(Autotiler autotiler) 
+    public void UpdateTiles(Autotiler autotiler, Array2D<bool> also = null) 
     {
         for (int x = 0; x < Bits.Rows; x++) 
         {
@@ -58,7 +58,7 @@ public class Tiles : Entity
             {
                 if (Bits[x, y]) 
                 {
-                    UpdateTile(x, y, autotiler.Tile(Bits, x, y)); 
+                    UpdateTile(x, y, autotiler.Tile(Bits, x, y, also)); 
                 }
             }
         }

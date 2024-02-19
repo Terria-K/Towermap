@@ -29,16 +29,19 @@ public class EditorScene : Scene
     private ImGuiElement menuBar;
     private LevelSelection levelSelection;
     private LayersPanel layers;
+    private Tools tools;
 #endregion
 
     private EditorCanvas mainCanvas;
     private Transform canvasTransform;
-    private Tiles solids;
+    private GridTiles solids;
     private Spritesheet solidSpriteSheet;
     private Autotiler SolidAutotiler;
-    private Tiles bgs;
+    private GridTiles bgs;
     private Spritesheet bgSpriteSheet;
     private Autotiler bgAutotiler;
+    private Tiles BGTiles;
+    private Tiles SolidTiles;
     private XmlElement level;
     private Layers currentLayerSelected = Layers.Solids;
     private StaticText emptyText;
@@ -56,10 +59,12 @@ public class EditorScene : Scene
                 .Add(new MenuItem("New"))
                 .Add(new MenuItem("Open", Open))
                 .Add(new MenuItem("Save", () => Save()))
-                .Add(new MenuItem("Save As"))
+                .Add(new MenuItem("Save As", () => Save(true)))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
             .Add(new MenuSlot("Settings"))
             .Add(new MenuSlot("View"));
+
+        tools = new Tools();
         
         levelSelection = new LevelSelection();
         levelSelection.OnSelect = OnLevelSelected;
@@ -75,6 +80,11 @@ public class EditorScene : Scene
         canvasTransform.Scale = new Vector2(2);
 
         emptyText = new StaticText(game.GraphicsDevice, Resource.Font, "No Level Selected", 24);
+
+        tools.AddTool("Pen [1]", () => {});
+        tools.AddTool("Rect [2]", () => {});
+        tools.AddTool("HSym [3]", OnHorizontalSymmetry);
+        tools.AddTool("VSym [4]", OnVerticalSymmetry);
     }
 
     private unsafe void ImGuiInit(ImGuiIOPtr io) 
@@ -98,20 +108,77 @@ public class EditorScene : Scene
     {
         levelSelection.SelectTower("../Assets");
         solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flight"], 10, 10);
-        solids = new Tiles(Resource.TowerFallTexture, solidSpriteSheet);
+        solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet);
         Add(solids);
-        SolidAutotiler = new Autotiler(solidSpriteSheet);
+        SolidAutotiler = new Autotiler();
         SolidAutotiler.Init("../Assets/tilesetData.xml", 6);
 
         bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flightBG"], 10, 10);
-        bgs = new Tiles(Resource.TowerFallTexture, bgSpriteSheet);
+        bgs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet);
         bgs.Depth = 1;
         Add(bgs);
-        bgAutotiler = new Autotiler(solidSpriteSheet);
+        bgAutotiler = new Autotiler();
         bgAutotiler.Init("../Assets/tilesetData.xml", 7);
+
+        SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet);
+        Add(SolidTiles);
+        BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet);
+        Add(BGTiles);
     }
 
 #region Events
+    private void OnVerticalSymmetry() 
+    {
+        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+        {
+            Layers.Solids => (solids, SolidAutotiler, null),
+            Layers.BG => (bgs, bgAutotiler, solids.Bits),
+            _ => (null, null, null) 
+        };
+
+        if (currentTiles == null)
+            return;
+
+        for (int y = 0; y < WorldUtils.WorldHeight / 10 * 0.5f; y++) 
+        {
+            for (int x = 0; x < WorldUtils.WorldWidth / 10; x++)  
+            {
+                int bitY = ((int)(WorldUtils.WorldHeight / 10) - y) - 1;
+                if (currentTiles.SetGrid(x, bitY, currentTiles.Bits[x, y]))
+                {
+                    currentTiles.UpdateTile(x, bitY, autotiler.Tile(currentTiles.Bits, x, bitY));
+                    UpdateTiles(x, bitY, solids.Bits);
+                }
+            }
+        }
+    }
+
+    private void OnHorizontalSymmetry() 
+    {
+        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+        {
+            Layers.Solids => (solids, SolidAutotiler, null),
+            Layers.BG => (bgs, bgAutotiler, solids.Bits),
+            _ => (null, null, null) 
+        };
+
+        if (currentTiles == null)
+            return;
+
+        for (int y = 0; y < WorldUtils.WorldHeight / 10; y++) 
+        {
+            for (int x = 0; x < WorldUtils.WorldWidth / 10 * 0.5f; x++)  
+            {
+                int bitX = ((int)(WorldUtils.WorldWidth / 10) - x) - 1;
+                if (currentTiles.SetGrid(bitX, y, currentTiles.Bits[x, y]))
+                {
+                    currentTiles.UpdateTile(bitX, y, autotiler.Tile(currentTiles.Bits, bitX, y));
+                    UpdateTiles(bitX, y, solids.Bits);
+                }
+            }
+        }
+    }
+
     private void OnLayerSelected(string layer)
     {
         switch (layer) 
@@ -144,6 +211,8 @@ public class EditorScene : Scene
     {
         solids.Clear();
         bgs.Clear();
+        SolidTiles.Clear();
+        BGTiles.Clear();
         if (path == null) 
         {
             level = null;
@@ -155,13 +224,19 @@ public class EditorScene : Scene
         var loadingLevel = document["level"];
         try 
         {
-            var solidTiles = loadingLevel["Solids"];
-            solids.SetGrid(solidTiles.InnerText);
+            var solid = loadingLevel["Solids"];
+            solids.SetGrid(solid.InnerText);
             solids.UpdateTiles(SolidAutotiler);
 
-            var bgTiles = loadingLevel["BG"];
-            bgs.SetGrid(bgTiles.InnerText);
+            var bg = loadingLevel["BG"];
+            bgs.SetGrid(bg.InnerText);
             bgs.UpdateTiles(bgAutotiler, solids.Bits);
+
+            var solidTiles = loadingLevel["SolidTiles"];
+            SolidTiles.SetTiles(solidTiles.InnerText);
+
+            var bgTiles = loadingLevel["BGTiles"];
+            BGTiles.SetTiles(bgTiles.InnerText);
 
             level = loadingLevel;
             currentPath = path;
@@ -171,13 +246,19 @@ public class EditorScene : Scene
             Logger.LogInfo($"Failed to load this level: '{Path.GetFileName(path)}'");
             if (level != null) 
             {
-                var solidTiles = level["Solids"];
-                solids.SetGrid(solidTiles.InnerText);
+                var solid = level["Solids"];
+                solids.SetGrid(solid.InnerText);
                 solids.UpdateTiles(SolidAutotiler);
 
-                var bgTiles = level["BG"];
-                bgs.SetGrid(bgTiles.InnerText);
+                var bg = level["BG"];
+                bgs.SetGrid(bg.InnerText);
                 bgs.UpdateTiles(bgAutotiler);
+
+                var solidTiles = loadingLevel["SolidTiles"];
+                SolidTiles.SetTiles(solidTiles.InnerText);
+
+                var bgTiles = loadingLevel["BGTiles"];
+                BGTiles.SetTiles(bgTiles.InnerText);
             }
         }
     }
@@ -226,7 +307,7 @@ public class EditorScene : Scene
 
         if (Input.InputSystem.Mouse.LeftButton.IsDown && currentLayerSelected is Layers.Solids or Layers.BG) 
         {
-            (Tiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+            (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
             {
                 Layers.Solids => (solids, SolidAutotiler, null),
                 _ => (bgs, bgAutotiler, solids.Bits)
@@ -245,7 +326,7 @@ public class EditorScene : Scene
         }
         else if (Input.InputSystem.Mouse.RightButton.IsDown && currentLayerSelected is Layers.Solids or Layers.BG) 
         {
-            (Tiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+            (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
             {
                 Layers.Solids => (solids, SolidAutotiler, null),
                 _ => (bgs, bgAutotiler, solids.Bits)
@@ -275,6 +356,7 @@ public class EditorScene : Scene
 
         menuBar.UpdateGui();
         levelSelection.UpdateGui();
+        tools.UpdateGui();
         layers.UpdateGui();
     }
 
@@ -328,9 +410,19 @@ public class EditorScene : Scene
 
         rootElement.AppendChild(SolidTiles);
         rootElement.AppendChild(BG);
+        string path;
         if (specifyPath) 
         {
-
+            NFDResult result = FileDialog.Save(null, "xml");
+            if (result.IsOk) 
+            {
+                path = result.Path;
+                return;
+            }
+        }
+        else 
+        {
+            path = currentPath;
         }
 
         document.Save(currentPath + ".test");
@@ -338,5 +430,6 @@ public class EditorScene : Scene
 
     public override void End()
     {
+        emptyText.Dispose();
     }
 }

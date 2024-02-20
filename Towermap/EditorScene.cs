@@ -45,6 +45,8 @@ public class EditorScene : Scene
     private XmlElement level;
     private Layers currentLayerSelected = Layers.Solids;
     private StaticText emptyText;
+    private History history;
+    private bool isDrawing;
 
 #region Level State
     private string currentPath;
@@ -53,6 +55,7 @@ public class EditorScene : Scene
 
     public EditorScene(GameApp game) : base(game)
     {
+        history = new History();
         imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1024, 640, ImGuiInit);
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
@@ -298,9 +301,30 @@ public class EditorScene : Scene
             return;
         }
 
-        if (Input.InputSystem.Keyboard.IsDown(KeyCode.LeftControl) && Input.InputSystem.Keyboard.IsPressed(KeyCode.S)) 
+        if (isDrawing && Input.InputSystem.Mouse.AnyPressedButton.IsUp) 
         {
-            Save();
+            isDrawing = false;
+        }
+
+        if (Input.InputSystem.Keyboard.IsDown(KeyCode.LeftControl)) 
+        {
+            if (Input.InputSystem.Keyboard.IsPressed(KeyCode.S)) 
+            {
+                Save();
+            }
+
+            if (!isDrawing && Input.InputSystem.Keyboard.IsPressed(KeyCode.Z)) 
+            {
+                if (history.PopCommit(out var res))
+                {
+                    solids.Clear();
+                    bgs.Clear();
+                    bgs.Bits = res.BGTiles.Clone();
+                    solids.Bits = res.SolidTiles.Clone();
+                    solids.UpdateTiles(SolidAutotiler);
+                    bgs.UpdateTiles(bgAutotiler, solids.Bits);
+                }
+            }
         }
         int x = Input.InputSystem.Mouse.X;
         int y = Input.InputSystem.Mouse.Y;
@@ -317,12 +341,18 @@ public class EditorScene : Scene
 
             if (InBounds(gridX, gridY)) 
             {
+                if (!isDrawing) 
+                {
+                    history.PushCommit(new History.Commit { SolidTiles = solids.Bits, BGTiles = bgs.Bits });
+                }
                 if (currentTile.SetGrid(gridX, gridY, true)) 
                 {
                     currentTile.UpdateTile(gridX, gridY, SolidAutotiler.Tile(currentTile.Bits, gridX, gridY, also));
                     UpdateTiles(gridX, gridY, solids.Bits);
                 }
+                isDrawing = true;
             }
+
         }
         else if (Input.InputSystem.Mouse.RightButton.IsDown && currentLayerSelected is Layers.Solids or Layers.BG) 
         {
@@ -336,11 +366,16 @@ public class EditorScene : Scene
 
             if (InBounds(gridX, gridY)) 
             {
+                if (!isDrawing) 
+                {
+                    history.PushCommit(new History.Commit { SolidTiles = solids.Bits, BGTiles = bgs.Bits });
+                }
                 if (currentTile.SetGrid(gridX, gridY, false)) 
                 {
                     currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY));
                     UpdateTiles(gridX, gridY, solids.Bits);
                 }
+                isDrawing = true;
             }
         }
     }

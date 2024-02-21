@@ -435,16 +435,26 @@ public class EditorScene : Scene
         var rootElement = document.CreateElement("level");
         document.AppendChild(rootElement);
 
-        var SolidTiles = document.CreateElement("Solids");
-        SolidTiles.SetAttribute("exportMode", "Bitstring");
-        SolidTiles.InnerText = solid;
+        var Solids = document.CreateElement("Solids");
+        Solids.SetAttribute("exportMode", "Bitstring");
+        Solids.InnerText = solid;
 
         var BG = document.CreateElement("BG");
         BG.SetAttribute("exportMode", "Bitstring");
         BG.InnerText = bg;
 
-        rootElement.AppendChild(SolidTiles);
+        var SolidTiles = document.CreateElement("SolidTiles");
+        SolidTiles.SetAttribute("exportMode", "TrimmedCSV");
+        SolidTiles.InnerText = this.SolidTiles.Save();
+
+        var BGTiles = document.CreateElement("BGTiles");
+        BGTiles.SetAttribute("exportMode", "TrimmedCSV");
+        BGTiles.InnerText = this.BGTiles.Save();
+
+        rootElement.AppendChild(Solids);
         rootElement.AppendChild(BG);
+        rootElement.AppendChild(SolidTiles);
+        rootElement.AppendChild(BGTiles);
         string path;
         if (specifyPath) 
         {

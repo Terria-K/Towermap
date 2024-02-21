@@ -6,28 +6,28 @@ namespace Towermap;
 
 public class History 
 {
-    private Stack<Commit> layouts = new();
+    private Stack<Commit> undoCommits = new();
 
-    public class Commit
+    public struct Commit
     {
-        public Array2D<bool> SolidTiles;
-        public Array2D<bool> BGTiles;
+        public Array2D<bool> Solids;
+        public Array2D<bool> BGs;
     }
 
     public void PushCommit(Commit commit) 
     {
-        var bgTiles = commit.BGTiles.Clone();
-        var solidTiles = commit.SolidTiles.Clone();
+        var bgTiles = commit.BGs.Clone();
+        var solidTiles = commit.Solids.Clone();
 
-        layouts.Push(new Commit() 
+        undoCommits.Push(new Commit() 
         {
-            SolidTiles = solidTiles,
-            BGTiles = bgTiles
+            Solids = solidTiles,
+            BGs = bgTiles
         });
     }
 
     public bool PopCommit(out Commit result) 
     {
-        return layouts.TryPop(out result);
+        return undoCommits.TryPop(out result);
     }
 }

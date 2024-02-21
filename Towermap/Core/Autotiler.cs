@@ -1,13 +1,13 @@
 using System;
 using System.Xml;
 using Riateu;
-using Riateu.Graphics;
 
 namespace Towermap;
 
 
 public class Autotiler 
 {
+    // TODO Rewrite this TF's Autotiling madness
     public int[] Center;
     public int[] Single;
     public int[] SingleHorizontalLeft;
@@ -41,9 +41,6 @@ public class Autotiler
     private bool upRight = false;
     private bool downLeft = false;
     private bool downRight = false;
-    private Random random = new Random(42342);
-
-    public Autotiler() {}
 
     private static bool Check(int x, int y, Array2D<bool> data) 
     {
@@ -92,6 +89,8 @@ public class Autotiler
         {
             return -1;
         }
+
+        var random = new Random(424242 + x + y);
 
         if (also != null) 
         {

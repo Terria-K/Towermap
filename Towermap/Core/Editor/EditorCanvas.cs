@@ -18,7 +18,7 @@ public class EditorCanvas : Canvas
         Scene.EntityList.Draw(buffer, instanceBatch);
         instanceBatch.FlushVertex(buffer);
 
-        buffer.BeginRenderPass(new ColorAttachmentInfo(CanvasTexture, Color.DimGray));
+        buffer.BeginRenderPass(new ColorAttachmentInfo(CanvasTexture, Color.DimGray, StoreOp.DontCare));
         buffer.BindGraphicsPipeline(GameContext.InstancedPipeline);
         instanceBatch.Draw(buffer);
         buffer.EndRenderPass();

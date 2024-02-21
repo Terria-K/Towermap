@@ -29,6 +29,8 @@ public class EditorScene : Scene
     private ImGuiElement menuBar;
     private LevelSelection levelSelection;
     private LayersPanel layers;
+    private TilePanel solidTilesPanel;
+    private TilePanel bgTilesPanel;
     private Tools tools;
 #endregion
 
@@ -68,6 +70,7 @@ public class EditorScene : Scene
             .Add(new MenuSlot("View"));
 
         tools = new Tools();
+
         
         levelSelection = new LevelSelection();
         levelSelection.OnSelect = OnLevelSelected;
@@ -109,6 +112,9 @@ public class EditorScene : Scene
 
     public override void Begin()
     {
+        solidTilesPanel = new TilePanel(imGui.AddToPointer(Resource.TowerFallTexture), "tilesets/flight", "SolidTiles");
+        bgTilesPanel = new TilePanel(imGui.AddToPointer(Resource.TowerFallTexture), "tilesets/flightBG", "BGTiles");
+
         levelSelection.SelectTower("../Assets");
         solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flight"], 10, 10);
         solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet);
@@ -142,6 +148,8 @@ public class EditorScene : Scene
         if (currentTiles == null)
             return;
 
+        history.PushCommit(new History.Commit { Solids = solids.Bits, BGs = bgs.Bits });
+
         for (int y = 0; y < WorldUtils.WorldHeight / 10 * 0.5f; y++) 
         {
             for (int x = 0; x < WorldUtils.WorldWidth / 10; x++)  
@@ -167,6 +175,8 @@ public class EditorScene : Scene
 
         if (currentTiles == null)
             return;
+
+        history.PushCommit(new History.Commit { Solids = solids.Bits, BGs = bgs.Bits });
 
         for (int y = 0; y < WorldUtils.WorldHeight / 10; y++) 
         {
@@ -296,10 +306,13 @@ public class EditorScene : Scene
     public override void Update(double delta)
     {
         imGui.Update(GameInstance.Inputs, ImGuiCallback);
+        solidTilesPanel.Update();
+        bgTilesPanel.Update();
         if (level == null)
         {
             return;
         }
+
 
         if (isDrawing && Input.InputSystem.Mouse.AnyPressedButton.IsUp) 
         {
@@ -319,8 +332,8 @@ public class EditorScene : Scene
                 {
                     solids.Clear();
                     bgs.Clear();
-                    bgs.Bits = res.BGTiles.Clone();
-                    solids.Bits = res.SolidTiles.Clone();
+                    bgs.Bits = res.BGs.Clone();
+                    solids.Bits = res.Solids.Clone();
                     solids.UpdateTiles(SolidAutotiler);
                     bgs.UpdateTiles(bgAutotiler, solids.Bits);
                 }
@@ -343,40 +356,69 @@ public class EditorScene : Scene
             {
                 if (!isDrawing) 
                 {
-                    history.PushCommit(new History.Commit { SolidTiles = solids.Bits, BGTiles = bgs.Bits });
+                    history.PushCommit(new History.Commit { Solids = solids.Bits, BGs = bgs.Bits });
                 }
                 if (currentTile.SetGrid(gridX, gridY, true)) 
                 {
                     currentTile.UpdateTile(gridX, gridY, SolidAutotiler.Tile(currentTile.Bits, gridX, gridY, also));
-                    UpdateTiles(gridX, gridY, solids.Bits);
                 }
                 isDrawing = true;
             }
 
         }
-        else if (Input.InputSystem.Mouse.RightButton.IsDown && currentLayerSelected is Layers.Solids or Layers.BG) 
+        else if (Input.InputSystem.Mouse.RightButton.IsDown) 
         {
-            (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+            switch (currentLayerSelected) 
             {
-                Layers.Solids => (solids, SolidAutotiler, null),
-                _ => (bgs, bgAutotiler, solids.Bits)
-            };
-            int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-            int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+            case Layers.Solids:
+            case Layers.BG:
+                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+                {
+                    Layers.Solids => (solids, SolidAutotiler, null),
+                    _ => (bgs, bgAutotiler, solids.Bits)
+                };
+                {
+                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
 
-            if (InBounds(gridX, gridY)) 
-            {
-                if (!isDrawing) 
-                {
-                    history.PushCommit(new History.Commit { SolidTiles = solids.Bits, BGTiles = bgs.Bits });
+                    if (InBounds(gridX, gridY)) 
+                    {
+                        if (!isDrawing) 
+                        {
+                            history.PushCommit(new History.Commit { Solids = solids.Bits, BGs = bgs.Bits });
+                        }
+                        if (currentTile.SetGrid(gridX, gridY, false)) 
+                        {
+                            currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY));
+                            UpdateTiles(gridX, gridY, solids.Bits);
+                        }
+                        isDrawing = true;
+                    }
                 }
-                if (currentTile.SetGrid(gridX, gridY, false)) 
+
+                break;
+            case Layers.BGTiles:
+            case Layers.SolidTiles:
                 {
-                    currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY));
-                    UpdateTiles(gridX, gridY, solids.Bits);
+                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                    var data = bgTilesPanel.GetData();
+                    for (int nx = 0; nx < data.Columns / 10; nx++) 
+                    {
+                        for (int ny = 0; ny < data.Rows / 10; ny++) 
+                        {
+                            int relNx = gridX - nx;
+                            int relNy = gridY - ny;
+                            if (InBounds(relNx, relNy)) 
+                            {
+                                BGTiles.SetTile(relNx, relNy, -1);
+                            }
+                        }
+                    }
                 }
-                isDrawing = true;
+                break;
             }
+
         }
     }
 
@@ -393,6 +435,15 @@ public class EditorScene : Scene
         levelSelection.UpdateGui();
         tools.UpdateGui();
         layers.UpdateGui();
+        switch (currentLayerSelected) 
+        {
+        case Layers.SolidTiles:
+            solidTilesPanel.UpdateGui();
+            break;
+        case Layers.BGTiles:
+            bgTilesPanel.UpdateGui();
+            break;
+        }
     }
 
     public override void Draw(CommandBuffer buffer, Texture backbuffer, IBatch batch)

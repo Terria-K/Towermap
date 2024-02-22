@@ -1,3 +1,4 @@
+using System;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
@@ -14,13 +15,14 @@ public static class Resource
 
 public class TowermapGame : GameApp
 {
-    public TowermapGame(string title, uint width, uint height, ScreenMode screenMode = ScreenMode.Windowed, bool debugMode = false) : base(title, width, height, screenMode, debugMode)
-    {
-    }
+    public TowermapGame(string title, uint width, uint height, ScreenMode screenMode = ScreenMode.Windowed, bool debugMode = false) : base(title, width, height, screenMode, debugMode) {}
 
     public override void Initialize()
     {
-        SDL2.SDL.SDL_CaptureMouse(SDL2.SDL.SDL_bool.SDL_FALSE);
+        if (OperatingSystem.IsLinux()) 
+        {
+            SDL2.SDL.SDL_CaptureMouse(SDL2.SDL.SDL_bool.SDL_FALSE);
+        }
         Scene = new EditorScene(this);
     }
 

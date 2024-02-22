@@ -12,15 +12,15 @@ public class Tiles : Entity
     private Tilemap tilemap;
     private Spritesheet spritesheet;
     private Array2D<SpriteTexture?> tiles;
-    private Array2D<int> ids;
+    public Array2D<int> Ids;
 
     public Tiles(Texture texture, Spritesheet spritesheet) 
     {
         this.spritesheet = spritesheet;
         tiles = new Array2D<SpriteTexture?>(32, 24);
         tiles.Fill(null);
-        ids = new Array2D<int>(32, 24);
-        ids.Fill(-1);
+        Ids = new Array2D<int>(32, 24);
+        Ids.Fill(-1);
         tilemap = new Tilemap(texture, tiles, 10, TilemapMode.Cull);
         AddComponent(tilemap);
     }
@@ -35,10 +35,29 @@ public class Tiles : Entity
         if (tileID == -1) 
         {
             tiles[x, y] = null; 
+            Ids[x, y] = -1;
             return;
         }
         tiles[x, y] = spritesheet.GetTexture(tileID);
-        ids[x, y] = tileID;
+        Ids[x, y] = tileID;
+    }
+
+    public void SetTiles(Array2D<int> tileIds) 
+    {
+        Ids = tileIds.Clone();
+        for (int x = 0; x < tileIds.Columns; x++) 
+        {
+            for (int y = 0; y < tileIds.Rows; y++) 
+            {
+                var gid = Ids[y, x];
+                if (gid == -1) 
+                {
+                    tiles[y, x] = null;
+                    continue;
+                }
+                tiles[y, x] = spritesheet.GetTexture(gid);
+            }
+        }
     }
 
     public void SetTiles(string csv) 
@@ -54,7 +73,7 @@ public class Tiles : Entity
                 if (string.IsNullOrEmpty(tile))
                     continue;
                 int num = int.Parse(strTiles[j]);
-                ids[j, i] = num;
+                Ids[j, i] = num;
                 if (num == -1) 
                 {
                     continue;
@@ -67,12 +86,12 @@ public class Tiles : Entity
     public string Save() 
     {
         StringBuilder builder = new StringBuilder();
-        for (int x = 0; x < ids.Columns; x++) 
+        for (int x = 0; x < Ids.Columns; x++) 
         {
-            for (int y = 0; y < ids.Rows; y++) 
+            for (int y = 0; y < Ids.Rows; y++) 
             {
-                builder.Append(ids[y, x]);
-                if (y != ids.Rows - 1)
+                builder.Append(Ids[y, x]);
+                if (y != Ids.Rows - 1)
                     builder.Append(',');
             }
             builder.AppendLine();

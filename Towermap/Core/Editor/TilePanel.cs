@@ -16,7 +16,8 @@ public class TilePanel : ImGuiElement
     private Rect currentRect = new Rect(0, 0, 20, 20);
     private Vector2 framePos;
 
-    public bool IsItemHovered;
+    public bool IsImageHovered;
+    public bool IsWindowHovered;
 
     public TilePanel(IntPtr intPtr, string atlasName, string name) 
     {
@@ -28,9 +29,9 @@ public class TilePanel : ImGuiElement
 
     public Array2D<int> GetData() 
     {
-        int width = currentRect.X / 10;
-        int height = currentRect.Y / 10;
-        var data = new Array2D<int>(width, height);
+        int width = currentRect.W / 10;
+        int height = currentRect.H / 10;
+        var data = new Array2D<int>(height, width);
 
         for (int x = 0; x < data.Columns; x++) 
         {
@@ -38,7 +39,7 @@ public class TilePanel : ImGuiElement
             {
                 var rx = currentRect.X + x * 10;
                 var ry = currentRect.Y + y * 10;
-                data[y, x] = ((y / 10) * (texture.Width / 10) + (x / 10));
+                data[y, x] = ((ry / 10) * (texture.Width / 10) + (rx / 10));
             }
         }
         return data;
@@ -77,7 +78,7 @@ public class TilePanel : ImGuiElement
                 currentRect.H = -(currentRect.Y - texture.Height);
             }
         }
-        if (IsItemHovered && Input.InputSystem.Mouse.LeftButton.IsPressed) 
+        if (IsImageHovered && Input.InputSystem.Mouse.LeftButton.IsPressed) 
         {
             if (rx >= 0 && ry >= 0 && rx <= texture.Width - 10 && ry <= texture.Height - 10)
             {
@@ -96,13 +97,17 @@ public class TilePanel : ImGuiElement
     {
         ImGui.SetNextWindowSize(new Vector2(texture.Width + 10, texture.Height + 20) * 2, ImGuiCond.Always);
         ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize;
-        if (IsItemHovered)
+        if (IsImageHovered)
             flags |= ImGuiWindowFlags.NoMove;
         ImGui.Begin(name, flags);
+
+        if (!Input.InputSystem.Mouse.LeftButton.IsDown && !Input.InputSystem.Mouse.RightButton.IsDown)
+            IsWindowHovered = ImGui.IsWindowHovered();
+
         ImDrawListPtr drawList = ImGui.GetWindowDrawList();
         framePos = ImGui.GetCursorScreenPos();
         ImGui.Image(texturePtr, new Vector2(texture.Width, texture.Height) * 2, texture.UV.TopLeft.ToNumericsVec2(), texture.UV.BottomRight.ToNumericsVec2());
-        IsItemHovered = ImGui.IsItemHovered();
+        IsImageHovered = ImGui.IsItemHovered();
 
         drawList.AddRect(new Vector2(framePos.X + currentRect.X * 2, framePos.Y + currentRect.Y * 2), 
             new Vector2(framePos.X + (currentRect.X * 2 + currentRect.W * 2), framePos.Y + (currentRect.Y * 2 + currentRect.H * 2)), Color.Yellow.PackedValue);

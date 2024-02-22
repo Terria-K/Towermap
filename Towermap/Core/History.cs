@@ -10,19 +10,27 @@ public class History
 
     public struct Commit
     {
+        public Layers Layer;
         public Array2D<bool> Solids;
         public Array2D<bool> BGs;
+        public Array2D<int> BGTiles;
+        public Array2D<int> SolidTiles;
     }
 
-    public void PushCommit(Commit commit) 
+    public void PushCommit(Commit commit, Layers layer) 
     {
-        var bgTiles = commit.BGs.Clone();
-        var solidTiles = commit.Solids.Clone();
+        var bg = commit.BGs?.Clone();
+        var solid = commit.Solids?.Clone();
+        var bgTiles = commit.BGTiles?.Clone();
+        var solidTiles = commit.SolidTiles?.Clone();
 
         undoCommits.Push(new Commit() 
         {
-            Solids = solidTiles,
-            BGs = bgTiles
+            Solids = solid,
+            BGs = bg,
+            BGTiles = bgTiles,
+            SolidTiles = solidTiles,
+            Layer = layer
         });
     }
 

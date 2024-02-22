@@ -340,7 +340,14 @@ public class EditorScene : Scene
 
         if (Input.InputSystem.Keyboard.IsDown(KeyCode.LeftControl)) 
         {
-            if (Input.InputSystem.Keyboard.IsPressed(KeyCode.S)) 
+            if (Input.InputSystem.Keyboard.IsDown(KeyCode.LeftShift)) 
+            {
+                if (Input.InputSystem.Keyboard.IsPressed(KeyCode.S))  
+                {
+                    Save(true);
+                }
+            }
+            else if (Input.InputSystem.Keyboard.IsPressed(KeyCode.S)) 
             {
                 Save();
             }
@@ -433,7 +440,6 @@ public class EditorScene : Scene
                 }
                 break;
             }
-
         }
         else if (Input.InputSystem.Mouse.RightButton.IsDown) 
         {

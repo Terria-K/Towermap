@@ -20,6 +20,7 @@ public class TowermapGame : GameApp
 
     public override void Initialize()
     {
+        SDL2.SDL.SDL_CaptureMouse(SDL2.SDL.SDL_bool.SDL_FALSE);
         Scene = new EditorScene(this);
     }
 

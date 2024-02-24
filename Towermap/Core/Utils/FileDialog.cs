@@ -1,56 +1,22 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using MoonWorks;
 using NFD;
 
 namespace Towermap;
 
 public static class FileDialog 
 {
-    private static readonly Encoder utf8Encoder = Encoding.UTF8.GetEncoder();
-
-    private static byte[] ToUTF8(string str) 
-    {
-        ReadOnlySpan<char> span = str;
-        int byteCount = Encoding.UTF8.GetByteCount(span);
-        Span<byte> bytes = stackalloc byte[byteCount];
-
-        utf8Encoder.Convert(span, bytes, true, out _, out _, out bool completed);
-        if (completed) 
-        {
-            return bytes.ToArray();
-        }
-        Logger.LogError("Bytes incompleted!");
-        return null;
-    }
-
-    private static unsafe string FromUTF8(byte* nts) 
-    {
-        int count = 0;
-        var ptr = nts;
-        while (*ptr != 0) 
-        {
-            ptr++;
-            count++;
-        }
-
-        return Encoding.UTF8.GetString(nts, count);
-    }
-
     public static unsafe NFDResult OpenFile(string path = null, string filters = null) 
     {
         byte[] utfPath = null;
         byte[] filterPath = null;
         if (path != null) 
         {
-            utfPath = ToUTF8(path);
+            utfPath = UTF8Utils.ToUTF8(path);
         }
         if (filters != null) 
         {
-            filterPath = ToUTF8(filters);
+            filterPath = UTF8Utils.ToUTF8(filters);
         }
 
         string error = null;
@@ -63,12 +29,12 @@ public static class FileDialog
 
             if (result == nfdresult_t.NFD_OKAY) 
             {
-                resultPath = FromUTF8((byte*)pathPtr);
+                resultPath = UTF8Utils.FromUTF8((byte*)pathPtr);
                 NativeFunctions.NFD_Free(pathPtr);
             }
             else if (result == nfdresult_t.NFD_ERROR) 
             {
-                error = FromUTF8(NativeFunctions.NFD_GetError());
+                error = UTF8Utils.FromUTF8(NativeFunctions.NFD_GetError());
             }
 
             return new NFDResult(result, resultPath, [resultPath], error);
@@ -81,11 +47,11 @@ public static class FileDialog
         byte[] filterPath = null;
         if (path != null) 
         {
-            utfPath = ToUTF8(path);
+            utfPath = UTF8Utils.ToUTF8(path);
         }
         if (filters != null) 
         {
-            filterPath = ToUTF8(filters);
+            filterPath = UTF8Utils.ToUTF8(filters);
         }
 
         string error = null;
@@ -98,12 +64,12 @@ public static class FileDialog
 
             if (result == nfdresult_t.NFD_OKAY) 
             {
-                resultPath = FromUTF8((byte*)pathPtr);
+                resultPath = UTF8Utils.FromUTF8((byte*)pathPtr);
                 NativeFunctions.NFD_Free(pathPtr);
             }
             else if (result == nfdresult_t.NFD_ERROR) 
             {
-                error = FromUTF8(NativeFunctions.NFD_GetError());
+                error = UTF8Utils.FromUTF8(NativeFunctions.NFD_GetError());
             }
 
             return new NFDResult(result, resultPath, [resultPath], error);
@@ -115,7 +81,7 @@ public static class FileDialog
         byte[] utfPath = null;
         if (path != null) 
         {
-            utfPath = ToUTF8(path);
+            utfPath = UTF8Utils.ToUTF8(path);
         }
         string error = null;
         fixed (byte* utfPtr = utfPath) 
@@ -125,12 +91,12 @@ public static class FileDialog
 
             if (result == nfdresult_t.NFD_OKAY) 
             {
-                resultPath = FromUTF8((byte*)pathPtr);
+                resultPath = UTF8Utils.FromUTF8((byte*)pathPtr);
                 NativeFunctions.NFD_Free(pathPtr);
             }
             else if (result == nfdresult_t.NFD_ERROR) 
             {
-                error = FromUTF8(NativeFunctions.NFD_GetError());
+                error = UTF8Utils.FromUTF8(NativeFunctions.NFD_GetError());
             }
 
             return new NFDResult(result, resultPath, [resultPath], error);

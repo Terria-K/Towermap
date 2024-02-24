@@ -24,6 +24,7 @@ public enum Layers
 public class EditorScene : Scene
 {
     private ImGuiRenderer imGui;
+    private ActorManager actorManager;
 
 #region Elements
     private ImGuiElement menuBar;
@@ -32,6 +33,7 @@ public class EditorScene : Scene
     private TilePanel solidTilesPanel;
     private TilePanel bgTilesPanel;
     private Tools tools;
+    private Entities entities;
 #endregion
 
     private EditorCanvas mainCanvas;
@@ -49,6 +51,7 @@ public class EditorScene : Scene
     private StaticText emptyText;
     private History history;
     private bool isDrawing;
+    private IntPtr imGuiTexture;
 
 #region Level State
     private string currentPath;
@@ -57,8 +60,11 @@ public class EditorScene : Scene
 
     public EditorScene(GameApp game) : base(game)
     {
+        actorManager = new ActorManager();
+        VanillaActor.Init(actorManager);
         history = new History();
         imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1024, 640, ImGuiInit);
+        imGuiTexture = imGui.AddToPointer(Resource.TowerFallTexture);
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
                 .Add(new MenuItem("New"))
@@ -69,14 +75,16 @@ public class EditorScene : Scene
             .Add(new MenuSlot("Settings"))
             .Add(new MenuSlot("View"));
 
-        tools = new Tools();
-
-        
         levelSelection = new LevelSelection();
         levelSelection.OnSelect = OnLevelSelected;
 
         layers = new LayersPanel();
         layers.OnLayerSelect = OnLayerSelected;
+
+        entities = new Entities(actorManager, imGuiTexture);
+        entities.Enabled = false;
+        entities.OnSelectActor = OnSelectActor;
+        layers.Add(entities);
 
         mainCanvas = new EditorCanvas(this, game.GraphicsDevice);
 
@@ -86,6 +94,8 @@ public class EditorScene : Scene
         canvasTransform.Scale = new Vector2(2);
 
         emptyText = new StaticText(game.GraphicsDevice, Resource.Font, "No Level Selected", 24);
+
+        tools = new Tools();
 
         tools.AddTool("Pen [1]", () => {});
         tools.AddTool("Rect [2]", () => {});
@@ -112,8 +122,8 @@ public class EditorScene : Scene
 
     public override void Begin()
     {
-        solidTilesPanel = new TilePanel(imGui.AddToPointer(Resource.TowerFallTexture), "tilesets/flight", "SolidTiles");
-        bgTilesPanel = new TilePanel(imGui.AddToPointer(Resource.TowerFallTexture), "tilesets/flightBG", "BGTiles");
+        solidTilesPanel = new TilePanel(imGuiTexture, "tilesets/flight", "SolidTiles");
+        bgTilesPanel = new TilePanel(imGuiTexture, "tilesets/flightBG", "BGTiles");
 
         levelSelection.SelectTower("../Assets");
         solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flight"], 10, 10);
@@ -136,6 +146,11 @@ public class EditorScene : Scene
     }
 
 #region Events
+    private void OnSelectActor(Actor actor) 
+    {
+
+    }
+
     private void OnVerticalSymmetry() 
     {
         (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
@@ -204,7 +219,8 @@ public class EditorScene : Scene
             break;
         case "Entities":
             currentLayerSelected = Layers.Entities;
-            break;
+            entities.Enabled = true;
+            return;
         case "SolidTiles":
             currentLayerSelected = Layers.SolidTiles;
             break;
@@ -212,6 +228,7 @@ public class EditorScene : Scene
             currentLayerSelected = Layers.BGTiles;
             break;
         }
+        entities.Enabled = false;
     }
 
     private void OnLevelSelected(string path)

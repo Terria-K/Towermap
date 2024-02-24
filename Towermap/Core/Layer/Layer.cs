@@ -31,6 +31,7 @@ public class LayersPanel : ImGuiElement
                 OnLayerSelect?.Invoke(span);
             }
         }
+        UpdateChildrens();
         ImGui.End();
         ImGui.PopStyleVar();
     }

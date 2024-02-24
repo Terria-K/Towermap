@@ -3,6 +3,7 @@ using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
 using Riateu;
+using Riateu.Graphics;
 
 namespace Towermap;
 
@@ -10,6 +11,7 @@ public static class Resource
 {
     public static Texture TowerFallTexture;
     public static TowerFallAtlas Atlas;
+    public static SpriteTexture Pixel;
     public static Font Font;
 }
 
@@ -19,10 +21,6 @@ public class TowermapGame : GameApp
 
     public override void Initialize()
     {
-        if (OperatingSystem.IsLinux()) 
-        {
-            SDL2.SDL.SDL_CaptureMouse(SDL2.SDL.SDL_bool.SDL_FALSE);
-        }
         Scene = new EditorScene(this);
     }
 
@@ -33,5 +31,8 @@ public class TowermapGame : GameApp
         Resource.Atlas = TowerFallAtlas.LoadAtlas(Resource.TowerFallTexture, "../Assets/atlas.xml");
         Resource.Font = Font.Load(GraphicsDevice, buffer, "../Assets/font/PressStart2P-Regular.ttf");
         GraphicsDevice.Submit(buffer);
+
+        var particle = Resource.Atlas["particle"];
+        Resource.Pixel = new SpriteTexture(Resource.TowerFallTexture, new Rect(particle.Source.X, particle.Source.Y, 1, 1));
     }
 }

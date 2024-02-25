@@ -425,6 +425,7 @@ public class EditorScene : Scene
                         if (currentTile.SetGrid(gridX, gridY, true)) 
                         {
                             currentTile.UpdateTile(gridX, gridY, SolidAutotiler.Tile(currentTile.Bits, gridX, gridY, also));
+                            UpdateTiles(gridX, gridY, solids.Bits);
                         }
                         isDrawing = true;
                     }

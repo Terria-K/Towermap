@@ -17,7 +17,7 @@ public class GridTiles : Entity
     public GridTiles(Texture texture, Spritesheet sheet) 
     {
         this.sheet = sheet;
-        var tiles = new Array2D<SpriteTexture?>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
+        var tiles = new Array2D<Quad?>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         tiles.Fill(null);
         Bits = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         tilemap = new Tilemap(texture, tiles, 10, TilemapMode.Cull);

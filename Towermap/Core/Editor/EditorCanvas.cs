@@ -14,7 +14,7 @@ public class EditorCanvas : Canvas
 
     public override void Draw(CommandBuffer buffer, IBatch batch)
     {
-        instanceBatch.Start();
+        instanceBatch.Begin();
         Scene.EntityList.Draw(buffer, instanceBatch);
         instanceBatch.FlushVertex(buffer);
 

@@ -10,12 +10,28 @@ public class ActorManager
 {
     public Dictionary<string, Actor> Actors = new();
 
-    public void AddActor(ActorInfo info, ActorRender onRender = null) 
+    public void AddActor(ActorInfo info, Point? textureSize = null, ActorRender onRender = null) 
     {
+        var texture = Resource.Atlas[info.Texture];
+        if (textureSize != null) 
+        {
+            var sx = texture.Source.X / (float)Resource.TowerFallTexture.Width;
+            var sy = texture.Source.Y / (float)Resource.TowerFallTexture.Height;
+            
+            var sw = textureSize.Value.X / (float)Resource.TowerFallTexture.Width;
+            var sh = textureSize.Value.Y / (float)Resource.TowerFallTexture.Height;
+
+            var uv = new UV(new Vector2(sx, sy), new Vector2(sw, sh));
+            texture = texture with {
+                Width = textureSize.Value.X,
+                Height = textureSize.Value.Y,
+                UV = uv
+            };
+        }
         var actor = new Actor() 
         {
             Name = info.Name,
-            Texture = Resource.Atlas[info.Texture],
+            Texture = texture,
             Width = info.Width,
             Height = info.Height,
             Origin = new Vector2(info.OriginX, info.OriginY),
@@ -33,7 +49,7 @@ public class ActorManager
 public class Actor 
 {
     public string Name;
-    public SpriteTexture Texture;
+    public Quad Texture;
     public int Width;
     public int Height;
     public Vector2 Origin;

@@ -11,13 +11,13 @@ public class Tiles : Entity
 {
     private Tilemap tilemap;
     private Spritesheet spritesheet;
-    private Array2D<SpriteTexture?> tiles;
+    private Array2D<Quad?> tiles;
     public Array2D<int> Ids;
 
     public Tiles(Texture texture, Spritesheet spritesheet) 
     {
         this.spritesheet = spritesheet;
-        tiles = new Array2D<SpriteTexture?>(32, 24);
+        tiles = new Array2D<Quad?>(32, 24);
         tiles.Fill(null);
         Ids = new Array2D<int>(32, 24);
         Ids.Fill(-1);

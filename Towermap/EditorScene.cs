@@ -37,7 +37,6 @@ public class EditorScene : Scene
 #endregion
 
     private EditorCanvas mainCanvas;
-    private Transform canvasTransform;
     private GridTiles solids;
     private Spritesheet solidSpriteSheet;
     private Autotiler SolidAutotiler;
@@ -46,6 +45,8 @@ public class EditorScene : Scene
     private Autotiler bgAutotiler;
     private Tiles BGTiles;
     private Tiles SolidTiles;
+    private Actor actorSelected;
+    private PhantomActor phantomActor;
     private XmlElement level;
     private Layers currentLayerSelected = Layers.Solids;
     private StaticText emptyText;
@@ -55,6 +56,7 @@ public class EditorScene : Scene
 
 #region Level State
     private string currentPath;
+    public bool HasRemovedEntity;
 #endregion
 
 
@@ -88,11 +90,6 @@ public class EditorScene : Scene
 
         mainCanvas = new EditorCanvas(this, game.GraphicsDevice);
 
-        canvasTransform = new Transform();
-        canvasTransform.PosX = WorldUtils.WorldX;
-        canvasTransform.PosY = WorldUtils.WorldY;
-        canvasTransform.Scale = new Vector2(2);
-
         emptyText = new StaticText(game.GraphicsDevice, Resource.Font, "No Level Selected", 24);
 
         tools = new Tools();
@@ -101,6 +98,9 @@ public class EditorScene : Scene
         tools.AddTool("Rect [2]", () => {});
         tools.AddTool("HSym [3]", OnHorizontalSymmetry);
         tools.AddTool("VSym [4]", OnVerticalSymmetry);
+
+        phantomActor = new PhantomActor();
+        Add(phantomActor);
     }
 
     private unsafe void ImGuiInit(ImGuiIOPtr io) 
@@ -148,7 +148,8 @@ public class EditorScene : Scene
 #region Events
     private void OnSelectActor(Actor actor) 
     {
-
+        actorSelected = actor;
+        phantomActor.SetActor(actorSelected);
     }
 
     private void OnVerticalSymmetry() 
@@ -355,6 +356,7 @@ public class EditorScene : Scene
         imGui.Update(GameInstance.Inputs, ImGuiCallback);
         solidTilesPanel.Update();
         bgTilesPanel.Update();
+
         if (level == null)
         {
             return;
@@ -410,6 +412,21 @@ public class EditorScene : Scene
         }
         int x = Input.InputSystem.Mouse.X;
         int y = Input.InputSystem.Mouse.Y;
+
+        if (Input.InputSystem.Mouse.LeftButton.IsPressed) 
+        {
+            switch (currentLayerSelected) 
+            {
+            case Layers.Entities:
+                {
+                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                    if (InBounds(gridX, gridY))    
+                        phantomActor.PlaceActor(this);
+                }
+                break;
+            }
+        }
 
         if (Input.InputSystem.Mouse.LeftButton.IsDown) 
         {
@@ -529,6 +546,7 @@ public class EditorScene : Scene
                 break;
             }
         }
+        HasRemovedEntity = false;
     }
 
     private static bool InBounds(int gridX, int gridY) 
@@ -558,9 +576,9 @@ public class EditorScene : Scene
     public override void Draw(CommandBuffer buffer, Texture backbuffer, IBatch batch)
     {
         mainCanvas.Draw(buffer, batch);
-        batch.Start();
-        batch.Add(mainCanvas.CanvasTexture, GameContext.GlobalSampler, Vector2.Zero, 
-            Color.White, canvasTransform.WorldMatrix);
+        batch.Begin();
+        batch.Add(mainCanvas.CanvasTexture, GameContext.GlobalSampler, new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, 
+            new Vector2(2));
         if (level == null) 
         {
             emptyText.Draw(batch, new Vector2(WorldUtils.WorldX + 40, WorldUtils.WorldY + (210)));

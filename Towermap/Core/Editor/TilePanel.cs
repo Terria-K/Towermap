@@ -11,7 +11,7 @@ public class TilePanel : ImGuiElement
 {
     private string name;
     private IntPtr texturePtr;
-    private SpriteTexture texture;
+    private Quad texture;
     private bool holding;
     private Rect currentRect = new Rect(0, 0, 20, 20);
     private Vector2 framePos;

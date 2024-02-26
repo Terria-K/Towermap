@@ -1,4 +1,3 @@
-using System;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
@@ -11,7 +10,7 @@ public static class Resource
 {
     public static Texture TowerFallTexture;
     public static TowerFallAtlas Atlas;
-    public static SpriteTexture Pixel;
+    public static Quad Pixel;
     public static Font Font;
 }
 
@@ -26,13 +25,18 @@ public class TowermapGame : GameApp
 
     public override void LoadContent()
     {
-        CommandBuffer buffer = GraphicsDevice.AcquireCommandBuffer();
-        Resource.TowerFallTexture = Texture.FromImageFile(GraphicsDevice, buffer, "../Assets/atlas.png");
+        var uploader = new ResourceUploader(GraphicsDevice);
+        Resource.TowerFallTexture = uploader.CreateTexture2DFromCompressed("../Assets/atlas.png");
+        uploader.Upload();
+        uploader.Dispose();
+
         Resource.Atlas = TowerFallAtlas.LoadAtlas(Resource.TowerFallTexture, "../Assets/atlas.xml");
+
+        CommandBuffer buffer = GraphicsDevice.AcquireCommandBuffer();
         Resource.Font = Font.Load(GraphicsDevice, buffer, "../Assets/font/PressStart2P-Regular.ttf");
         GraphicsDevice.Submit(buffer);
 
         var particle = Resource.Atlas["particle"];
-        Resource.Pixel = new SpriteTexture(Resource.TowerFallTexture, new Rect(particle.Source.X, particle.Source.Y, 1, 1));
+        Resource.Pixel = new Quad(Resource.TowerFallTexture, new Rect(particle.Source.X, particle.Source.Y, 1, 1));
     }
 }

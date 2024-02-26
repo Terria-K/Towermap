@@ -13,7 +13,7 @@ to lookup on its content. And an nfd.dll which you can build from the [repositor
 
 ## C# Dependencies:
 + [MoonWorks](https://gitea.moonside.games/MoonsideGames/MoonWorks) - A graphics framework used for Riateu.
-+ [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.
++ [Riateu](https://github.com/Terria-K/Riateu) [Currently in refresh2 branch] - A primary engine for this app.
 + [TeuJson](https://github.com/Terria-K/TeuJson) - A json de/serializer.
 + [DotNetZip](https://github.com/DinoChiesa/DotNetZip) - A tool for extracting mods inside the app.
 

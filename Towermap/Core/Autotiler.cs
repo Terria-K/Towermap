@@ -31,6 +31,7 @@ public class Autotiler
     public int[] Below;
 
     private bool initialized;
+    private int initialSeed = 0;
 
     private bool current = false;
     private bool left = false;
@@ -83,6 +84,11 @@ public class Autotiler
         initialized = true;
     }
 
+    public void SetInitialSeed(int seed) 
+    {
+        initialSeed = seed;
+    }
+
     public int Tile(Array2D<bool> bits, int x, int y, Array2D<bool> also = null) 
     {
         if (!initialized || !ArrayUtils.ArrayCheck(x, y, bits) || !(current = bits[x, y]))
@@ -90,7 +96,7 @@ public class Autotiler
             return -1;
         }
 
-        var random = new Random(424242 + x + y);
+        var random = new Random(initialSeed * x + y);
 
         if (also != null) 
         {

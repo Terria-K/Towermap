@@ -256,11 +256,9 @@ public class EditorScene : Scene
         {
             var solid = loadingLevel["Solids"];
             solids.SetGrid(solid.InnerText);
-            solids.UpdateTiles(SolidAutotiler);
 
             var bg = loadingLevel["BG"];
             bgs.SetGrid(bg.InnerText);
-            bgs.UpdateTiles(bgAutotiler, solids.Bits);
 
             var solidTiles = loadingLevel["SolidTiles"];
             SolidTiles.SetTiles(solidTiles.InnerText);
@@ -270,6 +268,19 @@ public class EditorScene : Scene
 
             level = loadingLevel;
             currentPath = path;
+
+            var pathSpan = path.AsSpan();
+            int seed = 0;
+            for (int i = 0; i < pathSpan.Length; i++) 
+            {
+                seed += (int)pathSpan[i] + i;
+            }
+
+            SolidAutotiler.SetInitialSeed(seed);
+            bgAutotiler.SetInitialSeed(seed);
+
+            solids.UpdateTiles(SolidAutotiler);
+            bgs.UpdateTiles(bgAutotiler, solids.Bits);
         }
         catch 
         {

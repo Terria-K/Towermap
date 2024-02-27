@@ -95,6 +95,7 @@ public class TilePanel : ImGuiElement
 
     public override void DrawGui()
     {
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 4);
         ImGui.SetNextWindowSize(new Vector2(texture.Width + 10, texture.Height + 20) * 2, ImGuiCond.Always);
         ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize;
         if (IsImageHovered)
@@ -112,5 +113,6 @@ public class TilePanel : ImGuiElement
         drawList.AddRect(new Vector2(framePos.X + currentRect.X * 2, framePos.Y + currentRect.Y * 2), 
             new Vector2(framePos.X + (currentRect.X * 2 + currentRect.W * 2), framePos.Y + (currentRect.Y * 2 + currentRect.H * 2)), Color.Yellow.PackedValue);
         ImGui.End();
+        ImGui.PopStyleVar();
     }
 }

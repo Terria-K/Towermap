@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using ImGuiNET;
@@ -99,7 +100,7 @@ public class EditorScene : Scene
         tools.AddTool("HSym [3]", OnHorizontalSymmetry);
         tools.AddTool("VSym [4]", OnVerticalSymmetry);
 
-        phantomActor = new PhantomActor();
+        phantomActor = new PhantomActor(actorManager);
         Add(phantomActor);
     }
 
@@ -220,6 +221,8 @@ public class EditorScene : Scene
             break;
         case "Entities":
             currentLayerSelected = Layers.Entities;
+            phantomActor.Active = true;
+            phantomActor.Visible = true;
             entities.Enabled = true;
             return;
         case "SolidTiles":
@@ -230,6 +233,8 @@ public class EditorScene : Scene
             break;
         }
         entities.Enabled = false;
+        phantomActor.Active = false;
+        phantomActor.Visible = false;
     }
 
     private void OnLevelSelected(string path)
@@ -240,6 +245,15 @@ public class EditorScene : Scene
 
     public void SetLevel(string path) 
     {
+        actorManager.ClearIDs();
+        foreach (var entity in EntityList) 
+        {
+            if (entity is LevelActor) 
+            {
+                Remove(entity);
+            }
+        }
+        
         solids.Clear();
         bgs.Clear();
         SolidTiles.Clear();
@@ -267,25 +281,15 @@ public class EditorScene : Scene
             var bgTiles = loadingLevel["BGTiles"];
             BGTiles.SetTiles(bgTiles.InnerText);
 
+            SpawnEntities(loadingLevel);
+
             level = loadingLevel;
             currentPath = path;
-
-            var pathSpan = path.AsSpan();
-            int seed = 0;
-            for (int i = 0; i < pathSpan.Length; i++) 
-            {
-                seed += (int)pathSpan[i] + i;
-            }
-
-            SolidAutotiler.SetInitialSeed(seed);
-            bgAutotiler.SetInitialSeed(seed);
-
-            solids.UpdateTiles(SolidAutotiler);
-            bgs.UpdateTiles(bgAutotiler, solids.Bits);
         }
-        catch 
+        catch (Exception ex)
         {
-            Logger.LogInfo($"Failed to load this level: '{Path.GetFileName(path)}'");
+            Logger.LogError($"Failed to load this level: '{Path.GetFileName(path)}'");
+            Logger.LogError(ex.ToString());
             if (level != null) 
             {
                 var solid = level["Solids"];
@@ -301,7 +305,66 @@ public class EditorScene : Scene
 
                 var bgTiles = loadingLevel["BGTiles"];
                 BGTiles.SetTiles(bgTiles.InnerText);
+
+                SpawnEntities(loadingLevel);
             }
+        }
+
+        var pathSpan = path.AsSpan();
+        int seed = 0;
+        for (int i = 0; i < pathSpan.Length; i++) 
+        {
+            seed += (int)pathSpan[i] + i;
+        }
+
+        SolidAutotiler.SetInitialSeed(seed);
+        bgAutotiler.SetInitialSeed(seed);
+
+        solids.UpdateTiles(SolidAutotiler);
+        bgs.UpdateTiles(bgAutotiler, solids.Bits);
+    }
+
+    public void RemoveActor(LevelActor actor) 
+    {
+        Remove(actor);
+        HasRemovedEntity = true;
+        actorManager.RetriveID(actor.ID);
+    }
+
+    private void SpawnEntities(XmlElement xml) 
+    {
+        var entities = xml["Entities"];
+        ulong id = 0;
+        HashSet<ulong> idTaken = new();
+
+        foreach (XmlElement entity in entities) 
+        {
+            ulong entityID = ulong.Parse(entity.GetAttribute("id"));
+            var entityName = entity.Name;
+            var x = int.Parse(entity.GetAttribute("x"));
+            var y = int.Parse(entity.GetAttribute("y"));
+            var actor = actorManager.GetEntity(entityName);
+            if (actor == null)
+            {
+                Logger.LogError($"{entityName} is not registered to ActorManager");
+                continue;
+            }
+            var levelActor = new LevelActor(Resource.TowerFallTexture, actor, actor.Texture, entityID);
+            levelActor.PosX = x;
+            levelActor.PosY = y;
+            Add(levelActor);
+            if (entityID > id) 
+            {
+                id = entityID;
+            }
+            idTaken.Add(entityID);
+        }
+        actorManager.TotalIDs = id;
+        for (ulong i = 0; i <= id; i++) 
+        {
+            if (idTaken.Contains(i))
+                continue;
+            actorManager.RetriveID(i);
         }
     }
 
@@ -334,21 +397,14 @@ public class EditorScene : Scene
 
     public void CommitHistory() 
     {
-        switch (currentLayerSelected) 
-        {
-        case Layers.Solids:
-            history.PushCommit(new History.Commit { Solids = solids.Bits }, currentLayerSelected);
-            break;
-        case Layers.BG:
-            history.PushCommit(new History.Commit { BGs = bgs.Bits }, currentLayerSelected);
-            break;
-        case Layers.BGTiles:
-            history.PushCommit(new History.Commit { BGTiles = BGTiles.Ids }, currentLayerSelected);
-            break;
-        case Layers.SolidTiles:
-            history.PushCommit(new History.Commit { SolidTiles = SolidTiles.Ids }, currentLayerSelected);
-            break;
-        }
+        var historyCommit = currentLayerSelected switch {
+            Layers.Solids => new History.Commit { Solids = solids.Bits },
+            Layers.BG => new History.Commit { BGs = bgs.Bits },
+            Layers.BGTiles => new History.Commit { BGTiles = BGTiles.Ids },
+            Layers.SolidTiles => new History.Commit { SolidTiles = SolidTiles.Ids },
+            _ => throw new InvalidOperationException()
+        };
+        history.PushCommit(historyCommit, currentLayerSelected);
     }
 
     public override void Update(double delta)
@@ -556,7 +612,9 @@ public class EditorScene : Scene
 
     private void ImGuiCallback()
     {
+#if DEBUG
         ImGui.ShowDemoWindow();
+#endif
 
         menuBar.UpdateGui();
         levelSelection.UpdateGui();
@@ -629,10 +687,28 @@ public class EditorScene : Scene
         BGTiles.SetAttribute("exportMode", "TrimmedCSV");
         BGTiles.InnerText = this.BGTiles.Save();
 
+        var Entities = document.CreateElement("Entities");
+        foreach (var entity in EntityList) 
+        {
+            if (entity is not LevelActor actor)
+                continue;
+            var actorInfo = actor.Save();
+            var element = document.CreateElement(actorInfo.Name);
+            element.SetAttribute("id", actorInfo.ID.ToString());
+            element.SetAttribute("x", actorInfo.X.ToString());
+            element.SetAttribute("y", actorInfo.Y.ToString());
+            foreach (var value in actorInfo.Values) 
+            {
+                element.SetAttribute(value.Key, value.Value.ToString());
+            }
+            Entities.AppendChild(element);
+        }
+
         rootElement.AppendChild(Solids);
         rootElement.AppendChild(BG);
         rootElement.AppendChild(SolidTiles);
         rootElement.AppendChild(BGTiles);
+        rootElement.AppendChild(Entities);
         string path;
         if (specifyPath) 
         {

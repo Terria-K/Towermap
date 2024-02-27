@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using MoonWorks.Graphics;
 using MoonWorks.Math.Float;
 using Riateu;
@@ -15,10 +16,11 @@ public class LevelActor : Entity
     private Actor actor;
     private float transparency;
     private Rectangle rect;
+    public ulong ID;
 
     public SpriteRenderer Sprite => renderer;
 
-    public LevelActor(Texture texture, Actor actor, Quad quad) 
+    public LevelActor(Texture texture, Actor actor, Quad quad, ulong id) 
     {
         Depth = -3;
         this.actor = actor;
@@ -29,6 +31,7 @@ public class LevelActor : Entity
         rectTransform = new Transform();
         AddTransform(rectTransform);
         rectTransform.Scale = new Vector2(20, 20);
+        this.ID = id;
     }
 
     public override void Ready()
@@ -51,8 +54,7 @@ public class LevelActor : Entity
             var scene = Scene as EditorScene;
             if (Input.InputSystem.Mouse.RightButton.IsPressed && !scene.HasRemovedEntity) 
             {
-                DestroySelf();
-                scene.HasRemovedEntity = true;
+                scene.RemoveActor(this);
             }
         }
         else
@@ -72,4 +74,19 @@ public class LevelActor : Entity
         DrawUtils.Rect(spriteBatch, Position, Color.Yellow * transparency, new Vector2(actor.Width, actor.Height), actor.Origin);
         base.Draw(buffer, spriteBatch);
     }
+
+    public LevelActorInfo Save() 
+    {
+        Dictionary<string, object> values = [];
+        return new LevelActorInfo(ID, actor.Name, (int)PosX, (int)PosY, values);
+    }
+}
+
+public struct LevelActorInfo(ulong id, string name, int x, int y, Dictionary<string, object> values)
+{
+    public ulong ID = id;
+    public string Name = name;
+    public int X = x;
+    public int Y = y;
+    public Dictionary<string, object> Values = values;
 }

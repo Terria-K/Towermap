@@ -10,10 +10,12 @@ namespace Towermap;
 public class PhantomActor : Entity 
 {
     private Actor actor;
+    private ActorManager manager;
 
-    public PhantomActor() 
+    public PhantomActor(ActorManager manager) 
     {
         Depth = -3;
+        this.manager = manager;
     }
 
     public void SetActor(Actor actor) 
@@ -74,7 +76,8 @@ public class PhantomActor : Entity
 
     public void PlaceActor(Scene scene) 
     {
-        var actor = new LevelActor(Resource.TowerFallTexture, this.actor, this.actor.Texture);
+        ulong id = manager.GetID();
+        var actor = new LevelActor(Resource.TowerFallTexture, this.actor, this.actor.Texture, id);
         actor.PosX = PosX;
         actor.PosY = PosY;
         scene.Add(actor);

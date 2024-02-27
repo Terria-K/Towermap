@@ -8,6 +8,8 @@ public delegate void ActorRender(LevelActor actor, Vector2 position, IBatch spri
 
 public class ActorManager 
 {
+    public ulong TotalIDs = 0;
+    private Queue<ulong> unusedIds = new();
     public Dictionary<string, Actor> Actors = new();
 
     public void AddActor(ActorInfo info, Point? textureSize = null, ActorRender onRender = null) 
@@ -40,9 +42,33 @@ public class ActorManager
         Actors.Add(info.Name, actor);
     }
 
-    public void PlaceEntity(string currentSelected, Vector2 position) 
+    public Actor GetEntity(string currentSelected) 
     {
-        var actor = Actors[currentSelected];
+        if (Actors.TryGetValue(currentSelected, out Actor selected)) 
+        {
+            return selected;
+        }
+        return null;
+    }
+
+    public ulong GetID() 
+    {
+        if (unusedIds.TryDequeue(out ulong result)) 
+        {
+            return result;
+        }
+        return TotalIDs++;
+    }
+
+    public void RetriveID(ulong id) 
+    {
+        unusedIds.Enqueue(id);
+    }
+
+    public void ClearIDs() 
+    {
+        TotalIDs = 0;
+        unusedIds.Clear();
     }
 }
 

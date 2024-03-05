@@ -44,11 +44,11 @@ public class EntityData : ImGuiElement
             ImGui.InputInt2("Position", ref actorNewPos[0]);
             if (levelActor.Data.ResizeableX) 
             {
-                ImGui.SliderInt("Width", ref actorNewWidth, 10, 320);
+                ImGui.InputInt("Width", ref actorNewWidth, 10, 10);
             }
             if (levelActor.Data.ResizeableY) 
             {
-                ImGui.SliderInt("Height", ref actorNewHeight, 10, 320);
+                ImGui.InputInt("Height", ref actorNewHeight, 10, 10);
             }
 
             foreach (var (key, value) in levelActor.CustomData) 
@@ -59,6 +59,31 @@ public class EntityData : ImGuiElement
                     {
                         levelActor.CustomData[key] = val;
                     }
+                    continue;
+                }
+                if (value is int i) 
+                {
+                    if (ImGui.InputInt(key, ref i)) 
+                    {
+                        levelActor.CustomData[key] = i;
+                    }
+                    continue;
+                }
+                if (value is float f) 
+                {
+                    if (ImGui.InputFloat(key, ref f)) 
+                    {
+                        levelActor.CustomData[key] = f;
+                    }
+                    continue;
+                }
+                if (value is string str) 
+                {
+                    if (ImGui.InputText(key, ref str, 50)) 
+                    {
+                        levelActor.CustomData[key] = str;
+                    }
+                    continue;
                 }
             }
         }

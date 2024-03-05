@@ -14,9 +14,16 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("TeamSpawn", "player/statues/pink", originX: 10, originY: 10), onRender: PlayerRender);
         manager.AddActor(new ActorInfo("TeamSpawnA", "player/statues/blue", originX: 10, originY: 10), onRender: PlayerRender);
         manager.AddActor(new ActorInfo("TeamSpawnB", "player/statues/red", originX: 10, originY: 10), onRender: PlayerRender);
-        manager.AddActor(new ActorInfo("TreasureChest", "treasureChest", 10, 10, 5, 5), new Point(10, 10));
+        manager.AddActor(new ActorInfo("TreasureChest", "treasureChest", 10, 10, 5, 5, customValues: new () {
+            ["Mode"] = "Normal",
+            ["Treasure"] = "Arrows",
+            ["Type"] = "Normal",
+            ["Timer"] = 300
+        }), new Point(10, 10));
         manager.AddActor(new ActorInfo("BigTreasureChest", "bigChest", 20, 20, 10, 10), new Point(20, 20));
-        manager.AddActor(new ActorInfo("Spawner", "spawnPortal", 20, 20, 10, 10), new Point(20, 20));
+        manager.AddActor(new ActorInfo("Spawner", "spawnPortal", 20, 20, 10, 10, customValues: new() {
+            ["name"] = "..."
+        }), new Point(20, 20));
         manager.AddActor(new ActorInfo("EndlessPortal", "nextLevelPortal", 50, 50, 25, 25), new Point(50, 50));
         manager.AddActor(new ActorInfo("BGLantern", "details/lantern", 10, 10, 5, 5, customValues: new () {
             ["Lit"] = false

@@ -37,7 +37,10 @@ public class ActorManager
             Width = info.Width,
             Height = info.Height,
             Origin = new Vector2(info.OriginX, info.OriginY),
-            OnRender = onRender
+            ResizeableX = info.ResizeableX,
+            ResizeableY = info.ResizeableY,
+            OnRender = onRender,
+            CustomValues = info.CustomValues
         };
         Actors.Add(info.Name, actor);
     }
@@ -80,6 +83,9 @@ public class Actor
     public int Height;
     public Vector2 Origin;
     public ActorRender OnRender;
+    public bool ResizeableX;
+    public bool ResizeableY;
+    public Dictionary<string, object> CustomValues;
 }
 
 
@@ -91,8 +97,11 @@ public struct ActorInfo
     public int Height;
     public int OriginX;
     public int OriginY;
+    public bool ResizeableX;
+    public bool ResizeableY;
+    public Dictionary<string, object> CustomValues;
 
-    public ActorInfo(string name, string texture, int width = 20, int height = 20, int originX = 0, int originY = 0) 
+    public ActorInfo(string name, string texture, int width = 20, int height = 20, int originX = 0, int originY = 0, bool resizeableX = false, bool resizeableY = false, Dictionary<string, object> customValues = null) 
     {
         Name = name;
         Texture = texture;
@@ -100,5 +109,8 @@ public struct ActorInfo
         Height = height;
         OriginX = originX;
         OriginY = originY;
+        ResizeableX = resizeableX;
+        ResizeableY = resizeableY;
+        CustomValues = customValues;
     }
 }

@@ -22,6 +22,12 @@ public enum Layers
     BGTiles
 }
 
+public enum Tool
+{
+    Pen,
+    Rect
+}
+
 public class EditorScene : Scene
 {
     private ImGuiRenderer imGui;
@@ -35,6 +41,7 @@ public class EditorScene : Scene
     private TilePanel bgTilesPanel;
     private Tools tools;
     private Entities entities;
+    private EntityData entityData;
 #endregion
 
     private EditorCanvas mainCanvas;
@@ -49,7 +56,6 @@ public class EditorScene : Scene
     private Actor actorSelected;
     private PhantomActor phantomActor;
     private XmlElement level;
-    private Layers currentLayerSelected = Layers.Solids;
     private StaticText emptyText;
     private History history;
     private bool isDrawing;
@@ -57,6 +63,9 @@ public class EditorScene : Scene
 
 #region Level State
     private string currentPath;
+
+    public Tool ToolSelected;
+    public Layers CurrentLayer = Layers.Solids;
     public bool HasRemovedEntity;
 #endregion
 
@@ -75,7 +84,8 @@ public class EditorScene : Scene
                 .Add(new MenuItem("Save", () => Save()))
                 .Add(new MenuItem("Save As", () => Save(true)))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
-            .Add(new MenuSlot("Settings"))
+            .Add(new MenuSlot("Settings")
+                .Add(new MenuItem("Editor")))
             .Add(new MenuSlot("View"));
 
         levelSelection = new LevelSelection();
@@ -87,7 +97,11 @@ public class EditorScene : Scene
         entities = new Entities(actorManager, imGuiTexture);
         entities.Enabled = false;
         entities.OnSelectActor = OnSelectActor;
+
+        entityData = new EntityData();
+        entityData.Enabled = false;
         layers.Add(entities);
+        layers.Add(entityData);
 
         mainCanvas = new EditorCanvas(this, game.GraphicsDevice);
 
@@ -95,8 +109,8 @@ public class EditorScene : Scene
 
         tools = new Tools();
 
-        tools.AddTool("Pen [1]", () => {});
-        tools.AddTool("Rect [2]", () => {});
+        tools.AddTool("Pen [1]", () => ToolSelected = Tool.Pen);
+        tools.AddTool("Rect [2]", () => ToolSelected = Tool.Rect);
         tools.AddTool("HSym [3]", OnHorizontalSymmetry);
         tools.AddTool("VSym [4]", OnVerticalSymmetry);
 
@@ -146,6 +160,12 @@ public class EditorScene : Scene
         Add(BGTiles);
     }
 
+
+    public void SelectLevelActor(LevelActor actor) 
+    {
+        entityData.SelectActor(actor);
+    }
+
 #region Events
     private void OnSelectActor(Actor actor) 
     {
@@ -155,7 +175,7 @@ public class EditorScene : Scene
 
     private void OnVerticalSymmetry() 
     {
-        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
         {
             Layers.Solids => (solids, SolidAutotiler, null),
             Layers.BG => (bgs, bgAutotiler, solids.Bits),
@@ -183,7 +203,7 @@ public class EditorScene : Scene
 
     private void OnHorizontalSymmetry() 
     {
-        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
         {
             Layers.Solids => (solids, SolidAutotiler, null),
             Layers.BG => (bgs, bgAutotiler, solids.Bits),
@@ -214,25 +234,27 @@ public class EditorScene : Scene
         switch (layer) 
         {
         case "Solids":
-            currentLayerSelected = Layers.Solids;
+            CurrentLayer = Layers.Solids;
             break;
         case "BG":
-            currentLayerSelected = Layers.BG;
+            CurrentLayer = Layers.BG;
             break;
         case "Entities":
-            currentLayerSelected = Layers.Entities;
+            CurrentLayer = Layers.Entities;
             phantomActor.Active = true;
             phantomActor.Visible = true;
+            entityData.Enabled = true;
             entities.Enabled = true;
             return;
         case "SolidTiles":
-            currentLayerSelected = Layers.SolidTiles;
+            CurrentLayer = Layers.SolidTiles;
             break;
         case "BGTiles":
-            currentLayerSelected = Layers.BGTiles;
+            CurrentLayer = Layers.BGTiles;
             break;
         }
         entities.Enabled = false;
+        entityData.Enabled = false;
         phantomActor.Active = false;
         phantomActor.Visible = false;
     }
@@ -339,19 +361,37 @@ public class EditorScene : Scene
 
         foreach (XmlElement entity in entities) 
         {
-            ulong entityID = ulong.Parse(entity.GetAttribute("id"));
             var entityName = entity.Name;
-            var x = int.Parse(entity.GetAttribute("x"));
-            var y = int.Parse(entity.GetAttribute("y"));
+
             var actor = actorManager.GetEntity(entityName);
             if (actor == null)
             {
                 Logger.LogError($"{entityName} is not registered to ActorManager");
                 continue;
             }
+            ulong entityID = ulong.Parse(entity.GetAttribute("id"));
+            var x = int.Parse(entity.GetAttribute("x"));
+            var y = int.Parse(entity.GetAttribute("y"));
+            int width = 0;
+            int height = 0;
+
+            if (entity.HasAttribute("width")) 
+            {
+                width = int.Parse(entity.GetAttribute("width"));
+            }
+
+            if (entity.HasAttribute("height")) 
+            {
+                height = int.Parse(entity.GetAttribute("height"));
+            }
+
             var levelActor = new LevelActor(Resource.TowerFallTexture, actor, actor.Texture, entityID);
             levelActor.PosX = x;
             levelActor.PosY = y;
+            if (actor.ResizeableX)
+                levelActor.Width = width;
+            if (actor.ResizeableY)
+                levelActor.Height = height;
             Add(levelActor);
             if (entityID > id) 
             {
@@ -359,6 +399,7 @@ public class EditorScene : Scene
             }
             idTaken.Add(entityID);
         }
+
         actorManager.TotalIDs = id;
         for (ulong i = 0; i <= id; i++) 
         {
@@ -397,14 +438,14 @@ public class EditorScene : Scene
 
     public void CommitHistory() 
     {
-        var historyCommit = currentLayerSelected switch {
+        var historyCommit = CurrentLayer switch {
             Layers.Solids => new History.Commit { Solids = solids.Bits },
             Layers.BG => new History.Commit { BGs = bgs.Bits },
             Layers.BGTiles => new History.Commit { BGTiles = BGTiles.Ids },
             Layers.SolidTiles => new History.Commit { SolidTiles = SolidTiles.Ids },
             _ => throw new InvalidOperationException()
         };
-        history.PushCommit(historyCommit, currentLayerSelected);
+        history.PushCommit(historyCommit, CurrentLayer);
     }
 
     public override void Update(double delta)
@@ -471,7 +512,8 @@ public class EditorScene : Scene
 
         if (Input.InputSystem.Mouse.LeftButton.IsPressed) 
         {
-            switch (currentLayerSelected) 
+            if (ToolSelected == Tool.Pen)
+            switch (CurrentLayer) 
             {
             case Layers.Entities:
                 {
@@ -486,11 +528,12 @@ public class EditorScene : Scene
 
         if (Input.InputSystem.Mouse.LeftButton.IsDown) 
         {
-            switch (currentLayerSelected) 
+            if (ToolSelected == Tool.Pen)
+            switch (CurrentLayer) 
             {
             case Layers.Solids:
             case Layers.BG:
-                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
                 {
                     Layers.Solids => (solids, SolidAutotiler, null),
                     _ => (bgs, bgAutotiler, solids.Bits)
@@ -545,11 +588,12 @@ public class EditorScene : Scene
         }
         else if (Input.InputSystem.Mouse.RightButton.IsDown) 
         {
-            switch (currentLayerSelected) 
+            if (ToolSelected == Tool.Pen)
+            switch (CurrentLayer) 
             {
             case Layers.Solids:
             case Layers.BG:
-                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = currentLayerSelected switch 
+                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
                 {
                     Layers.Solids => (solids, SolidAutotiler, null),
                     _ => (bgs, bgAutotiler, solids.Bits)
@@ -620,7 +664,7 @@ public class EditorScene : Scene
         levelSelection.UpdateGui();
         tools.UpdateGui();
         layers.UpdateGui();
-        switch (currentLayerSelected) 
+        switch (CurrentLayer) 
         {
         case Layers.SolidTiles:
             solidTilesPanel.UpdateGui();

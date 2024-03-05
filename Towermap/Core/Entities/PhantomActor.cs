@@ -76,6 +76,8 @@ public class PhantomActor : Entity
 
     public void PlaceActor(Scene scene) 
     {
+        if (this.actor == null)
+            return;
         ulong id = manager.GetID();
         var actor = new LevelActor(Resource.TowerFallTexture, this.actor, this.actor.Texture, id);
         actor.PosX = PosX;

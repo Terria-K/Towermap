@@ -31,6 +31,7 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("BGSkeleton", "details/bones", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
         manager.AddActor(new ActorInfo("Chain", "chain", 10, 10, 0, 0, false, true), new Point(10, 10), ChainRender);
+        manager.AddActor(new ActorInfo("Dummy", "dummy/dummy", 12, 20, 6, 10), new Point(12, 20), PlayerRender);
     }
 
     private static void PlayerRender(LevelActor actor, Vector2 position, IBatch spriteBatch)

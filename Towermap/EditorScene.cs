@@ -63,6 +63,9 @@ public class EditorScene : Scene
 
 #region Level State
     private string currentPath;
+    private LevelActor currentSelected;
+    private List<LevelActor> listSelected = [];
+    private bool hasSelection;
 
     public Tool ToolSelected;
     public Layers CurrentLayer = Layers.Solids;
@@ -98,7 +101,7 @@ public class EditorScene : Scene
         entities.Enabled = false;
         entities.OnSelectActor = OnSelectActor;
 
-        entityData = new EntityData();
+        entityData = new EntityData(this);
         entityData.Enabled = false;
         layers.Add(entities);
         layers.Add(entityData);
@@ -163,7 +166,40 @@ public class EditorScene : Scene
 
     public void SelectLevelActor(LevelActor actor) 
     {
+        if (!hasSelection)
+            listSelected.Clear();
+        if (currentSelected != null) 
+        {
+            currentSelected.Selected = false;
+        }
+        listSelected.Add(actor);
+        hasSelection = true;
+    }
+
+    public void Select(LevelActor actor) 
+    {
         entityData.SelectActor(actor);
+        currentSelected = actor;
+        currentSelected.Selected = true;
+
+    }
+
+    public void UpdateSelected() 
+    {
+        if (hasSelection) 
+        {
+            if (listSelected.Count == 1) 
+            {
+                Select(listSelected[0]);
+                listSelected.Clear();
+            }
+            else 
+            {
+                entityData.ConflictSelection(listSelected);
+            }
+
+            hasSelection = false;
+        }
     }
 
 #region Events
@@ -171,6 +207,7 @@ public class EditorScene : Scene
     {
         actorSelected = actor;
         phantomActor.SetActor(actorSelected);
+        ToolSelected = Tool.Pen;
     }
 
     private void OnVerticalSymmetry() 
@@ -459,6 +496,11 @@ public class EditorScene : Scene
             return;
         }
 
+        if (hasSelection) 
+        {
+            UpdateSelected();
+        }
+
 
         if (isDrawing && Input.InputSystem.Mouse.AnyPressedButton.IsUp) 
         {
@@ -519,8 +561,16 @@ public class EditorScene : Scene
                 {
                     int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
                     int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    if (InBounds(gridX, gridY))    
-                        phantomActor.PlaceActor(this);
+                    if (InBounds(gridX, gridY)) 
+                    {
+                        var actor = phantomActor.PlaceActor(this);
+                        if (actor != null) 
+                        {
+                            Select(actor);
+                        }
+                        ToolSelected = Tool.Rect;
+                    }
+
                 }
                 break;
             }

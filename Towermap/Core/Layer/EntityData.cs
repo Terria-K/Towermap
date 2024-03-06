@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using ImGuiNET;
 
 namespace Towermap;
@@ -11,9 +11,17 @@ public class EntityData : ImGuiElement
     private int actorNewHeight;
     private int[] actorNewPos = new int[2];
     private string id = string.Empty;
+    private List<LevelActor> conflicts;
+    private EditorScene editor;
 
-    public EntityData() 
+    public EntityData(EditorScene editor) 
     {
+        this.editor = editor;
+    }
+
+    public void ConflictSelection(List<LevelActor> multiple) 
+    {
+        conflicts = multiple;
     }
 
     public void SelectActor(LevelActor levelActor)
@@ -37,9 +45,26 @@ public class EntityData : ImGuiElement
     public override void DrawGui()
     {
         ImGui.BeginChild("Entities");
-        ImGui.SeparatorText(entityName);
-        if (levelActor != null) 
+        if (conflicts?.Count > 1) 
         {
+            ImGui.SeparatorText("Multiple Entities (" + conflicts.Count + ")");
+            bool selected = false;
+            foreach (var actor in conflicts) 
+            {
+                if (ImGui.Selectable(actor.ID + " " + actor.Data.Name)) 
+                {
+                    editor.Select(actor);
+                    selected = true;
+                }
+            }
+            if (selected)
+            {
+                conflicts.Clear();
+            }
+        }
+        else if (levelActor != null && levelActor.Scene != null) 
+        {
+            ImGui.SeparatorText(entityName);
             ImGui.LabelText("ID", id);
             ImGui.InputInt2("Position", ref actorNewPos[0]);
             if (levelActor.Data.ResizeableX) 

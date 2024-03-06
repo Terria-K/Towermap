@@ -76,7 +76,7 @@ public class EditorScene : Scene
         VanillaActor.Init(actorManager);
         history = new History();
         imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1024, 640, ImGuiInit);
-        imGuiTexture = imGui.AddToPointer(Resource.TowerFallTexture);
+        imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
                 .Add(new MenuItem("New"))
@@ -685,7 +685,7 @@ public class EditorScene : Scene
         {
             emptyText.Draw(batch, new Vector2(WorldUtils.WorldX + 40, WorldUtils.WorldY + (210)));
         }
-        batch.FlushVertex(buffer);
+        batch.End(buffer);
 
         buffer.BeginRenderPass(new ColorAttachmentInfo(backbuffer, Color.Black));
         buffer.BindGraphicsPipeline(GameContext.DefaultPipeline);
@@ -760,15 +760,15 @@ public class EditorScene : Scene
             if (result.IsOk) 
             {
                 path = result.Path;
-                return;
             }
+            return;
         }
         else 
         {
             path = currentPath;
         }
 
-        document.Save(currentPath + ".test");
+        document.Save(path + ".test");
     }
 
     public override void End()

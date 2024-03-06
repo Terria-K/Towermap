@@ -80,11 +80,10 @@ public class LevelActor : Entity
                     scene.SelectLevelActor(this);
                 }
             }
+            return;
         }
-        else
-        {
-            transparency = 0.3f;
-        }
+
+        transparency = 0.3f;
     }
 
     public override void Draw(CommandBuffer buffer, IBatch spriteBatch)

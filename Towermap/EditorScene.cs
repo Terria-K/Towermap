@@ -579,124 +579,79 @@ public class EditorScene : Scene
         if (Input.InputSystem.Mouse.LeftButton.IsDown) 
         {
             if (ToolSelected == Tool.Pen)
-            switch (CurrentLayer) 
             {
-            case Layers.Solids:
-            case Layers.BG:
-                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
-                {
-                    Layers.Solids => (solids, SolidAutotiler, null),
-                    _ => (bgs, bgAutotiler, solids.Bits)
-                };
-                {
-                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-
-                    if (InBounds(gridX, gridY)) 
-                    {
-                        if (!isDrawing) 
-                        {
-                            CommitHistory();
-                        }
-
-                        if (currentTile.SetGrid(gridX, gridY, true)) 
-                        {
-                            currentTile.UpdateTile(gridX, gridY, SolidAutotiler.Tile(currentTile.Bits, gridX, gridY, also));
-                            UpdateTiles(gridX, gridY, solids.Bits);
-                        }
-                        isDrawing = true;
-                    }
-                }
-                break;
-            case Layers.BGTiles:
-            case Layers.SolidTiles:
-                if (!bgTilesPanel.IsWindowHovered && !solidTilesPanel.IsWindowHovered)
-                {
-                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    var data = bgTilesPanel.GetData();
-                    if (!isDrawing && InBounds(gridX, gridY)) 
-                    {
-                        CommitHistory();
-                    }
-                    for (int nx = 0; nx < data.Columns; nx++) 
-                    {
-                        for (int ny = 0; ny < data.Rows; ny++) 
-                        {
-                            int relNx = gridX + nx;
-                            int relNy = gridY + ny;
-                            if (InBounds(relNx, relNy)) 
-                            {
-                                BGTiles.SetTile(relNx, relNy, data[ny, nx]);
-                            }
-                        }
-                    }
-                    isDrawing = true;
-                }
-                break;
+                Place(x, y, true);
             }
         }
         else if (Input.InputSystem.Mouse.RightButton.IsDown) 
         {
             if (ToolSelected == Tool.Pen)
-            switch (CurrentLayer) 
             {
-            case Layers.Solids:
-            case Layers.BG:
-                (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
-                {
-                    Layers.Solids => (solids, SolidAutotiler, null),
-                    _ => (bgs, bgAutotiler, solids.Bits)
-                };
-                {
-                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-
-                    if (InBounds(gridX, gridY)) 
-                    {
-                        if (!isDrawing) 
-                        {
-                            CommitHistory();
-                        }
-                        if (currentTile.SetGrid(gridX, gridY, false)) 
-                        {
-                            currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY));
-                            UpdateTiles(gridX, gridY, solids.Bits);
-                        }
-                        isDrawing = true;
-                    }
-                }
-
-                break;
-            case Layers.BGTiles:
-            case Layers.SolidTiles:
-                if (!bgTilesPanel.IsWindowHovered && !solidTilesPanel.IsWindowHovered)
-                {
-                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    var data = bgTilesPanel.GetData();
-                    if (!isDrawing && InBounds(gridX, gridY)) 
-                    {
-                        CommitHistory();
-                    }
-                    for (int nx = 0; nx < data.Columns; nx++) 
-                    {
-                        for (int ny = 0; ny < data.Rows; ny++) 
-                        {
-                            int relNx = gridX + nx;
-                            int relNy = gridY + ny;
-                            if (InBounds(relNx, relNy)) 
-                            {
-                                BGTiles.SetTile(relNx, relNy, -1);
-                            }
-                        }
-                    }
-                    isDrawing = true;
-                }
-                break;
+                Place(x, y, false);
             }
         }
         HasRemovedEntity = false;
+    }
+
+    private void Place(int x, int y, bool placeTile) 
+    {
+        switch (CurrentLayer) 
+        {
+        case Layers.Solids:
+        case Layers.BG:
+            (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
+            {
+                Layers.Solids => (solids, SolidAutotiler, null),
+                _ => (bgs, bgAutotiler, solids.Bits)
+            };
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+
+                if (InBounds(gridX, gridY)) 
+                {
+                    if (!isDrawing) 
+                    {
+                        CommitHistory();
+                    }
+
+                    if (currentTile.SetGrid(gridX, gridY, placeTile)) 
+                    {
+                        currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY, also));
+                        UpdateTiles(gridX, gridY, solids.Bits);
+                    }
+                    isDrawing = true;
+                }
+            }
+            break;
+        case Layers.BGTiles:
+        case Layers.SolidTiles:
+            if (!bgTilesPanel.IsWindowHovered && !solidTilesPanel.IsWindowHovered)
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                var data = bgTilesPanel.GetData();
+                if (!isDrawing && InBounds(gridX, gridY)) 
+                {
+                    CommitHistory();
+                }
+                for (int nx = 0; nx < data.Columns; nx++) 
+                {
+                    for (int ny = 0; ny < data.Rows; ny++) 
+                    {
+                        int relNx = gridX + nx;
+                        int relNy = gridY + ny;
+                        if (InBounds(relNx, relNy)) 
+                        {
+                            int tile = placeTile ? data[ny, nx] : -1;
+                            BGTiles.SetTile(relNx, relNy, tile);
+                        }
+                    }
+                }
+                isDrawing = true;
+            }
+            break;
+        }
     }
 
     private static bool InBounds(int gridX, int gridY) 

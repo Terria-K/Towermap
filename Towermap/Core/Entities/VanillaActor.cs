@@ -46,7 +46,7 @@ public static class VanillaActor
         }
         else if (actor.RenderFlipped)
         {
-            actor.TextureQuad.FlipUV(~FlipMode.Horizontal);
+            actor.TextureQuad.FlipUV(FlipMode.None);
             actor.RenderFlipped = false;
         }
     }

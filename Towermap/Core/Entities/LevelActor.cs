@@ -9,10 +9,6 @@ namespace Towermap;
 
 public class LevelActor : Entity
 {
-    private Texture texture;
-    private Transform rectTransform;
-    private float transparency;
-    private Rectangle rect;
     public Actor Data;
     public ulong ID;
 
@@ -23,6 +19,14 @@ public class LevelActor : Entity
     public bool RenderFlipped;
 
     public bool Selected;
+
+    private Texture texture;
+    private Transform rectTransform;
+    private float transparency;
+    private Rectangle rect;
+    private bool isHeld;
+    private Vector2 lastHold;
+    
 
     public LevelActor(Texture texture, Actor actor, Quad quad, ulong id) 
     {
@@ -55,15 +59,36 @@ public class LevelActor : Entity
     public override void Update(double delta)
     {
         base.Update(delta);
+        rect.X = (int)Transform.PosX;
+        rect.Y = (int)Transform.PosY;
+        var scene = Scene as EditorScene;
+        if (scene.CurrentLayer != Layers.Entities) 
+        {
+            transparency = 0.1f;
+            return;
+        }
+
         int x = Input.InputSystem.Mouse.X;
         int y = Input.InputSystem.Mouse.Y;
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
 
-        var scene = Scene as EditorScene;
-        if (scene.CurrentLayer != Layers.Entities) 
+        if (isHeld) 
         {
-            transparency = 0.1f;
+            if (Input.InputSystem.Mouse.LeftButton.IsReleased) 
+            {
+                isHeld = false;
+                // Possible negative numbers should be resolved
+                if (Transform.PosX < 0)
+                    Transform.PosX = Transform.PosX + 320;
+                if (Transform.PosY < 0)
+                    Transform.PosY = Transform.PosY + 240;
+                return;
+            }
+            int snapX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize) + lastHold.X) / 5.0f) * 5.0f);
+            int snapY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize) + lastHold.Y) / 5.0f) * 5.0f);
+            Transform.PosX = snapX % 320;
+            Transform.PosY = snapY % 240;
             return;
         }
         if (rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y)) 
@@ -78,6 +103,11 @@ public class LevelActor : Entity
                 if (Input.InputSystem.Mouse.LeftButton.IsPressed) 
                 {
                     scene.SelectLevelActor(this);
+                    isHeld = true;
+                    lastHold = new Vector2(
+                        (Transform.PosX - Data.Origin.X) - ((x - WorldUtils.WorldX) * 0.5f) + Data.Origin.X,
+                        (Transform.PosY - Data.Origin.Y) - ((y - WorldUtils.WorldY) * 0.5f) + Data.Origin.Y
+                    );
                 }
             }
             return;

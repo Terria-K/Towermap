@@ -60,6 +60,7 @@ public class EditorScene : Scene
     private History history;
     private bool isDrawing;
     private IntPtr imGuiTexture;
+    private Batch batch;
 
 #region Level State
     private string currentPath;
@@ -75,6 +76,7 @@ public class EditorScene : Scene
 
     public EditorScene(GameApp game) : base(game)
     {
+        batch = new Batch(game.GraphicsDevice, 1024, 640);
         actorManager = new ActorManager();
         VanillaActor.Init(actorManager);
         history = new History();
@@ -680,7 +682,7 @@ public class EditorScene : Scene
         }
     }
 
-    public override void Draw(CommandBuffer buffer, Texture backbuffer, IBatch batch)
+    public override void Draw(CommandBuffer buffer, Texture backbuffer)
     {
         mainCanvas.Draw(buffer, batch);
         batch.Begin();

@@ -25,7 +25,7 @@ public class PhantomActor : Entity
 
     public override void Update(double delta)
     {
-        if (actor == null)
+        if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen)
             return;
         int x = Input.InputSystem.Mouse.X;
         int y = Input.InputSystem.Mouse.Y;
@@ -38,7 +38,7 @@ public class PhantomActor : Entity
 
     public override void Draw(CommandBuffer buffer, IBatch spriteBatch)
     {
-        if (actor == null)
+        if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen)
             return;
         base.Draw(buffer, spriteBatch);
         DrawUtils.Rect(spriteBatch, Transform.Position, Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);

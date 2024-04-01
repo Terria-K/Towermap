@@ -27,8 +27,11 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("BGLantern", "details/lantern", 10, 10, 5, 5, customValues: new () {
             ["Lit"] = false
         }));
+        manager.AddActor(new ActorInfo("OrbEd", "orb", 12, 12, 6, 6));
+        manager.AddActor(new ActorInfo("ExplodingOrb", "explodingOrb", 12, 12, 6, 6), new Point(12, 12));
         manager.AddActor(new ActorInfo("BGCrystal", "details/wallCrystal", 10, 15, 5, 8), new Point(10, 15));
         manager.AddActor(new ActorInfo("BGSkeleton", "details/bones", 20, 20, 10, 10), new Point(20, 20));
+        manager.AddActor(new ActorInfo("Cobwebs", "details/cobwebs", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
         manager.AddActor(new ActorInfo("Chain", "chain", 10, 10, 0, 0, false, true), new Point(10, 10), ChainRender);
         manager.AddActor(new ActorInfo("Dummy", "dummy/dummy", 12, 20, 6, 10), new Point(12, 20), PlayerRender);

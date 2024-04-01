@@ -31,4 +31,12 @@ public class TowermapGame : GameApp
         var particle = Resource.Atlas["particle"];
         Resource.Pixel = new Quad(Resource.TowerFallTexture, new Rect(particle.Source.X, particle.Source.Y, 1, 1));
     }
+
+    protected override void Destroy()
+    {
+        base.Destroy();
+        Scene.End();
+        Resource.TowerFallTexture.Dispose();
+        Resource.Font.Dispose();
+    }
 }

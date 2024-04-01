@@ -13,7 +13,7 @@ public class TilePanel : ImGuiElement
     private IntPtr texturePtr;
     private Quad texture;
     private bool holding;
-    private Rect currentRect = new Rect(0, 0, 20, 20);
+    private Rect currentRect = new Rect(0, 0, 10, 10);
     private Vector2 framePos;
 
     public bool IsImageHovered;

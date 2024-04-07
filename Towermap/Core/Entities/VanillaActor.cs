@@ -25,7 +25,7 @@ public static class VanillaActor
         }), new Point(20, 20));
         manager.AddActor(new ActorInfo("EndlessPortal", "nextLevelPortal", 50, 50, 25, 25), new Point(50, 50));
         manager.AddActor(new ActorInfo("BGLantern", "details/lantern", 10, 10, 5, 5, customValues: new () {
-            ["Lit"] = false
+            ["Lit"] = true
         }));
         manager.AddActor(new ActorInfo("OrbEd", "orb", 12, 12, 6, 6));
         manager.AddActor(new ActorInfo("ExplodingOrb", "explodingOrb", 12, 12, 6, 6), new Point(12, 12));

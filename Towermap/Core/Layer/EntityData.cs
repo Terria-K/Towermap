@@ -66,14 +66,32 @@ public class EntityData : ImGuiElement
         {
             ImGui.SeparatorText(entityName);
             ImGui.LabelText("ID", id);
-            ImGui.InputInt2("Position", ref actorNewPos[0]);
+            if (ImGui.InputInt2("Position", ref actorNewPos[0])) 
+            {
+                levelActor.Transform.PosX = actorNewPos[0];
+                levelActor.Transform.PosY = actorNewPos[1];
+            }
             if (levelActor.Data.ResizeableX) 
             {
-                ImGui.InputInt("Width", ref actorNewWidth, 10, 10);
+                if (ImGui.InputInt("Width", ref actorNewWidth, 10, 10)) 
+                {
+                    if (actorNewWidth <= 0) 
+                    {
+                        actorNewWidth = 10;
+                    }
+                    levelActor.Width = actorNewHeight;
+                }
             }
             if (levelActor.Data.ResizeableY) 
             {
-                ImGui.InputInt("Height", ref actorNewHeight, 10, 10);
+                if (ImGui.InputInt("Height", ref actorNewHeight, 10, 10)) 
+                {
+                    if (actorNewHeight <= 0) 
+                    {
+                        actorNewHeight = 10;
+                    }
+                    levelActor.Height = actorNewHeight;
+                }
             }
 
             foreach (var (key, value) in levelActor.CustomData) 

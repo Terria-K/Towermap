@@ -424,9 +424,43 @@ public class EditorScene : Scene
                 height = int.Parse(entity.GetAttribute("height"));
             }
 
+            Dictionary<string, object> customDatas = new Dictionary<string, object>();
+
+            if (actor.CustomValues != null)
+            foreach (XmlAttribute attr in entity.Attributes)
+            {
+                if (!actor.CustomValues.ContainsKey(attr.Name)) 
+                {
+                    continue;
+                }
+
+                var value = attr.Value;
+                if (int.TryParse(value, out var output)) 
+                {
+                    customDatas.Add(attr.Name, output);
+                }
+                else if (float.TryParse(value, out var output2)) 
+                {
+                    customDatas.Add(attr.Name, output2);
+                }
+                else if (attr.Value.ToLowerInvariant() == "true") 
+                {
+                    customDatas.Add(attr.Name, true);
+                }
+                else if (attr.Value.ToLowerInvariant() == "false") 
+                {
+                    customDatas.Add(attr.Name, false);
+                }
+                else 
+                {
+                    customDatas.Add(attr.Name, value);
+                }
+            }
+
             var levelActor = new LevelActor(Resource.TowerFallTexture, actor, actor.Texture, entityID);
             levelActor.PosX = x;
             levelActor.PosY = y;
+            levelActor.CustomData = customDatas;
             if (actor.ResizeableX)
                 levelActor.Width = width;
             if (actor.ResizeableY)

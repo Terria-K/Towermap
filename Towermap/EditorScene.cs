@@ -23,7 +23,8 @@ public enum Layers
 public enum Tool
 {
     Pen,
-    Rect
+    Rect,
+    Node
 }
 
 public class EditorScene : Scene
@@ -116,6 +117,7 @@ public class EditorScene : Scene
         tools.AddTool("Rect [2]", () => ToolSelected = Tool.Rect);
         tools.AddTool("HSym [3]", OnHorizontalSymmetry);
         tools.AddTool("VSym [4]", OnVerticalSymmetry);
+        tools.AddTool("Node [5]", () => ToolSelected = Tool.Node);
 
         phantomActor = new PhantomActor(actorManager);
         Add(phantomActor);

@@ -23,7 +23,7 @@ public class Tools : ImGuiElement
     public override void DrawGui()
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.SetNextWindowSize(new Vector2(290, 35), ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new Vector2(360, 35), ImGuiCond.Always);
         ImGui.SetNextWindowPos(new Vector2(155, 20));
         ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar);
         foreach (var tool in toolName) 

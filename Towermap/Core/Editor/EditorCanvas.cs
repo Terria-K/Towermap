@@ -1,3 +1,4 @@
+using System.Numerics;
 using Riateu;
 using Riateu.Graphics;
 
@@ -19,6 +20,10 @@ public class EditorCanvas
 
     public void Render(CommandBuffer buffer)
     {
+        instanceBatch.Begin(Resource.BGAtlasTexture, DrawSampler.PointClamp);
+        instanceBatch.Draw(Resource.BGAtlas["daySky"], Vector2.Zero, Color.White);
+        instanceBatch.End();
+
         instanceBatch.Begin(Resource.TowerFallTexture, DrawSampler.PointClamp);
         scene.EntityList.Draw(instanceBatch);
         instanceBatch.End();

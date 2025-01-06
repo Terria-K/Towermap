@@ -18,7 +18,7 @@ public static class VanillaActor
             ["Timer"] = 300
         }), new Point(10, 10));
         manager.AddActor(new ActorInfo("BigTreasureChest", "bigChest", 20, 20, 10, 10), new Point(20, 20));
-        manager.AddActor(new ActorInfo("Spawner", "spawnPortal", 20, 20, 10, 10, customValues: new() {
+        manager.AddActor(new ActorInfo("Spawner", "spawnPortal", 20, 20, 10, 10, hasNodes: true, customValues: new() {
             ["name"] = "..."
         }), new Point(20, 20));
         manager.AddActor(new ActorInfo("EndlessPortal", "nextLevelPortal", 50, 50, 25, 25), new Point(50, 50));
@@ -31,10 +31,13 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("BGSkeleton", "details/bones", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("Cobwebs", "details/cobwebs", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
-        manager.AddActor(new ActorInfo("Chain", "chain", 10, 10, 0, 0, false, true), new Point(10, 10), ChainRender);
+        manager.AddActor(new ActorInfo("Chain", "chain", 10, 10, 0, 0, false, true), new Point(10, 10), VerticalTileRender);
         manager.AddActor(new ActorInfo("Lantern", "lantern", 10, 10, 0, 0), new Point(10, 10));
-        manager.AddActor(new ActorInfo("JumpPad", "jumpPadOff", 20, 10, 0, 0, true), new Point(10, 10), JumpPadRender);
+        manager.AddActor(new ActorInfo("JumpPad", "jumpPadOff", 20, 10, 0, 0, true), new Point(10, 10), HorizontalThreeTileRender);
         manager.AddActor(new ActorInfo("Dummy", "dummy/dummy", 12, 20, 6, 10), new Point(12, 20), PlayerRender);
+        manager.AddActor(new ActorInfo("FloorMiasma", "quest/floorMiasma", 10, 10, 0, 5, true, customValues: new() {
+            ["Group"] = 0
+        }), new Point(10, 10), HorizontalThreeTileRender);
     }
 
     private static void PlayerRender(LevelActor actor, Vector2 position, Batch spriteBatch)
@@ -54,7 +57,7 @@ public static class VanillaActor
         }
     }
 
-    private static void ChainRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
+    private static void VerticalTileRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
     {
         if (actor.Height > 10) 
         {
@@ -66,7 +69,7 @@ public static class VanillaActor
         }
     }
 
-    private static void JumpPadRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
+    private static void HorizontalThreeTileRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
     {
         var mid = new TextureQuad(Resource.TowerFallTexture, actor.TextureQuad.Source with {
             X = actor.TextureQuad.Source.X + 10

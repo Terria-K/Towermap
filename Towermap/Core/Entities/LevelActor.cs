@@ -16,8 +16,8 @@ public class LevelActor : Entity
     public Dictionary<string, object> CustomData;
     public int Width;
     public int Height;
+    public List<Vector2> Nodes;
     public bool RenderFlipped;
-
     public bool Selected;
 
     private Texture texture;
@@ -48,6 +48,34 @@ public class LevelActor : Entity
         {
             CustomData = new Dictionary<string, object>();
         }
+        if (actor.HasNodes) 
+        {
+            Nodes = new List<Vector2>();
+        }
+    }
+
+    public void AddNode(Vector2 position) 
+    {
+        Nodes.Add(position);
+    }
+
+    public void RemoveNode(Vector2 position) 
+    {
+        Nodes.Remove(position);
+    }
+
+    public LevelActorInfo Save() 
+    {
+        Dictionary<string, object> values = new Dictionary<string, object>(CustomData);
+        if (Data.ResizeableX) 
+        {
+            values["width"] = Width;
+        }
+        if (Data.ResizeableY) 
+        {
+            values["height"] = Height;
+        }
+        return new LevelActorInfo(ID, Data.Name, (int)PosX, (int)PosY, values, Nodes?.ToArray());
     }
 
     public override void Ready()
@@ -74,6 +102,25 @@ public class LevelActor : Entity
         int y = Input.Mouse.Y;
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+
+        if (scene.ToolSelected == Tool.Node) 
+        {
+            if (Nodes != null && Nodes.Count > 0) 
+            {
+                var node = Nodes[^1];
+                var nodeRect = new Rectangle((int)node.X, (int)node.Y, Width, Height);
+
+                if (nodeRect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y)) 
+                {
+                    if (Input.Mouse.RightButton.Pressed && !scene.HasRemovedEntity) 
+                    {
+                        RemoveNode(node);
+                    }
+                }
+            }
+
+            return;
+        }
 
         if (isHeld) 
         {
@@ -141,6 +188,7 @@ public class LevelActor : Entity
 
     public override void Draw(Batch spriteBatch)
     {
+        // Render the Entity
         Color color = Color.Yellow * transparency;
         if (Selected) 
         {
@@ -176,29 +224,62 @@ public class LevelActor : Entity
             spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY - 240), 
                 Color.White, Vector2.One, Data.Origin);
         }
+
+        // Render the Nodes
+        var scene = Scene as EditorScene;
+        if (Data.HasNodes) 
+        {
+            // Render the potential node to be place
+            var opacity = scene.ToolSelected != Tool.Node ? 0.3f : 1f;
+            if (scene.ToolSelected == Tool.Node && Selected)
+            {
+                int x = Input.Mouse.X;
+                int y = Input.Mouse.Y;
+                int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+                int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+
+                
+                var start = Nodes.Count > 0 ? Nodes[^1] : Position;
+                var end = new Vector2(gridX, gridY);
+
+                DrawUtils.Line(spriteBatch, start, end, Color.White * 0.6f);
+                spriteBatch.Draw(Data.Texture, end, 
+                    Color.White * 0.4f, Vector2.One, Data.Origin);
+            }
+
+
+            // Render all the nodes
+            for (int i = 0; i < Nodes.Count; i++) 
+            {
+                if (i == 0) 
+                {
+                    var start = Position;
+                    var end = Nodes[i];
+                    DrawUtils.Line(spriteBatch, start, end, Color.White * opacity);
+                    if (Nodes.Count == 1) 
+                    {
+                        spriteBatch.Draw(Data.Texture, end, 
+                            Color.White * 0.4f, Vector2.One, Data.Origin);
+                    }
+                }
+                else if (i == Nodes.Count - 1) 
+                {
+                    var start = Nodes[i - 1];
+                    var end = Nodes[i];
+
+                    DrawUtils.Line(spriteBatch, start, end, Color.White * opacity);
+                    spriteBatch.Draw(Data.Texture, end, 
+                        Color.White * 0.4f, Vector2.One, Data.Origin);
+                }
+                else 
+                {
+                    var start = Nodes[i - 1];
+                    var end = Nodes[i];
+
+                    DrawUtils.Line(spriteBatch, start, end, Color.White * opacity);
+                }
+            }
+        }
         base.Draw(spriteBatch);
     }
-
-    public LevelActorInfo Save() 
-    {
-        Dictionary<string, object> values = new Dictionary<string, object>(CustomData);
-        if (Data.ResizeableX) 
-        {
-            values["width"] = Width;
-        }
-        if (Data.ResizeableY) 
-        {
-            values["height"] = Height;
-        }
-        return new LevelActorInfo(ID, Data.Name, (int)PosX, (int)PosY, values);
-    }
-}
-
-public struct LevelActorInfo(ulong id, string name, int x, int y, Dictionary<string, object> values)
-{
-    public ulong ID = id;
-    public string Name = name;
-    public int X = x;
-    public int Y = y;
-    public Dictionary<string, object> Values = values;
 }

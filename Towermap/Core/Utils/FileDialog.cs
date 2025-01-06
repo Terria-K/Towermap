@@ -1,126 +1,102 @@
 using System;
-using System.Collections.Generic;
-using NFD;
+using System.Text;
+using SDL3;
 
 namespace Towermap;
 
-public static class FileDialog 
+public struct Filter(string name, string pattern)
 {
-    public static unsafe NFDResult OpenFile(string path = null, string filters = null) 
-    {
-        byte[] utfPath = null;
-        byte[] filterPath = null;
-        if (path != null) 
-        {
-            utfPath = UTF8Utils.ToUTF8(path);
-        }
-        if (filters != null) 
-        {
-            filterPath = UTF8Utils.ToUTF8(filters);
-        }
-
-        string error = null;
-
-        fixed (byte* filterPtr = filterPath) 
-        fixed (byte* utfPtr = utfPath) 
-        {
-            nfdresult_t result = NativeFunctions.NFD_OpenDialog(filterPtr, utfPtr, out IntPtr pathPtr);
-            string resultPath = null;
-
-            if (result == nfdresult_t.NFD_OKAY) 
-            {
-                resultPath = UTF8Utils.FromUTF8((byte*)pathPtr);
-                NativeFunctions.NFD_Free(pathPtr);
-            }
-            else if (result == nfdresult_t.NFD_ERROR) 
-            {
-                error = UTF8Utils.FromUTF8(NativeFunctions.NFD_GetError());
-            }
-
-            return new NFDResult(result, resultPath, [resultPath], error);
-        }
-    }
-
-    public static unsafe NFDResult Save(string path = null, string filters = null) 
-    {
-        byte[] utfPath = null;
-        byte[] filterPath = null;
-        if (path != null) 
-        {
-            utfPath = UTF8Utils.ToUTF8(path);
-        }
-        if (filters != null) 
-        {
-            filterPath = UTF8Utils.ToUTF8(filters);
-        }
-
-        string error = null;
-
-        fixed (byte* filterPtr = filterPath) 
-        fixed (byte* utfPtr = utfPath) 
-        {
-            nfdresult_t result = NativeFunctions.NFD_SaveDialog(filterPtr, utfPtr, out IntPtr pathPtr);
-            string resultPath = null;
-
-            if (result == nfdresult_t.NFD_OKAY) 
-            {
-                resultPath = UTF8Utils.FromUTF8((byte*)pathPtr);
-                NativeFunctions.NFD_Free(pathPtr);
-            }
-            else if (result == nfdresult_t.NFD_ERROR) 
-            {
-                error = UTF8Utils.FromUTF8(NativeFunctions.NFD_GetError());
-            }
-
-            return new NFDResult(result, resultPath, [resultPath], error);
-        }
-    }
-
-    public static unsafe NFDResult OpenFolder(string path = null) 
-    {
-        byte[] utfPath = null;
-        if (path != null) 
-        {
-            utfPath = UTF8Utils.ToUTF8(path);
-        }
-        string error = null;
-        fixed (byte* utfPtr = utfPath) 
-        {
-            nfdresult_t result = NativeFunctions.NFD_PickFolder(utfPtr, out IntPtr pathPtr);
-            string resultPath = null;
-
-            if (result == nfdresult_t.NFD_OKAY) 
-            {
-                resultPath = UTF8Utils.FromUTF8((byte*)pathPtr);
-                NativeFunctions.NFD_Free(pathPtr);
-            }
-            else if (result == nfdresult_t.NFD_ERROR) 
-            {
-                error = UTF8Utils.FromUTF8(NativeFunctions.NFD_GetError());
-            }
-
-            return new NFDResult(result, resultPath, [resultPath], error);
-        }
-    }
+    public string Name = name;
+    public string Pattern = pattern;
 }
 
-public struct NFDResult 
+public static class FileDialog 
 {
-    private readonly nfdresult_t result;
-    public string Path { get; }
-    public bool IsCancelled => result == nfdresult_t.NFD_CANCEL;
-    public bool IsOk => result == nfdresult_t.NFD_OKAY;
-    public IReadOnlyList<string> Paths { get; }
-    public bool IsError => result == nfdresult_t.NFD_ERROR;
-    public string ErrorMessage { get; }
-
-
-
-    internal NFDResult(nfdresult_t result, string path, IReadOnlyList<string> paths, string error) 
+    private static Action<string> currentAction;
+    private static unsafe void OnOpenActionDialog(IntPtr userdata, IntPtr filelist, int filter) 
     {
-        this.result = result;
-        Path = path;
-        Paths = paths;
-        ErrorMessage = error;
+        if (filelist == IntPtr.Zero)
+        {
+            return;
+        }
+        if (*(byte*)filelist == IntPtr.Zero) 
+        {
+            return;
+        }
+        byte **files = (byte**)filelist;
+        byte *ptr = files[0];
+        int count = 0;
+        while (*ptr != 0)
+        {
+            ptr++;
+            count++;
+        }
+
+        if (count <= 0)
+        {
+            return;
+        }
+
+        string file = Encoding.UTF8.GetString(files[0], count);
+        currentAction(file);
+    }
+
+    public static unsafe void OpenFile(Action<string> action, string path = null, Filter filter = default) 
+    {
+        ShowDialog(action, path, filter, AccessType.OpenFile);
+    }
+
+    public static unsafe void Save(Action<string> action, string path = null, Filter filter = default) 
+    {
+        ShowDialog(action, path, filter, AccessType.Save);
+    }
+
+    public static unsafe void OpenFolder(Action<string> action, string path = null) 
+    {
+        ShowDialog(action, path, default, AccessType.OpenFolder);
+    }
+
+    private static unsafe void ShowDialog(Action<string> action, string path = null, Filter filter = default, AccessType access = AccessType.OpenFile) 
+    {
+        currentAction = action;
+        var name = filter.Name.AsSpan();
+        var pattern = filter.Pattern.AsSpan();
+
+        Span<byte> bName = stackalloc byte[name.Length];
+        Span<byte> bPattern = stackalloc byte[pattern.Length];
+        Encoding.UTF8.GetBytes(name, bName);
+        Encoding.UTF8.GetBytes(pattern, bPattern);
+        fixed (byte *nPtr = bName) 
+        fixed (byte *pPtr = bPattern)
+        {
+            switch (access) 
+            {
+            case AccessType.OpenFile: {
+                var filterStruct = new SDL.SDL_DialogFileFilter();
+                filterStruct.name = (byte*)nPtr;
+                filterStruct.pattern = (byte*)pPtr;
+                SDL.SDL_ShowOpenFileDialog(OnOpenActionDialog, IntPtr.Zero, IntPtr.Zero, [filterStruct], 1, path, false);
+            }
+
+                break;
+            case AccessType.OpenFolder:
+                SDL.SDL_ShowOpenFolderDialog(OnOpenActionDialog, IntPtr.Zero, IntPtr.Zero, path, false);
+                break;
+            case AccessType.Save: {
+                var filterStruct = new SDL.SDL_DialogFileFilter();
+                filterStruct.name = (byte*)nPtr;
+                filterStruct.pattern = (byte*)pPtr;
+                SDL.SDL_ShowSaveFileDialog(OnOpenActionDialog, IntPtr.Zero, IntPtr.Zero, [filterStruct], 1, path);
+            }
+                break;
+            }
+        }
+    }
+
+    private enum AccessType 
+    {
+        OpenFile,
+        OpenFolder,
+        Save
     }
 }

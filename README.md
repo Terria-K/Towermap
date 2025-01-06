@@ -16,6 +16,8 @@ to lookup on its content. And an nfd.dll which you can build from the [repositor
 + [TeuJson](https://github.com/Terria-K/TeuJson) - A json de/serializer.
 
 ## Dependencies:
++ [SDL3](https://www.libsdl.org) - Rendering backend, File dialog handling, etc.
+
 + [LovesFrames](https://github.com/linux-man/LoveFrames) - Modified the treenode's position
 + [xml2lua](https://github.com/manoelcampos/Xml2Lua)
 + [luafilesystem-ffi](https://github.com/sonoro1234/luafilesystem)

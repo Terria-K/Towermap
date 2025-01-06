@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Riateu.Graphics;
@@ -32,8 +33,10 @@ public class ActorManager
             ResizeableX = info.ResizeableX,
             ResizeableY = info.ResizeableY,
             OnRender = onRender,
+            HasNodes = info.HasNodes,
             CustomValues = info.CustomValues
         };
+        
         Actors.Add(info.Name, actor);
     }
 

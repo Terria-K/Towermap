@@ -8,6 +8,7 @@ using Riateu;
 using Riateu.Graphics;
 using Riateu.ImGuiRend;
 using Riateu.Inputs;
+using System.Runtime.ExceptionServices;
 
 namespace Towermap;
 
@@ -55,7 +56,6 @@ public class EditorScene : Scene
     private Actor actorSelected;
     private PhantomActor phantomActor;
     private XmlElement level;
-    // private StaticText emptyText
     private History history;
     private bool isDrawing;
     private IntPtr imGuiTexture;
@@ -89,6 +89,7 @@ public class EditorScene : Scene
                 .Add(new MenuItem("Save As", () => Save(true)))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
             .Add(new MenuSlot("Settings")
+                .Add(new MenuItem("Theme", OnOpenTheme))
                 .Add(new MenuItem("Editor")))
             .Add(new MenuSlot("View"));
 
@@ -108,8 +109,6 @@ public class EditorScene : Scene
         layers.Add(entityData);
 
         mainCanvas = new EditorCanvas(this, game.GraphicsDevice);
-
-        // emptyText = new StaticText(game.GraphicsDevice, Resource.Font, "No Level Selected", 24);
 
         tools = new Tools();
 
@@ -181,9 +180,12 @@ public class EditorScene : Scene
     public void Select(LevelActor actor) 
     {
         entityData.SelectActor(actor);
+        if (currentSelected != null) 
+        {
+            currentSelected.Selected = false;
+        }
         currentSelected = actor;
         currentSelected.Selected = true;
-
     }
 
     public void UpdateSelected() 
@@ -413,6 +415,7 @@ public class EditorScene : Scene
             var y = int.Parse(entity.GetAttribute("y"));
             int width = 0;
             int height = 0;
+            List<Vector2> nodes = actor.HasNodes ? new List<Vector2>() : null;
 
             if (entity.HasAttribute("width")) 
             {
@@ -422,6 +425,19 @@ public class EditorScene : Scene
             if (entity.HasAttribute("height")) 
             {
                 height = int.Parse(entity.GetAttribute("height"));
+            }
+
+            if (entity.HasChildNodes) 
+            {
+                nodes = new List<Vector2>();
+                foreach (XmlElement child in entity.ChildNodes) 
+                {
+                    var nx = int.Parse(child.GetAttribute("x"));
+                    var ny = int.Parse(child.GetAttribute("y"));
+
+                    Vector2 node = new Vector2(nx, ny);
+                    nodes.Add(node);
+                }
             }
 
             Dictionary<string, object> customDatas = new Dictionary<string, object>();
@@ -460,11 +476,19 @@ public class EditorScene : Scene
             var levelActor = new LevelActor(Resource.TowerFallTexture, actor, actor.Texture, entityID);
             levelActor.PosX = x;
             levelActor.PosY = y;
+            levelActor.Data.HasNodes = actor.HasNodes;
+            levelActor.Nodes = nodes;
             levelActor.CustomData = customDatas;
-            if (actor.ResizeableX)
+            if (actor.ResizeableX) 
+            {
+                levelActor.Data.ResizeableX = true;
                 levelActor.Width = width;
-            if (actor.ResizeableY)
+            }
+            if (actor.ResizeableY) 
+            {
+                levelActor.Data.ResizeableY = true;
                 levelActor.Height = height;
+            }
             Add(levelActor);
             if (entityID > id) 
             {
@@ -527,7 +551,7 @@ public class EditorScene : Scene
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
-        if (level == null)
+        if (level == null || dialogOpen)
         {
             return;
         }
@@ -591,24 +615,38 @@ public class EditorScene : Scene
         if (Input.Mouse.LeftButton.Pressed) 
         {
             if (ToolSelected == Tool.Pen)
-            switch (CurrentLayer) 
             {
-            case Layers.Entities:
+                switch (CurrentLayer) 
                 {
-                    int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                    if (InBounds(gridX, gridY)) 
+                case Layers.Entities:
                     {
-                        var actor = phantomActor.PlaceActor(this);
-                        if (actor != null) 
+                        int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                        int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                        if (InBounds(gridX, gridY)) 
                         {
-                            Select(actor);
+                            var actor = phantomActor.PlaceActor(this);
+                            if (actor != null) 
+                            {
+                                Select(actor);
+                            }
+                            ToolSelected = Tool.Rect;
                         }
-                        ToolSelected = Tool.Rect;
-                    }
 
+                    }
+                    break;
                 }
-                break;
+            }
+            else if (ToolSelected == Tool.Node && currentSelected != null && currentSelected.Data.HasNodes) 
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                if (InBounds(gridX, gridY)) 
+                {
+                    int posX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+                    int posY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+                    Vector2 position = new Vector2(posX, posY);
+                    currentSelected.AddNode(position);
+                }
             }
         }
 
@@ -695,12 +733,28 @@ public class EditorScene : Scene
         return gridX > -1 && gridY > -1 && gridX < 32 && gridY < 24;
     }
 
+    private bool dialogOpen = false;
+    private void OnOpenTheme() 
+    {
+        dialogOpen = true;
+    }
+
     private void ImGuiCallback()
     {
 #if DEBUG
         ImGui.ShowDemoWindow();
 #endif
 
+        if (dialogOpen) 
+        {
+            ImGui.OpenPopup("Theme Settings");
+        }
+
+        if (ImGui.BeginPopupModal("Theme Settings", ref dialogOpen)) 
+        {
+            ImGui.EndPopup();
+        }
+        
         menuBar.UpdateGui();
         levelSelection.UpdateGui();
         tools.UpdateGui();
@@ -721,10 +775,6 @@ public class EditorScene : Scene
         mainCanvas.Render(GraphicsDevice.DeviceCommandBuffer());
         batch.Begin(mainCanvas.CanvasTexture, DrawSampler.PointClamp);
         batch.Draw(new TextureQuad(mainCanvas.CanvasTexture), new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, new Vector2(2));
-        // if (level == null) 
-        // {
-        //     emptyText.Draw(batch, new Vector2(WorldUtils.WorldX + 40, WorldUtils.WorldY + (210)));
-        // }
         batch.End();
 
         var renderPass = GraphicsDevice.BeginTarget(backbuffer, Color.Black, true);
@@ -736,14 +786,12 @@ public class EditorScene : Scene
 
     private void Open() 
     {
-        NFDResult result = FileDialog.OpenFile(null, "xml");
-        if (result.IsOk) 
-        {
-            string path = Path.GetDirectoryName(result.Path);
+        FileDialog.OpenFile((filepath) => {
+            string path = Path.GetDirectoryName(filepath);
 
             levelSelection.SelectTower(path);
             SetLevel(null);
-        }
+        }, null, new Filter("Tower Xml File", "xml"));
     }
 
     public void Save(bool specifyPath = false) 
@@ -784,6 +832,16 @@ public class EditorScene : Scene
             {
                 element.SetAttribute(value.Key, value.Value.ToString());
             }
+            if (actorInfo.Nodes != null) 
+            {
+                foreach (var node in actorInfo.Nodes) 
+                {
+                    var xmlNode = document.CreateElement("node");
+                    xmlNode.SetAttribute("x", node.X.ToString());
+                    xmlNode.SetAttribute("y", node.Y.ToString());
+                    element.AppendChild(xmlNode);
+                }
+            }
             Entities.AppendChild(element);
         }
 
@@ -792,26 +850,19 @@ public class EditorScene : Scene
         rootElement.AppendChild(SolidTiles);
         rootElement.AppendChild(BGTiles);
         rootElement.AppendChild(Entities);
-        string path;
+
         if (specifyPath) 
         {
-            NFDResult result = FileDialog.Save(null, "xml");
-            if (result.IsOk) 
-            {
-                path = result.Path;
-            }
-            return;
+            FileDialog.Save((filepath) => {
+                document.Save(filepath + ".test");
+            }, null, new Filter("Tower Xml", "xml"));
         }
         else 
         {
-            path = currentPath;
+            document.Save(currentPath + ".test");
         }
 
-        document.Save(path + ".test");
     }
 
-    public override void End()
-    {
-        // emptyText.Dispose();
-    }
+    public override void End() {}
 }

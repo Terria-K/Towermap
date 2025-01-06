@@ -14,5 +14,6 @@ public class Actor
     public ActorRender OnRender;
     public bool ResizeableX;
     public bool ResizeableY;
+    public bool HasNodes;
     public Dictionary<string, object> CustomValues;
 }

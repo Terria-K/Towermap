@@ -30,7 +30,7 @@ public class Entities : ImGuiElement
             if (string.IsNullOrEmpty(searchText) || name.ToLowerInvariant().Contains(searchText.ToLowerInvariant())) 
             {
                 if (ImGui.ImageButton(name, imGuiTexture, new Vector2(20, 20) * 1.5f, 
-                    actor.Texture.UV.TopLeft.ToNumericsVec2(), actor.Texture.UV.BottomRight.ToNumericsVec2())) 
+                    actor.Texture.UV.TopLeft, actor.Texture.UV.BottomRight)) 
                 {
                     OnSelectActor?.Invoke(actor);
                 }

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using MoonWorks.Math.Float;
+using System.Numerics;
 using Riateu.Graphics;
 
 namespace Towermap;
 
-public delegate void ActorRender(LevelActor actor, Vector2 position, IBatch spriteBatch);
+public delegate void ActorRender(LevelActor actor, Vector2 position, Batch spriteBatch);
 
 public class ActorManager 
 {
@@ -17,18 +17,10 @@ public class ActorManager
         var texture = Resource.Atlas[info.Texture];
         if (textureSize != null) 
         {
-            var sx = texture.Source.X / (float)Resource.TowerFallTexture.Width;
-            var sy = texture.Source.Y / (float)Resource.TowerFallTexture.Height;
-            
-            var sw = textureSize.Value.X / (float)Resource.TowerFallTexture.Width;
-            var sh = textureSize.Value.Y / (float)Resource.TowerFallTexture.Height;
-
-            var uv = new UV(new Vector2(sx, sy), new Vector2(sw, sh));
-            texture = texture with {
-                Width = textureSize.Value.X,
-                Height = textureSize.Value.Y,
-                UV = uv
-            };
+            texture = new TextureQuad(
+                Resource.TowerFallTexture, 
+                new Rectangle(texture.Source.X, texture.Source.Y, textureSize.Value.X, textureSize.Value.Y)
+            );
         }
         var actor = new Actor() 
         {

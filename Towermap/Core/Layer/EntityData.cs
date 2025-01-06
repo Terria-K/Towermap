@@ -132,5 +132,12 @@ public class EntityData : ImGuiElement
         }
 
         ImGui.EndChild();
+
+        // Update the UI State
+        if (levelActor != null) 
+        {
+            actorNewPos[0] = (int)this.levelActor.PosX;
+            actorNewPos[1] = (int)this.levelActor.PosY;
+        }
     }
 }

@@ -1,9 +1,9 @@
 using System;
 using System.Numerics;
 using ImGuiNET;
-using MoonWorks.Graphics;
 using Riateu;
 using Riateu.Graphics;
+using Riateu.Inputs;
 
 namespace Towermap;
 
@@ -11,9 +11,9 @@ public class TilePanel : ImGuiElement
 {
     private string name;
     private IntPtr texturePtr;
-    private Quad texture;
+    private TextureQuad texture;
     private bool holding;
-    private Rect currentRect = new Rect(0, 0, 10, 10);
+    private Rectangle currentRect = new Rectangle(0, 0, 10, 10);
     private Vector2 framePos;
 
     public bool IsImageHovered;
@@ -29,8 +29,8 @@ public class TilePanel : ImGuiElement
 
     public Array2D<int> GetData() 
     {
-        int width = currentRect.W / 10;
-        int height = currentRect.H / 10;
+        int width = currentRect.Width / 10;
+        int height = currentRect.Height / 10;
         var data = new Array2D<int>(height, width);
 
         for (int x = 0; x < data.Columns; x++) 
@@ -47,8 +47,8 @@ public class TilePanel : ImGuiElement
 
     public void Update() 
     {
-        var x = Input.InputSystem.Mouse.X;
-        var y = Input.InputSystem.Mouse.Y;
+        var x = Input.Mouse.X;
+        var y = Input.Mouse.Y;
 
         var fx = framePos.X;
         var fy = framePos.Y;
@@ -61,33 +61,33 @@ public class TilePanel : ImGuiElement
 
             if (width < 0) 
             {
-                currentRect.W = -width;
+                currentRect.Width = -width;
             }
             var height = currentRect.Y - ry ;
             if (height < 0) 
             {
-                currentRect.H = -height;
+                currentRect.Height = -height;
             }
 
             if (rx >= texture.Width) 
             {
-                currentRect.W = -(currentRect.X - texture.Width);
+                currentRect.Width = -(currentRect.X - texture.Width);
             }
             if (ry >= texture.Height) 
             {
-                currentRect.H = -(currentRect.Y - texture.Height);
+                currentRect.Height = -(currentRect.Y - texture.Height);
             }
         }
-        if (IsImageHovered && Input.InputSystem.Mouse.LeftButton.IsPressed) 
+        if (IsImageHovered && Input.Mouse.LeftButton.Pressed) 
         {
             if (rx >= 0 && ry >= 0 && rx <= texture.Width - 10 && ry <= texture.Height - 10)
             {
-                currentRect = new Rect(rx, ry, 10, 10);
+                currentRect = new Rectangle(rx, ry, 10, 10);
                 holding = true;
             }
         }
 
-        if (Input.InputSystem.Mouse.LeftButton.IsUp) 
+        if (Input.Mouse.LeftButton.IsUp) 
         {
             holding = false;
         }
@@ -102,16 +102,16 @@ public class TilePanel : ImGuiElement
             flags |= ImGuiWindowFlags.NoMove;
         ImGui.Begin(name, flags);
 
-        if (!Input.InputSystem.Mouse.LeftButton.IsDown && !Input.InputSystem.Mouse.RightButton.IsDown)
+        if (!Input.Mouse.LeftButton.IsDown && !Input.Mouse.RightButton.IsDown)
             IsWindowHovered = ImGui.IsWindowHovered();
 
         ImDrawListPtr drawList = ImGui.GetWindowDrawList();
         framePos = ImGui.GetCursorScreenPos();
-        ImGui.Image(texturePtr, new Vector2(texture.Width, texture.Height) * 2, texture.UV.TopLeft.ToNumericsVec2(), texture.UV.BottomRight.ToNumericsVec2());
+        ImGui.Image(texturePtr, new Vector2(texture.Width, texture.Height) * 2, texture.UV.TopLeft, texture.UV.BottomRight);
         IsImageHovered = ImGui.IsItemHovered();
 
         drawList.AddRect(new Vector2(framePos.X + currentRect.X * 2, framePos.Y + currentRect.Y * 2), 
-            new Vector2(framePos.X + (currentRect.X * 2 + currentRect.W * 2), framePos.Y + (currentRect.Y * 2 + currentRect.H * 2)), Color.Yellow.PackedValue);
+            new Vector2(framePos.X + (currentRect.X * 2 + currentRect.Width * 2), framePos.Y + (currentRect.Y * 2 + currentRect.Height * 2)), Color.Yellow.RGBA);
         ImGui.End();
         ImGui.PopStyleVar();
     }

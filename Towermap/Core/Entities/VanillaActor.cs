@@ -1,5 +1,4 @@
-using MoonWorks.Graphics;
-using MoonWorks.Math.Float;
+using System.Numerics;
 using Riateu;
 using Riateu.Graphics;
 
@@ -37,7 +36,7 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("Dummy", "dummy/dummy", 12, 20, 6, 10), new Point(12, 20), PlayerRender);
     }
 
-    private static void PlayerRender(LevelActor actor, Vector2 position, IBatch spriteBatch)
+    private static void PlayerRender(LevelActor actor, Vector2 position, Batch spriteBatch)
     {
         if (position.X > (320 / 2)) 
         {
@@ -54,13 +53,13 @@ public static class VanillaActor
         }
     }
 
-    private static void ChainRender(LevelActor actor, Vector2 position, IBatch spriteBatch) 
+    private static void ChainRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
     {
         if (actor.Height > 10) 
         {
             for (int i = 1; i < actor.Height / 10; i++) 
             {
-                spriteBatch.Add(actor.TextureQuad, Resource.TowerFallTexture, GameContext.GlobalSampler,
+                spriteBatch.Draw(actor.TextureQuad,
                     new Vector2(position.X, position.Y + (i * 10)), Color.White, Vector2.One, actor.Data.Origin);
             }
         }

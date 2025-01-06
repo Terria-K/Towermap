@@ -1,6 +1,5 @@
 using System;
 using System.Text;
-using MoonWorks.Graphics;
 using Riateu;
 using Riateu.Components;
 using Riateu.Graphics;
@@ -17,10 +16,10 @@ public class GridTiles : Entity
     public GridTiles(Texture texture, Spritesheet sheet) 
     {
         this.sheet = sheet;
-        var tiles = new Array2D<Quad?>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
+        var tiles = new Array2D<TextureQuad?>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         tiles.Fill(null);
         Bits = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
-        tilemap = new Tilemap(texture, tiles, 10, TilemapMode.Cull);
+        tilemap = new Tilemap(tiles, 10, null);
         AddComponent(tilemap);
     }
 

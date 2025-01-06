@@ -1,9 +1,9 @@
 using System;
+using System.Numerics;
 using System.Collections.Generic;
-using MoonWorks.Graphics;
-using MoonWorks.Math.Float;
 using Riateu;
 using Riateu.Graphics;
+using Riateu.Inputs;
 
 namespace Towermap;
 
@@ -12,7 +12,7 @@ public class LevelActor : Entity
     public Actor Data;
     public ulong ID;
 
-    public Quad TextureQuad;
+    public TextureQuad TextureQuad;
     public Dictionary<string, object> CustomData;
     public int Width;
     public int Height;
@@ -28,7 +28,7 @@ public class LevelActor : Entity
     private Vector2 lastHold;
     
 
-    public LevelActor(Texture texture, Actor actor, Quad quad, ulong id) 
+    public LevelActor(Texture texture, Actor actor, TextureQuad quad, ulong id) 
     {
         Depth = -3;
         this.Data = actor;
@@ -68,14 +68,14 @@ public class LevelActor : Entity
             return;
         }
 
-        int x = Input.InputSystem.Mouse.X;
-        int y = Input.InputSystem.Mouse.Y;
+        int x = Input.Mouse.X;
+        int y = Input.Mouse.Y;
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
 
         if (isHeld) 
         {
-            if (Input.InputSystem.Mouse.LeftButton.IsReleased) 
+            if (Input.Mouse.LeftButton.Released) 
             {
                 isHeld = false;
                 // Possible negative numbers should be resolved
@@ -96,11 +96,11 @@ public class LevelActor : Entity
             if (scene.ToolSelected == Tool.Rect) 
             {
                 transparency = 0.7f;
-                if (Input.InputSystem.Mouse.RightButton.IsPressed && !scene.HasRemovedEntity) 
+                if (Input.Mouse.RightButton.Pressed && !scene.HasRemovedEntity) 
                 {
                     scene.RemoveActor(this);
                 }
-                if (Input.InputSystem.Mouse.LeftButton.IsPressed) 
+                if (Input.Mouse.LeftButton.Pressed) 
                 {
                     scene.SelectLevelActor(this);
                     isHeld = true;
@@ -113,10 +113,30 @@ public class LevelActor : Entity
             return;
         }
 
+        if (Selected) 
+        {
+            if (Input.Keyboard.IsPressed(KeyCode.Left)) 
+            {
+                PosX = MathUtils.Wrap(PosX - 5, 0, 320);
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.Right)) 
+            {
+                PosX = MathUtils.Wrap(PosX + 5, 0, 320);
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.Up)) 
+            {
+                PosY = MathUtils.Wrap(PosY - 5, 0, 240);
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.Down)) 
+            {
+                PosY = MathUtils.Wrap(PosY + 5, 0, 240);
+            }
+        }
+
         transparency = 0.3f;
     }
 
-    public override void Draw(CommandBuffer buffer, IBatch spriteBatch)
+    public override void Draw(Batch spriteBatch)
     {
         Color color = Color.Yellow * transparency;
         if (Selected) 
@@ -125,35 +145,35 @@ public class LevelActor : Entity
         }
         Data.OnRender?.Invoke(this, Position, spriteBatch);
         DrawUtils.Rect(spriteBatch, Position, color, new Vector2(Width, Height), Data.Origin);
-        spriteBatch.Add(TextureQuad, this.texture, GameContext.GlobalSampler, new Vector2(0, 0), Color.White, Vector2.One, Data.Origin, Transform.WorldMatrix);
-        if (Transform.PosX - Data.Origin.X < Width) 
+        spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY), Color.White, Vector2.One, Data.Origin);
+        if (PosX - Data.Origin.X < Width) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX + 320, Transform.PosY), color, new Vector2(Width, Height), Data.Origin);
-            spriteBatch.Add(Data.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(320, 0), 
-                Color.White, Vector2.One, Data.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX + 320, PosY), color, new Vector2(Width, Height), Data.Origin);
+            spriteBatch.Draw(Data.Texture, new Vector2(PosX + 320, PosY), 
+                Color.White, Vector2.One, Data.Origin);
         }
 
-        if (Transform.PosX - Data.Origin.X > 320 - Width) 
+        if (PosX - Data.Origin.X > 320 - Width) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX - 320, Transform.PosY), color, new Vector2(Width, Height), Data.Origin);
-            spriteBatch.Add(Data.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(-320, 0), 
-                Color.White, Vector2.One, Data.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX - 320, PosY), color, new Vector2(Width, Height), Data.Origin);
+            spriteBatch.Draw(Data.Texture, new Vector2(PosX -320, PosY), 
+                Color.White, Vector2.One, Data.Origin);
         }
 
-        if (Transform.PosY - Data.Origin.Y < Height) 
+        if (PosY - Data.Origin.Y < Height) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX, Transform.PosY + 240), color, new Vector2(Width, Height), Data.Origin);
-            spriteBatch.Add(Data.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(0, 240), 
-                Color.White, Vector2.One, Data.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + 240), color, new Vector2(Width, Height), Data.Origin);
+            spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY + 240), 
+                Color.White, Vector2.One, Data.Origin);
         }
 
-        if (Transform.PosY - Data.Origin.Y > 240 - Height) 
+        if (PosY - Data.Origin.Y > 240 - Height) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX, Transform.PosY - 240), color, new Vector2(Width, Height), Data.Origin);
-            spriteBatch.Add(Data.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(0, -240), 
-                Color.White, Vector2.One, Data.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - 240), color, new Vector2(Width, Height), Data.Origin);
+            spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY - 240), 
+                Color.White, Vector2.One, Data.Origin);
         }
-        base.Draw(buffer, spriteBatch);
+        base.Draw(spriteBatch);
     }
 
     public LevelActorInfo Save() 

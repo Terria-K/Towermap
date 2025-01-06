@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using System.Numerics;
 using ImGuiNET;
-using MoonWorks;
-using MoonWorks.Graphics;
-using MoonWorks.Input;
-using MoonWorks.Math.Float;
 using Riateu;
 using Riateu.Graphics;
 using Riateu.ImGuiRend;
+using Riateu.Inputs;
 
 namespace Towermap;
 
@@ -56,7 +54,7 @@ public class EditorScene : Scene
     private Actor actorSelected;
     private PhantomActor phantomActor;
     private XmlElement level;
-    private StaticText emptyText;
+    // private StaticText emptyText
     private History history;
     private bool isDrawing;
     private IntPtr imGuiTexture;
@@ -110,7 +108,7 @@ public class EditorScene : Scene
 
         mainCanvas = new EditorCanvas(this, game.GraphicsDevice);
 
-        emptyText = new StaticText(game.GraphicsDevice, Resource.Font, "No Level Selected", 24);
+        // emptyText = new StaticText(game.GraphicsDevice, Resource.Font, "No Level Selected", 24);
 
         tools = new Tools();
 
@@ -349,8 +347,8 @@ public class EditorScene : Scene
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Failed to load this level: '{Path.GetFileName(path)}'");
-            Logger.LogError(ex.ToString());
+            Logger.Error($"Failed to load this level: '{Path.GetFileName(path)}'");
+            Logger.Error(ex.ToString());
             if (level != null) 
             {
                 var solid = level["Solids"];
@@ -405,7 +403,7 @@ public class EditorScene : Scene
             var actor = actorManager.GetEntity(entityName);
             if (actor == null)
             {
-                Logger.LogError($"{entityName} is not registered to ActorManager");
+                Logger.Error($"{entityName} is not registered to ActorManager");
                 continue;
             }
             ulong entityID = ulong.Parse(entity.GetAttribute("id"));
@@ -521,9 +519,9 @@ public class EditorScene : Scene
         history.PushCommit(historyCommit, CurrentLayer);
     }
 
-    public override void Update(double delta)
+    public override void Process(double delta)
     {
-        imGui.Update(GameInstance.Inputs, ImGuiCallback);
+        imGui.Update(GameInstance.InputDevice, ImGuiCallback);
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
@@ -538,26 +536,26 @@ public class EditorScene : Scene
         }
 
 
-        if (isDrawing && Input.InputSystem.Mouse.AnyPressedButton.IsUp) 
+        if (isDrawing && Input.Mouse.AnyPressedButton.IsUp) 
         {
             isDrawing = false;
         }
 
-        if (Input.InputSystem.Keyboard.IsDown(KeyCode.LeftControl)) 
+        if (Input.Keyboard.IsDown(KeyCode.LeftControl)) 
         {
-            if (Input.InputSystem.Keyboard.IsDown(KeyCode.LeftShift)) 
+            if (Input.Keyboard.IsDown(KeyCode.LeftShift)) 
             {
-                if (Input.InputSystem.Keyboard.IsPressed(KeyCode.S))  
+                if (Input.Keyboard.IsPressed(KeyCode.S))  
                 {
                     Save(true);
                 }
             }
-            else if (Input.InputSystem.Keyboard.IsPressed(KeyCode.S)) 
+            else if (Input.Keyboard.IsPressed(KeyCode.S)) 
             {
                 Save();
             }
 
-            if (!isDrawing && Input.InputSystem.Keyboard.IsPressed(KeyCode.Z)) 
+            if (!isDrawing && Input.Keyboard.IsPressed(KeyCode.Z)) 
             {
                 if (history.PopCommit(out var res))
                 {
@@ -585,10 +583,10 @@ public class EditorScene : Scene
                 }
             }
         }
-        int x = Input.InputSystem.Mouse.X;
-        int y = Input.InputSystem.Mouse.Y;
+        int x = Input.Mouse.X;
+        int y = Input.Mouse.Y;
 
-        if (Input.InputSystem.Mouse.LeftButton.IsPressed) 
+        if (Input.Mouse.LeftButton.Pressed) 
         {
             if (ToolSelected == Tool.Pen)
             switch (CurrentLayer) 
@@ -612,14 +610,14 @@ public class EditorScene : Scene
             }
         }
 
-        if (Input.InputSystem.Mouse.LeftButton.IsDown) 
+        if (Input.Mouse.LeftButton.IsDown) 
         {
             if (ToolSelected == Tool.Pen)
             {
                 Place(x, y, true);
             }
         }
-        else if (Input.InputSystem.Mouse.RightButton.IsDown) 
+        else if (Input.Mouse.RightButton.IsDown) 
         {
             if (ToolSelected == Tool.Pen)
             {
@@ -716,24 +714,22 @@ public class EditorScene : Scene
         }
     }
 
-    public override void Draw(CommandBuffer buffer, Texture backbuffer)
+    public override void Render(RenderTarget backbuffer)
     {
-        mainCanvas.Draw(buffer, batch);
-        batch.Begin();
-        batch.Add(mainCanvas.CanvasTexture, GameContext.GlobalSampler, new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, 
-            new Vector2(2));
-        if (level == null) 
-        {
-            emptyText.Draw(batch, new Vector2(WorldUtils.WorldX + 40, WorldUtils.WorldY + (210)));
-        }
-        batch.End(buffer);
+        mainCanvas.Render(GraphicsDevice.DeviceCommandBuffer());
+        batch.Begin(mainCanvas.CanvasTexture, DrawSampler.PointClamp);
+        batch.Draw(new TextureQuad(mainCanvas.CanvasTexture), new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, new Vector2(2));
+        // if (level == null) 
+        // {
+        //     emptyText.Draw(batch, new Vector2(WorldUtils.WorldX + 40, WorldUtils.WorldY + (210)));
+        // }
+        batch.End();
 
-        buffer.BeginRenderPass(new ColorAttachmentInfo(backbuffer, Color.Black));
-        buffer.BindGraphicsPipeline(GameContext.DefaultPipeline);
-        batch.Draw(buffer);
-
-        imGui.Draw(buffer);
-        buffer.EndRenderPass();
+        var renderPass = GraphicsDevice.BeginTarget(backbuffer, Color.Black, true);
+        renderPass.BindGraphicsPipeline(GameContext.DefaultMaterial.ShaderPipeline);
+        batch.Render(renderPass);
+        imGui.Render(renderPass);
+        GraphicsDevice.EndTarget(renderPass);
     }
 
     private void Open() 
@@ -814,6 +810,6 @@ public class EditorScene : Scene
 
     public override void End()
     {
-        emptyText.Dispose();
+        // emptyText.Dispose();
     }
 }

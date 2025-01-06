@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using MoonWorks.Math.Float;
+using System.Numerics;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -7,7 +7,7 @@ namespace Towermap;
 public class Actor 
 {
     public string Name;
-    public Quad Texture;
+    public TextureQuad Texture;
     public int Width;
     public int Height;
     public Vector2 Origin;

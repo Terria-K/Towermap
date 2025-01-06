@@ -1,8 +1,8 @@
 using System;
-using MoonWorks.Graphics;
-using MoonWorks.Math.Float;
+using System.Numerics;
 using Riateu;
 using Riateu.Graphics;
+using Riateu.Inputs;
 
 namespace Towermap;
 
@@ -27,8 +27,8 @@ public class PhantomActor : Entity
     {
         if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen)
             return;
-        int x = Input.InputSystem.Mouse.X;
-        int y = Input.InputSystem.Mouse.Y;
+        int x = Input.Mouse.X;
+        int y = Input.Mouse.Y;
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         Transform.PosX = gridX;
@@ -36,41 +36,41 @@ public class PhantomActor : Entity
         base.Update(delta);
     }
 
-    public override void Draw(CommandBuffer buffer, IBatch spriteBatch)
+    public override void Draw(Batch spriteBatch)
     {
         if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen)
             return;
-        base.Draw(buffer, spriteBatch);
-        DrawUtils.Rect(spriteBatch, Transform.Position, Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
-        spriteBatch.Add(actor.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, Vector2.Zero, 
-            Color.White * 0.7f, Vector2.One, actor.Origin, Transform.WorldMatrix);
+        base.Draw(spriteBatch);
+        DrawUtils.Rect(spriteBatch, Position, Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+        spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY), 
+            Color.White * 0.7f, Vector2.One, actor.Origin);
 
-        if (Transform.PosX - actor.Origin.X < actor.Width) 
+        if (PosX - actor.Origin.X < actor.Width) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX + 320, Transform.PosY), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
-            spriteBatch.Add(actor.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(320, 0), 
-                Color.White * 0.7f, Vector2.One, actor.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX + 320, PosY), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            spriteBatch.Draw(actor.Texture, new Vector2(PosX + 320, PosY), 
+                Color.White * 0.7f, Vector2.One, actor.Origin);
         }
 
-        if (Transform.PosX - actor.Origin.X > 320 - actor.Width) 
+        if (PosX - actor.Origin.X > 320 - actor.Width) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX - 320, Transform.PosY), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
-            spriteBatch.Add(actor.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(-320, 0), 
-                Color.White * 0.7f, Vector2.One, actor.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX - 320, PosY), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            spriteBatch.Draw(actor.Texture, new Vector2(PosX - 320, PosY), 
+                Color.White * 0.7f, Vector2.One, actor.Origin);
         }
 
-        if (Transform.PosY - actor.Origin.Y < actor.Height) 
+        if (PosY - actor.Origin.Y < actor.Height) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX, Transform.PosY + 240), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
-            spriteBatch.Add(actor.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(0, 240), 
-                Color.White * 0.7f, Vector2.One, actor.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + 240), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY + 240), 
+                Color.White * 0.7f, Vector2.One, actor.Origin);
         }
 
-        if (Transform.PosY - actor.Origin.Y > 240 - actor.Height) 
+        if (PosY - actor.Origin.Y > 240 - actor.Height) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(Transform.PosX, Transform.PosY - 240), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
-            spriteBatch.Add(actor.Texture, Resource.TowerFallTexture, GameContext.GlobalSampler, new Vector2(0, -240), 
-                Color.White * 0.7f, Vector2.One, actor.Origin, Transform.WorldMatrix);
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - 240), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY - 240), 
+                Color.White * 0.7f, Vector2.One, actor.Origin);
         }
     }
 

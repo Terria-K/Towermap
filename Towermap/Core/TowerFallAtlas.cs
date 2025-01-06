@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Xml;
-using MoonWorks.Graphics;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -8,10 +7,10 @@ namespace Towermap;
 public class TowerFallAtlas 
 {
     private Dictionary<string, int> lookup = new();
-    private Quad[] textures;
+    private TextureQuad[] textures;
     public IReadOnlyDictionary<string, int> Lookup => lookup;
-    public Quad[] Textures => textures;
-    public Quad this[string name] => Get(name);
+    public TextureQuad[] Textures => textures;
+    public TextureQuad this[string name] => Get(name);
 
     public static TowerFallAtlas LoadAtlas(Texture texture, string xmlPath) 
     {
@@ -21,7 +20,7 @@ public class TowerFallAtlas
         XmlElement textureAtlas = document["TextureAtlas"];
         int i = 0;
         XmlNodeList subTextures = textureAtlas.GetElementsByTagName("SubTexture");
-        tfAtlas.textures = new Quad[subTextures.Count];
+        tfAtlas.textures = new TextureQuad[subTextures.Count];
         foreach (XmlElement subTexture in subTextures) 
         {
             string name = subTexture.GetAttribute("name");
@@ -30,7 +29,7 @@ public class TowerFallAtlas
             int width = int.Parse(subTexture.GetAttribute("width"));
             int height = int.Parse(subTexture.GetAttribute("height"));
 
-            Quad spTexture = new Quad(texture, new Rect(x, y, width, height));
+            TextureQuad spTexture = new TextureQuad(texture, new Rectangle(x, y, width, height));
             tfAtlas.textures[i] = spTexture;
             tfAtlas.lookup[name] = i;
             i++;
@@ -38,7 +37,7 @@ public class TowerFallAtlas
         return tfAtlas;
     }
 
-    public Quad Get(string name) 
+    public TextureQuad Get(string name) 
     {
         return textures[lookup[name]];
     }

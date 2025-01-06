@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using MoonWorks;
+using Riateu;
 namespace Towermap;
 
 public static class UTF8Utils 
@@ -18,7 +18,7 @@ public static class UTF8Utils
         {
             return bytes.ToArray();
         }
-        Logger.LogError("Bytes incompleted!");
+        Logger.Error("Bytes incompleted!");
         return null;
     }
 

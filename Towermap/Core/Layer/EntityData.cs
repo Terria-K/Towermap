@@ -79,7 +79,7 @@ public class EntityData : ImGuiElement
                     {
                         actorNewWidth = 10;
                     }
-                    levelActor.Width = actorNewHeight;
+                    levelActor.Width = actorNewWidth;
                 }
             }
             if (levelActor.Data.ResizeableY) 

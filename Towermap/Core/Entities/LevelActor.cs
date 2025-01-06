@@ -61,6 +61,8 @@ public class LevelActor : Entity
         base.Update(delta);
         rect.X = (int)Transform.PosX;
         rect.Y = (int)Transform.PosY;
+        rect.Width = Width;
+        rect.Height = Height;
         var scene = Scene as EditorScene;
         if (scene.CurrentLayer != Layers.Entities) 
         {
@@ -91,6 +93,27 @@ public class LevelActor : Entity
             Transform.PosY = snapY % 240;
             return;
         }
+
+        if (Selected) 
+        {
+            if (Input.Keyboard.IsPressed(KeyCode.Left)) 
+            {
+                PosX = MathUtils.Wrap(PosX - 5, 0, 320);
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.Right)) 
+            {
+                PosX = MathUtils.Wrap(PosX + 5, 0, 320);
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.Up)) 
+            {
+                PosY = MathUtils.Wrap(PosY - 5, 0, 240);
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.Down)) 
+            {
+                PosY = MathUtils.Wrap(PosY + 5, 0, 240);
+            }
+        }
+
         if (rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y)) 
         {
             if (scene.ToolSelected == Tool.Rect) 
@@ -111,26 +134,6 @@ public class LevelActor : Entity
                 }
             }
             return;
-        }
-
-        if (Selected) 
-        {
-            if (Input.Keyboard.IsPressed(KeyCode.Left)) 
-            {
-                PosX = MathUtils.Wrap(PosX - 5, 0, 320);
-            }
-            else if (Input.Keyboard.IsPressed(KeyCode.Right)) 
-            {
-                PosX = MathUtils.Wrap(PosX + 5, 0, 320);
-            }
-            else if (Input.Keyboard.IsPressed(KeyCode.Up)) 
-            {
-                PosY = MathUtils.Wrap(PosY - 5, 0, 240);
-            }
-            else if (Input.Keyboard.IsPressed(KeyCode.Down)) 
-            {
-                PosY = MathUtils.Wrap(PosY + 5, 0, 240);
-            }
         }
 
         transparency = 0.3f;

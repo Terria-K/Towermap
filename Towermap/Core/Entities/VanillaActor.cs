@@ -1,5 +1,4 @@
 using System.Numerics;
-using Riateu;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -33,6 +32,8 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("Cobwebs", "details/cobwebs", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
         manager.AddActor(new ActorInfo("Chain", "chain", 10, 10, 0, 0, false, true), new Point(10, 10), ChainRender);
+        manager.AddActor(new ActorInfo("Lantern", "lantern", 10, 10, 0, 0), new Point(10, 10));
+        manager.AddActor(new ActorInfo("JumpPad", "jumpPadOff", 20, 10, 0, 0, true), new Point(10, 10), JumpPadRender);
         manager.AddActor(new ActorInfo("Dummy", "dummy/dummy", 12, 20, 6, 10), new Point(12, 20), PlayerRender);
     }
 
@@ -61,6 +62,33 @@ public static class VanillaActor
             {
                 spriteBatch.Draw(actor.TextureQuad,
                     new Vector2(position.X, position.Y + (i * 10)), Color.White, Vector2.One, actor.Data.Origin);
+            }
+        }
+    }
+
+    private static void JumpPadRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
+    {
+        var mid = new TextureQuad(Resource.TowerFallTexture, actor.TextureQuad.Source with {
+            X = actor.TextureQuad.Source.X + 10
+        });
+        var end = new TextureQuad(Resource.TowerFallTexture, actor.TextureQuad.Source with {
+            X = actor.TextureQuad.Source.X + 20
+        });
+        if (actor.Width > 10) 
+        {
+            var len = actor.Width / 10;
+            for (int i = 1; i < len; i++) 
+            {
+                if (i == len - 1) 
+                {
+                    spriteBatch.Draw(end,
+                        new Vector2(position.X + (i * 10), position.Y), Color.White, Vector2.One, actor.Data.Origin);
+                }
+                else 
+                {
+                    spriteBatch.Draw(mid,
+                        new Vector2(position.X + (i * 10), position.Y), Color.White, Vector2.One, actor.Data.Origin);
+                }
             }
         }
     }

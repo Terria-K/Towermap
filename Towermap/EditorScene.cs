@@ -45,10 +45,8 @@ public class EditorScene : Scene
 
     private EditorCanvas mainCanvas;
     private GridTiles solids;
-    private Spritesheet solidSpriteSheet;
     private Autotiler SolidAutotiler;
     private GridTiles bgs;
-    private Spritesheet bgSpriteSheet;
     private Autotiler bgAutotiler;
     private Tiles BGTiles;
     private Tiles SolidTiles;
@@ -71,6 +69,14 @@ public class EditorScene : Scene
     public bool HasRemovedEntity;
 #endregion
 
+#region Themes
+    private BackdropRenderer backdropRenderer;
+#endregion
+
+
+    private bool openThemeSettings = false;
+    private bool openFallbackTheme = false;
+    private int fallbackSelected = 0;
 
     public EditorScene(GameApp game) : base(game)
     {
@@ -107,7 +113,11 @@ public class EditorScene : Scene
         layers.Add(entities);
         layers.Add(entityData);
 
-        mainCanvas = new EditorCanvas(this, game.GraphicsDevice);
+        backdropRenderer = new BackdropRenderer();
+        Themes.TryGetTheme("Flight", out var theme);
+        backdropRenderer.SetTheme(theme);
+
+        mainCanvas = new EditorCanvas(this, game.GraphicsDevice, backdropRenderer);
 
         tools = new Tools();
 
@@ -144,23 +154,62 @@ public class EditorScene : Scene
         bgTilesPanel = new TilePanel(imGuiTexture, "tilesets/flightBG", "BGTiles");
 
         levelSelection.SelectTower("../Assets");
-        solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flight"], 10, 10);
+        var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flight"], 10, 10);
         solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet);
         Add(solids);
         SolidAutotiler = new Autotiler();
-        SolidAutotiler.Init("../Assets/tilesetData.xml", 6);
 
-        bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flightBG"], 10, 10);
+        var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas["tilesets/flightBG"], 10, 10);
         bgs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet);
         bgs.Depth = 1;
         Add(bgs);
         bgAutotiler = new Autotiler();
-        bgAutotiler.Init("../Assets/tilesetData.xml", 7);
 
         SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet);
         Add(SolidTiles);
         BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet);
         Add(BGTiles);
+        SetTheme("Flight");
+    }
+
+    public void SetTheme(string name) 
+    {
+        if (!Themes.TryGetTheme(name, out var theme)) 
+        {
+            openFallbackTheme = true;
+            return;
+        }
+        backdropRenderer.SetTheme(theme);
+        XmlDocument document = new XmlDocument();
+        document.Load("../Assets/tilesetData.xml");
+
+        XmlDocument doc = new XmlDocument();
+        doc.Load("../Assets/tilesetData.xml");
+        var tilesetData = doc["TilesetData"];
+
+        // Solid Tileset
+        foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
+        {
+            if (tileset.GetAttribute("id") == theme.SolidTilesetID) 
+            {
+                SolidAutotiler.Init("../Assets/tilesetData.xml", tileset);
+                solidTilesPanel.SetTheme(tileset);
+                SolidTiles.SetTheme(tileset);
+                solids.SetTheme(tileset);
+            }
+        }
+
+        // BG Tileset
+        foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
+        {
+            if (tileset.GetAttribute("id") == theme.BGTilesetID) 
+            {
+                bgAutotiler.Init("../Assets/tilesetData.xml", tileset);
+                bgTilesPanel.SetTheme(tileset);
+                BGTiles.SetTheme(tileset);
+                bgs.SetTheme(tileset);
+            }
+        }
     }
 
 
@@ -550,7 +599,7 @@ public class EditorScene : Scene
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
-        if (level == null || dialogOpen)
+        if (level == null || openThemeSettings)
         {
             return;
         }
@@ -732,10 +781,9 @@ public class EditorScene : Scene
         return gridX > -1 && gridY > -1 && gridX < 32 && gridY < 24;
     }
 
-    private bool dialogOpen = false;
     private void OnOpenTheme() 
     {
-        dialogOpen = true;
+        openThemeSettings = true;
     }
 
     private void ImGuiCallback()
@@ -744,13 +792,33 @@ public class EditorScene : Scene
         ImGui.ShowDemoWindow();
 #endif
 
-        if (dialogOpen) 
+        if (openThemeSettings) 
         {
             ImGui.OpenPopup("Theme Settings");
         }
 
-        if (ImGui.BeginPopupModal("Theme Settings", ref dialogOpen)) 
+        if (ImGui.BeginPopupModal("Theme Settings", ref openThemeSettings)) 
         {
+            ImGui.EndPopup();
+        }
+
+        if (openFallbackTheme) 
+        {
+            ImGui.OpenPopup("Fallback Theme");
+        }
+
+        if (ImGui.BeginPopupModal("Fallback Theme", ref openFallbackTheme, ImGuiWindowFlags.AlwaysAutoResize)) 
+        {
+            ImGui.Text("Theme not found, fallback to another one: ");
+            ImGui.Combo("Fallback Theme", ref fallbackSelected, Themes.ThemeNames, Themes.ThemeNames.Length);
+
+            if (ImGui.Button("OK")) 
+            {
+                var name = Themes.ThemeNames[fallbackSelected];
+                SetTheme(name);
+                openFallbackTheme = false;
+                ImGui.CloseCurrentPopup();
+            }
             ImGui.EndPopup();
         }
         
@@ -786,6 +854,14 @@ public class EditorScene : Scene
     private void Open() 
     {
         FileDialog.OpenFile((filepath) => {
+            XmlDocument document = new XmlDocument();
+            document.Load(filepath);
+
+            XmlElement tower = document["tower"];
+            XmlElement theme = tower["theme"];
+            var themeName = theme.InnerText;
+
+            SetTheme(themeName);
             string path = Path.GetDirectoryName(filepath);
 
             levelSelection.SelectTower(path);

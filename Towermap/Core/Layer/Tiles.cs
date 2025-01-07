@@ -1,3 +1,4 @@
+using System.Xml;
 using System.Text;
 using Riateu;
 using Riateu.Components;
@@ -22,6 +23,12 @@ public class Tiles : Entity
         Ids.Fill(-1);
         tilemap = new Tilemap(tiles, 10);
         AddComponent(tilemap);
+    }
+
+    public void SetTheme(XmlElement tileset) 
+    {
+        var atlas = tileset.GetAttribute("image");
+        spritesheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas[atlas], 10, 10);
     }
 
     public void Clear() 

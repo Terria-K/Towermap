@@ -161,7 +161,12 @@ public class LevelActor : Entity
             }
         }
 
-        if (rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y)) 
+        if (InBounds(gridX, gridY) && 
+            (rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y) ||
+            rect.Contains(gridX + (int)Data.Origin.X + 320, gridY + (int)Data.Origin.Y) ||
+            rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y + 240) ||
+            rect.Contains(gridX + (int)Data.Origin.X - 320, gridY + (int)Data.Origin.Y) ||
+            rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y - 240)))
         {
             if (scene.ToolSelected == Tool.Rect) 
             {
@@ -186,6 +191,11 @@ public class LevelActor : Entity
         transparency = 0.3f;
     }
 
+    private bool InBounds(int x, int y) 
+    {
+        return x >= 0 && x <= 320 && y >= 0 && y <= 240;
+    }
+
     public override void Draw(Batch spriteBatch)
     {
         // Render the Entity
@@ -194,12 +204,13 @@ public class LevelActor : Entity
         {
             color = Color.Yellow * (transparency + 0.3f);
         }
-        Data.OnRender?.Invoke(this, Position, spriteBatch);
         DrawUtils.Rect(spriteBatch, Position, color, new Vector2(Width, Height), Data.Origin);
+        Data.OnRender?.Invoke(this, Position, spriteBatch);
         spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY), Color.White, Vector2.One, Data.Origin);
         if (PosX - Data.Origin.X < Width) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX + 320, PosY), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, new Vector2(PosX + 320, PosY), spriteBatch);
             spriteBatch.Draw(Data.Texture, new Vector2(PosX + 320, PosY), 
                 Color.White, Vector2.One, Data.Origin);
         }
@@ -207,13 +218,15 @@ public class LevelActor : Entity
         if (PosX - Data.Origin.X > 320 - Width) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX - 320, PosY), color, new Vector2(Width, Height), Data.Origin);
-            spriteBatch.Draw(Data.Texture, new Vector2(PosX -320, PosY), 
+            Data.OnRender?.Invoke(this, new Vector2(PosX - 320, PosY), spriteBatch);
+            spriteBatch.Draw(Data.Texture, new Vector2(PosX - 320, PosY), 
                 Color.White, Vector2.One, Data.Origin);
         }
 
         if (PosY - Data.Origin.Y < Height) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + 240), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, new Vector2(PosX, PosY + 240), spriteBatch);
             spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY + 240), 
                 Color.White, Vector2.One, Data.Origin);
         }
@@ -221,6 +234,7 @@ public class LevelActor : Entity
         if (PosY - Data.Origin.Y > 240 - Height) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - 240), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, new Vector2(PosX, PosY - 240), spriteBatch);
             spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY - 240), 
                 Color.White, Vector2.One, Data.Origin);
         }

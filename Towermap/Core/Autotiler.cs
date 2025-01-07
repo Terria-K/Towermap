@@ -51,14 +51,8 @@ public class Autotiler
         return data[x, y];
     }
 
-    public void Init(string xmlPath, int tilesetID) 
+    public void Init(string xmlPath, XmlElement tileset) 
     {
-        XmlDocument document = new XmlDocument();
-        document.Load(xmlPath);
-        XmlElement tilesetData = document["TilesetData"];
-
-        XmlElement tileset = (XmlElement)tilesetData.GetElementsByTagName("Tileset")[tilesetID];
-
         Center = SplitElementToInt(tileset, "Center");
         Single = SplitElementToInt(tileset, "Single");
         SingleHorizontalLeft = SplitElementToInt(tileset, "SingleHorizontalLeft");

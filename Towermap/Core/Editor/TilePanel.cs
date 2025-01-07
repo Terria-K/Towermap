@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Xml;
 using ImGuiNET;
 using Riateu;
 using Riateu.Graphics;
@@ -25,6 +26,12 @@ public class TilePanel : ImGuiElement
         texturePtr = intPtr;
 
         texture = Resource.Atlas[atlasName];
+    }
+
+    public void SetTheme(XmlElement tileset) 
+    {
+        var image = tileset.GetAttribute("image");
+        texture = Resource.Atlas[image];
     }
 
     public Array2D<int> GetData() 

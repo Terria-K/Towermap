@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Xml;
 using Riateu;
 using Riateu.Components;
 using Riateu.Graphics;
@@ -21,6 +22,12 @@ public class GridTiles : Entity
         Bits = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         tilemap = new Tilemap(tiles, 10, null);
         AddComponent(tilemap);
+    }
+
+    public void SetTheme(XmlElement tileset) 
+    {
+        var atlas = tileset.GetAttribute("image");
+        sheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas[atlas], 10, 10);
     }
 
     public void Clear() 

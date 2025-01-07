@@ -32,16 +32,44 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("FloorMiasma", "quest/floorMiasma", 10, 10, 0, 5, true, customValues: new() {
             ["Group"] = 0
         }), new Point(10, 10), HorizontalThreeTileRender);
+
+        manager.AddActor(new ActorInfo("CrackedPlatform", "crackedPlatform", 10, 10, 0, 0, true), new Point(10, 10), HorizontalThreeTileRender);
+
+        manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
+        manager.AddActor(new ActorInfo("CrumbleWall", "crumbleWall", 20, 20, 0, 0));
         manager.AddActor(new ActorInfo("CrumbleBlock", "crumbleBlockTiles", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender);
         manager.AddActor(new ActorInfo("GraniteBlock", "graniteTiles", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender);
+        manager.AddActor(new ActorInfo("RedSwitchBlock", "redSwitchBlock", 20, 20, 0, 0, true, true), new Point(10, 10), BlockTileRender);
+        manager.AddActor(new ActorInfo("BlueSwitchBlock", "blueSwitchBlock", 20, 20, 0, 0, true, true), new Point(10, 10), BlockTileRender);
 
         manager.AddActor(new ActorInfo("BGLantern", "details/lantern", 10, 10, 5, 5, customValues: new () {
             ["Lit"] = true
         }));
         manager.AddActor(new ActorInfo("BGCrystal", "details/wallCrystal", 10, 15, 5, 8), new Point(10, 15));
-        manager.AddActor(new ActorInfo("BGSkeleton", "details/bones", 20, 20, 10, 10), new Point(20, 20));
+        manager.AddActor(new ActorInfo("BGSkeleton", "details/bones", 20, 20, 10, 20), new Point(20, 20));
+        manager.AddActor(new ActorInfo("BGBigMushroom", "details/bigMushroom", 10, 20, 5, 20), onRender: BigMushroomRender);
+        manager.AddActor(new ActorInfo("BGMushroom", "details/wallMushroom", 10, 10, 5, 0), new Point(10, 10));
         manager.AddActor(new ActorInfo("Cobwebs", "details/cobwebs", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("SnowEd", "details/snowDeposit", 10, 10, 0, 10, true), new Point(10, 10), TileRender);
+        manager.AddActor(new ActorInfo("SnowClump", "details/snowDeposit", 10, 10, 0, 10, true), new Point(10, 10), TileRender);
+        manager.AddActor(new ActorInfo("KingIntro", "throneRoom", 20, 35, 10, 20), new Point(20, 35));
+    }
+
+    private static void BigMushroomRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
+    {
+        spriteBatch.Draw(Resource.Atlas["details/bigMushroomBase"], new Vector2(position.X, position.Y - 10), Color.White);
+    }
+
+    private static void BlockTileRender(LevelActor actor, Vector2 position, Batch spriteBatch) 
+    {
+        for (int x = 0; x < actor.Width / 10; x++) 
+        {
+            for (int y = 0; y < actor.Height / 10; y++) 
+            {
+                spriteBatch.Draw(actor.TextureQuad,
+                    new Vector2(position.X + (x * 10), position.Y + (y * 10)), Color.White, Vector2.One, actor.Data.Origin);
+            }
+        }
     }
 
     private static void TileRender(LevelActor actor, Vector2 position, Batch spriteBatch) 

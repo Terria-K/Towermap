@@ -8,7 +8,6 @@ using Riateu;
 using Riateu.Graphics;
 using Riateu.ImGuiRend;
 using Riateu.Inputs;
-using System.Runtime.ExceptionServices;
 
 namespace Towermap;
 
@@ -854,12 +853,12 @@ public class EditorScene : Scene
         if (specifyPath) 
         {
             FileDialog.Save((filepath) => {
-                document.Save(filepath + ".test");
+                document.Save(filepath);
             }, null, new Filter("Tower Xml", "xml"));
         }
         else 
         {
-            document.Save(currentPath + ".test");
+            document.Save(currentPath);
         }
 
     }

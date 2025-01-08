@@ -123,8 +123,8 @@ public class EditorScene : Scene
 
         tools.AddTool("Pen [1]", () => ToolSelected = Tool.Pen);
         tools.AddTool("Rect [2]", () => ToolSelected = Tool.Rect);
-        tools.AddTool("HSym [3]", OnHorizontalSymmetry);
-        tools.AddTool("VSym [4]", OnVerticalSymmetry);
+        tools.AddTool("HSym [H]", OnHorizontalSymmetry);
+        tools.AddTool("VSym [V]", OnVerticalSymmetry);
         tools.AddTool("Node [5]", () => ToolSelected = Tool.Node);
 
         phantomActor = new PhantomActor(actorManager);
@@ -599,7 +599,7 @@ public class EditorScene : Scene
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
-        if (level == null || openThemeSettings)
+        if (level == null || openThemeSettings || openFallbackTheme)
         {
             return;
         }
@@ -613,6 +613,27 @@ public class EditorScene : Scene
         if (isDrawing && Input.Mouse.AnyPressedButton.IsUp) 
         {
             isDrawing = false;
+        }
+
+        if (Input.Keyboard.IsPressed(KeyCode.D1)) 
+        {
+            ToolSelected = Tool.Pen;
+        }
+        else if (Input.Keyboard.IsPressed(KeyCode.D2)) 
+        {
+            ToolSelected = Tool.Rect;
+        }
+        else if (Input.Keyboard.IsDown(KeyCode.LeftShift) && Input.Keyboard.IsPressed(KeyCode.H)) 
+        {
+            OnHorizontalSymmetry();
+        }
+        else if (Input.Keyboard.IsDown(KeyCode.LeftShift) && Input.Keyboard.IsPressed(KeyCode.V)) 
+        {
+            OnVerticalSymmetry();
+        }
+        else if (Input.Keyboard.IsPressed(KeyCode.D5)) 
+        {
+            ToolSelected = Tool.Node;
         }
 
         if (Input.Keyboard.IsDown(KeyCode.LeftControl)) 

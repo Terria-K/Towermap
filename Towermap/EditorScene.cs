@@ -677,6 +677,11 @@ public class EditorScene : Scene
                 }
             }
         }
+        if (ImGui.GetIO().WantCaptureMouse) 
+        {
+            HasRemovedEntity = false;
+            return;
+        }
         int x = Input.Mouse.X;
         int y = Input.Mouse.Y;
 
@@ -732,6 +737,7 @@ public class EditorScene : Scene
                 Place(x, y, false);
             }
         }
+
         HasRemovedEntity = false;
     }
 

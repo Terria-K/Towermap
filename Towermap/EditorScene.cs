@@ -133,19 +133,19 @@ public class EditorScene : Scene
 
     private unsafe void ImGuiInit(ImGuiIOPtr io) 
     {
-        const int FontAwesomeIconRangeStart = 0xe005;
-        const int FontAwesomeIconRangeEnd = 0xf8ff;
+        // const int FontAwesomeIconRangeStart = 0xe005;
+        // const int FontAwesomeIconRangeEnd = 0xf8ff;
 
-        ushort[] ranges = [FontAwesomeIconRangeStart, FontAwesomeIconRangeEnd];
-        fixed (ushort* rangesPtr = ranges)
-        {
-            ImFontConfig* iconConfig = ImGuiNative.ImFontConfig_ImFontConfig();
-            iconConfig->MergeMode = 1;
-            iconConfig->PixelSnapH = 1;
-            iconConfig->GlyphMinAdvanceX = 13 * 2.0f / 3.0f;
-            io.Fonts.AddFontFromFileTTF("../Assets/font/fontawesome3.ttf", 13 * 2.0f / 3.0f,
-                iconConfig, (IntPtr)rangesPtr);
-        }
+        // ushort[] ranges = [FontAwesomeIconRangeStart, FontAwesomeIconRangeEnd];
+        // fixed (ushort* rangesPtr = ranges)
+        // {
+        //     ImFontConfig* iconConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+        //     iconConfig->MergeMode = 1;
+        //     iconConfig->PixelSnapH = 1;
+        //     iconConfig->GlyphMinAdvanceX = 13 * 2.0f / 3.0f;
+        //     io.Fonts.AddFontFromFileTTF("../Assets/font/fontawesome3.ttf", 13 * 2.0f / 3.0f,
+        //         iconConfig, (IntPtr)rangesPtr);
+        // }
     }
 
     public override void Begin()
@@ -595,7 +595,6 @@ public class EditorScene : Scene
 
     public override void Process(double delta)
     {
-        imGui.Update(GameInstance.InputDevice, ImGuiCallback);
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
@@ -860,6 +859,8 @@ public class EditorScene : Scene
 
     public override void Render(RenderTarget backbuffer)
     {
+        imGui.Update(GameInstance.InputDevice, ImGuiCallback);
+
         mainCanvas.Render(GraphicsDevice.DeviceCommandBuffer());
         batch.Begin(mainCanvas.CanvasTexture, DrawSampler.PointClamp);
         batch.Draw(new TextureQuad(mainCanvas.CanvasTexture), new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, new Vector2(2));
@@ -960,5 +961,8 @@ public class EditorScene : Scene
 
     }
 
-    public override void End() {}
+    public override void End() 
+    {
+        imGui.Destroy();
+    }
 }

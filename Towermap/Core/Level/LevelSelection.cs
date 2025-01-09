@@ -32,7 +32,9 @@ public class LevelSelection : ImGuiElement
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
         ImGui.SetNextWindowSize(new Vector2(150, 640), ImGuiCond.Always);
-        ImGui.SetNextWindowPos(new Vector2(0, 20));
+        var mainViewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
+        ImGui.SetNextWindowPos(mainViewport.Pos +  new Vector2(0, 20));
         ImGui.Begin("Levels", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
         foreach (var level in levels) 
         {

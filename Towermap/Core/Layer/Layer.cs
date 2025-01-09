@@ -17,9 +17,12 @@ public class LayersPanel : ImGuiElement
 
     public override void DrawGui()
     {
+        var mainViewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
+
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
         ImGui.SetNextWindowSize(new Vector2(200, 620), ImGuiCond.Always);
-        ImGui.SetNextWindowPos(new Vector2(1024 - 200, 20));
+        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(1024 - 200, 20));
 
         var size = new Vector2(185, 0.0f);
         ImGui.Begin("Layers", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);

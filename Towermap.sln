@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Towermap", "Towermap\Towermap.csproj", "{9A89C337-50ED-4928-8A23-784014DF8CE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Riateu", "..\Riateu\Riateu\Riateu.csproj", "{A18C210B-42A2-427A-A8F0-F63F43A5CA13}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A89C337-50ED-4928-8A23-784014DF8CE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A89C337-50ED-4928-8A23-784014DF8CE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A89C337-50ED-4928-8A23-784014DF8CE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A89C337-50ED-4928-8A23-784014DF8CE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A18C210B-42A2-427A-A8F0-F63F43A5CA13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A18C210B-42A2-427A-A8F0-F63F43A5CA13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A18C210B-42A2-427A-A8F0-F63F43A5CA13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A18C210B-42A2-427A-A8F0-F63F43A5CA13}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -5,6 +5,7 @@ using ImGuiNET;
 using Riateu;
 using Riateu.Graphics;
 using Riateu.Inputs;
+using SDL3;
 
 namespace Towermap;
 
@@ -54,8 +55,7 @@ public class TilePanel : ImGuiElement
 
     public void Update() 
     {
-        var x = Input.Mouse.X;
-        var y = Input.Mouse.Y;
+        SDL.SDL_GetGlobalMouseState(out float x, out float y);
 
         var fx = framePos.X;
         var fy = framePos.Y;

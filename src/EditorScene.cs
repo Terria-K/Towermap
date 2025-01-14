@@ -1019,6 +1019,7 @@ public class EditorScene : Scene
 
             levelBatch.Begin(Resource.TowerFallTexture, DrawSampler.PointClamp);
 
+            DrawGrid();
             if (currentLevel != null) 
             {
                 if (visibility[1])
@@ -1049,7 +1050,6 @@ public class EditorScene : Scene
                     }
                 }
             }
-            DrawGrid();
             tileRect.Draw(levelBatch);
             PhantomActor.Draw(levelBatch);
             levelBatch.End();
@@ -1077,12 +1077,12 @@ public class EditorScene : Scene
     {
         for (int i = 0; i < 320 / 10; i++) 
         {
-            DrawUtils.Line(levelBatch, new Vector2(i * 10, 0), new Vector2(i * 10, 240), Color.White * 0.2f);
+            DrawUtils.Line(levelBatch, new Vector2(i * 10, 0), new Vector2(i * 10, 240), Color.White * 0.1f);
         }
 
         for (int i = 0; i < 240 / 10; i++) 
         {
-            DrawUtils.Line(levelBatch, new Vector2(0, i * 10), new Vector2(320, i * 10), Color.White * 0.2f);
+            DrawUtils.Line(levelBatch, new Vector2(0, i * 10), new Vector2(320, i * 10), Color.White * 0.1f);
         }
     }
 

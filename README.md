@@ -8,19 +8,11 @@ single person.
 ![preview](./images/latestpreview.png)
 
 ## Contributing
-If you want to contribute in this project, make sure you have TowerFall, as the editor needs
-to lookup on its content. And an nfd.dll which you can build from the [repository](https://github.com/Vexatos/nativefiledialog/tree/master/lua) itself.
+If you want to contribute in this project, make sure you have TowerFall and bring your own assets for now.
+Clone [Riateu](https://github.com/Terria-K/Riateu) project and put it next to the project folder, you also need some of its
+dependencies and build its native library.
 
-## C# Dependencies:
-+ [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.
-+ [TeuJson](https://github.com/Terria-K/TeuJson) - A json de/serializer.
 
 ## Dependencies:
 + [SDL3](https://www.libsdl.org) - Rendering backend, File dialog handling, etc.
-
-+ [LovesFrames](https://github.com/linux-man/LoveFrames) - Modified the treenode's position
-+ [xml2lua](https://github.com/manoelcampos/Xml2Lua)
-+ [luafilesystem-ffi](https://github.com/sonoro1234/luafilesystem)
-+ [lua-tinyxmlwriter](https://github.com/augmentedlogic/lua-tinyxmlwriter) - Modified to support writing values
-+ [nfd with lua](https://github.com/Vexatos/nativefiledialog/tree/master/lua)
-+ [json.lua](https://github.com/rxi/json.lua)
++ [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.

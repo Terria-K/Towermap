@@ -1,4 +1,8 @@
-assets
+Assets
 *.dll
 *.so
 *.dylib
+runtimes/
+obj/
+bin/
+*.code-workspace

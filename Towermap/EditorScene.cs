@@ -1,0 +1,1134 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Xml;
+using System.Numerics;
+using ImGuiNET;
+using Riateu;
+using Riateu.Graphics;
+using Riateu.ImGuiRend;
+using Riateu.Inputs;
+
+namespace Towermap;
+
+public enum Layers
+{
+    Solids,
+    BG,
+    Entities,
+    SolidTiles,
+    BGTiles
+}
+
+public enum Tool
+{
+    Pen,
+    Rect,
+    Node
+}
+
+public class EditorScene : Scene
+{
+    private ImGuiRenderer imGui;
+    private ActorManager actorManager;
+
+#region Elements
+    private ImGuiElement menuBar;
+    private LevelSelection levelSelection;
+    private LayersPanel layers;
+    private TilePanel solidTilesPanel;
+    private TilePanel bgTilesPanel;
+    private Tools tools;
+    private Entities entities;
+    private EntityData entityData;
+    private TowerSettings towerSettings;
+#endregion
+    private Autotiler SolidAutotiler;
+    private Autotiler BgAutotiler;
+
+
+    private Actor actorSelected;
+    private bool isDrawing;
+    private IntPtr imGuiTexture;
+    private Batch batch;
+    private Batch levelBatch;
+    private RenderTarget target;
+
+#region Level State
+    private Tower tower;
+    private LevelActor actorToRemove;
+    private LevelActor currentSelected;
+    private List<LevelActor> listSelected = [];
+    private Level currentLevel;
+    private TileRect tileRect;
+    private bool hasSelection;
+
+    public Tool ToolSelected;
+    public Layers CurrentLayer = Layers.Solids;
+    public bool HasRemovedEntity;
+
+    public PhantomActor PhantomActor;
+#endregion
+
+    private BackdropRenderer backdropRenderer;
+
+
+    private bool openFallbackTheme = false;
+    private int fallbackSelected = 0;
+
+    public EditorScene(GameApp game) : base(game)
+    {
+        target = new RenderTarget(game.GraphicsDevice, 320, 240);
+
+        levelBatch = new Batch(game.GraphicsDevice, 320, 240);
+        batch = new Batch(game.GraphicsDevice, 1024, 640);
+        actorManager = new ActorManager();
+        PhantomActor = new PhantomActor(this, actorManager);
+        tileRect = new TileRect();
+        VanillaActor.Init(actorManager);
+        imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1024, 640, ImGuiInit);
+        imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
+        menuBar = new MenuBar()
+            .Add(new MenuSlot("File")
+                .Add(new MenuItem("New"))
+                .Add(new MenuItem("Open", Open))
+                .Add(new MenuItem("Save", () => Save()))
+                .Add(new MenuItem("Save As", () => Save(true)))
+                .Add(new MenuItem("Quit", () => GameInstance.Quit())))
+            .Add(new MenuSlot("Settings")
+                .Add(new MenuItem("Theme", OnOpenTheme))
+                .Add(new MenuItem("Editor")))
+            .Add(new MenuSlot("View"));
+
+        levelSelection = new LevelSelection();
+        levelSelection.OnSelect = OnLevelSelected;
+
+        layers = new LayersPanel();
+        layers.OnLayerSelect = OnLayerSelected;
+
+        entities = new Entities(actorManager, imGuiTexture);
+        entities.Enabled = false;
+        entities.OnSelectActor = OnSelectActor;
+
+        entityData = new EntityData(this);
+        entityData.Enabled = false;
+        layers.Add(entities);
+        layers.Add(entityData);
+
+        Themes.TryGetTheme("Flight", out var theme);
+        backdropRenderer = new BackdropRenderer();
+        backdropRenderer.SetTheme(theme);
+        towerSettings = new TowerSettings();
+        towerSettings.OnSave = OnSettingsChangeTheme;
+        towerSettings.SetTheme(theme);
+
+        tools = new Tools();
+
+        tools.AddTool("Pen [1]", () => ToolSelected = Tool.Pen);
+        tools.AddTool("Rect [2]", () => ToolSelected = Tool.Rect);
+        tools.AddTool("HSym [H]", OnHorizontalSymmetry);
+        tools.AddTool("VSym [V]", OnVerticalSymmetry);
+        tools.AddTool("Node [5]", () => ToolSelected = Tool.Node);
+    }
+
+    private unsafe void ImGuiInit(ImGuiIOPtr io) 
+    {
+        // const int FontAwesomeIconRangeStart = 0xe005;
+        // const int FontAwesomeIconRangeEnd = 0xf8ff;
+
+        // ushort[] ranges = [FontAwesomeIconRangeStart, FontAwesomeIconRangeEnd];
+        // fixed (ushort* rangesPtr = ranges)
+        // {
+        //     ImFontConfig* iconConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+        //     iconConfig->MergeMode = 1;
+        //     iconConfig->PixelSnapH = 1;
+        //     iconConfig->GlyphMinAdvanceX = 13 * 2.0f / 3.0f;
+        //     io.Fonts.AddFontFromFileTTF("../Assets/font/fontawesome3.ttf", 13 * 2.0f / 3.0f,
+        //         iconConfig, (IntPtr)rangesPtr);
+        // }
+    }
+
+    public override void Begin()
+    {
+        solidTilesPanel = new TilePanel(imGuiTexture, "tilesets/flight", "SolidTiles");
+        bgTilesPanel = new TilePanel(imGuiTexture, "tilesets/flightBG", "BGTiles");
+
+        tower = new Tower();
+        tower.Load("../Assets/tower.xml");
+        levelSelection.SelectTower(tower);
+        SolidAutotiler = new Autotiler();
+        BgAutotiler = new Autotiler();
+        SetTheme(tower.Theme);
+    }
+
+    public void SetTowerTheme(string name) 
+    {
+        if (!Themes.TryGetTheme(name, out var theme)) 
+        {
+            openFallbackTheme = true;
+            return;
+        }
+        tower.SetTheme(theme);
+        SetTheme(theme);
+    }
+
+    private void SetTheme(Theme theme) 
+    {
+        towerSettings.SetTheme(theme);
+        backdropRenderer.SetTheme(theme);
+        XmlDocument document = new XmlDocument();
+        document.Load("../Assets/tilesetData.xml");
+
+        XmlDocument doc = new XmlDocument();
+        doc.Load("../Assets/tilesetData.xml");
+        var tilesetData = doc["TilesetData"];
+
+        foreach (var level in levelSelection.Levels) 
+        {
+            // Solid Tileset
+            foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
+            {
+                if (tileset.GetAttribute("id") == theme.SolidTilesetID) 
+                {
+                    SolidAutotiler.Init(tileset);
+                    solidTilesPanel.SetTheme(tileset);
+                    if (level.SolidTiles != null)
+                    {
+                        level.SolidTiles.SetTheme(tileset);
+                        level.SolidTiles.UpdateTiles();
+                        level.Solids.SetTheme(tileset);
+                        level.Solids.UpdateTiles(SolidAutotiler);
+                    }
+                }
+            }
+
+            // BG Tileset
+            foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
+            {
+                if (tileset.GetAttribute("id") == theme.BGTilesetID) 
+                {
+                    BgAutotiler.Init(tileset);
+                    bgTilesPanel.SetTheme(tileset);
+                    if (level.BGTiles != null)
+                    {
+                        level.BGTiles.SetTheme(tileset);
+                        level.BGTiles.UpdateTiles();
+                        level.BGs.SetTheme(tileset);
+                        level.BGs.UpdateTiles(BgAutotiler, level.Solids.Bits);
+                    }
+                }
+            }
+        }
+    }
+
+
+    public void SelectLevelActor(LevelActor actor) 
+    {
+        if (!hasSelection)
+            listSelected.Clear();
+        if (currentSelected != null) 
+        {
+            currentSelected.Selected = false;
+        }
+        listSelected.Add(actor);
+        hasSelection = true;
+    }
+
+    public void Select(LevelActor actor) 
+    {
+        entityData.SelectActor(actor);
+        if (currentSelected != null) 
+        {
+            currentSelected.Selected = false;
+        }
+        currentSelected = actor;
+        currentSelected.Selected = true;
+    }
+
+    public void UpdateSelected() 
+    {
+        if (hasSelection) 
+        {
+            if (listSelected.Count == 1) 
+            {
+                Select(listSelected[0]);
+                listSelected.Clear();
+            }
+            else 
+            {
+                entityData.ConflictSelection(listSelected);
+            }
+
+            hasSelection = false;
+        }
+    }
+
+#region Events
+    private void OnSettingsChangeTheme(int num)
+    {
+        SetTowerTheme(Themes.ThemeNames[num]);
+    }
+
+    private void OnSelectActor(Actor actor) 
+    {
+        actorSelected = actor;
+        PhantomActor.SetActor(actorSelected);
+        ToolSelected = Tool.Pen;
+    }
+
+    private void OnVerticalSymmetry() 
+    {
+        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
+        {
+            Layers.Solids => (currentLevel.Solids, SolidAutotiler, null),
+            Layers.BG => (currentLevel.BGs, BgAutotiler, currentLevel.Solids.Bits),
+            _ => (null, null, null) 
+        };
+
+        if (currentTiles == null)
+            return;
+
+        CommitHistory();
+
+        for (int y = 0; y < WorldUtils.WorldHeight / 10 * 0.5f; y++) 
+        {
+            for (int x = 0; x < WorldUtils.WorldWidth / 10; x++)  
+            {
+                int bitY = ((int)(WorldUtils.WorldHeight / 10) - y) - 1;
+                if (currentTiles.SetGrid(x, bitY, currentTiles.Bits[x, y]))
+                {
+                    currentTiles.UpdateTile(x, bitY, autotiler.Tile(currentTiles.Bits, x, bitY));
+                    UpdateTiles(x, bitY, currentLevel.Solids.Bits);
+                }
+            }
+        }
+    }
+
+    private void OnHorizontalSymmetry() 
+    {
+        (GridTiles currentTiles, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
+        {
+            Layers.Solids => (currentLevel.Solids, SolidAutotiler, null),
+            Layers.BG => (currentLevel.BGs, BgAutotiler, currentLevel.Solids.Bits),
+            _ => (null, null, null) 
+        };
+
+        if (currentTiles == null)
+            return;
+
+        CommitHistory();
+
+        for (int y = 0; y < WorldUtils.WorldHeight / 10; y++) 
+        {
+            for (int x = 0; x < WorldUtils.WorldWidth / 10 * 0.5f; x++)  
+            {
+                int bitX = ((int)(WorldUtils.WorldWidth / 10) - x) - 1;
+                if (currentTiles.SetGrid(bitX, y, currentTiles.Bits[x, y]))
+                {
+                    currentTiles.UpdateTile(bitX, y, autotiler.Tile(currentTiles.Bits, bitX, y));
+                    UpdateTiles(bitX, y, currentLevel.Solids.Bits);
+                }
+            }
+        }
+    }
+
+    private void OnLayerSelected(string layer)
+    {
+        switch (layer) 
+        {
+        case "Solids":
+            CurrentLayer = Layers.Solids;
+            break;
+        case "BG":
+            CurrentLayer = Layers.BG;
+            break;
+        case "Entities":
+            CurrentLayer = Layers.Entities;
+            PhantomActor.Active = true;
+            entityData.Enabled = true;
+            entities.Enabled = true;
+            return;
+        case "SolidTiles":
+            CurrentLayer = Layers.SolidTiles;
+            break;
+        case "BGTiles":
+            CurrentLayer = Layers.BGTiles;
+            break;
+        }
+        entities.Enabled = false;
+        entityData.Enabled = false;
+        PhantomActor.Active = false;
+    }
+
+    private void OnLevelSelected(Level level)
+    {
+        SetLevel(level);
+    }
+#endregion
+
+    public void SetLevel(Level level) 
+    {
+        if (level == null) 
+        {
+            level = null;
+            return;
+        }
+
+        actorManager.ClearIDs();
+        
+
+        int seed = level.Seed;
+
+        SolidAutotiler.Seed = seed;
+        BgAutotiler.Seed = seed;
+
+        if (level.Unsaved) 
+        {
+            currentLevel = level;
+            return;
+        }
+
+        level.Actors.Clear();
+
+        if (level.Solids == null) 
+        {
+            var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.SolidTilesQuad, 10, 10);
+            var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.BGTilesQuad, 10, 10);
+            level.Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet);
+            level.BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet);
+            level.SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet);
+            level.BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet);
+        }
+        else 
+        {
+            level.Solids.Clear();
+            level.BGs.Clear();
+            level.SolidTiles.Clear();
+            level.BGTiles.Clear();
+        }
+        
+        XmlDocument document = new XmlDocument();
+        document.Load(level.Path);
+
+        var loadingLevel = document["level"];
+        try 
+        {
+            currentLevel = level;
+
+            var solid = loadingLevel["Solids"];
+            currentLevel.Solids.SetGrid(solid.InnerText);
+
+            var bg = loadingLevel["BG"];
+            currentLevel.BGs.SetGrid(bg.InnerText);
+
+            var solidTiles = loadingLevel["SolidTiles"];
+            currentLevel.SolidTiles.SetTiles(solidTiles.InnerText);
+
+            var bgTiles = loadingLevel["BGTiles"];
+            currentLevel.BGTiles.SetTiles(bgTiles.InnerText);
+
+            SpawnEntities(loadingLevel);
+        }
+        catch (Exception ex)
+        {
+            string path = level.Path;
+            Logger.Error($"Failed to load this level: '{Path.GetFileName(path)}'");
+            Logger.Error(ex.ToString());
+        }
+
+        currentLevel.Solids.UpdateTiles(SolidAutotiler);
+        currentLevel.BGs.UpdateTiles(BgAutotiler, currentLevel.Solids.Bits);
+    }
+
+    public void RemoveActor(LevelActor actor) 
+    {
+        actorToRemove = actor;
+    }
+
+    private void SpawnEntities(XmlElement xml) 
+    {
+        var entities = xml["Entities"];
+        ulong id = 0;
+        HashSet<ulong> idTaken = new();
+
+        foreach (XmlElement entity in entities) 
+        {
+            var entityName = entity.Name;
+
+            var actor = actorManager.GetEntity(entityName);
+            if (actor == null)
+            {
+                Logger.Error($"{entityName} is not registered to ActorManager");
+                continue;
+            }
+            ulong entityID = ulong.Parse(entity.GetAttribute("id"));
+            var x = int.Parse(entity.GetAttribute("x"));
+            var y = int.Parse(entity.GetAttribute("y"));
+            int width = 0;
+            int height = 0;
+            List<Vector2> nodes = actor.HasNodes ? new List<Vector2>() : null;
+
+            if (entity.HasAttribute("width")) 
+            {
+                width = int.Parse(entity.GetAttribute("width"));
+            }
+
+            if (entity.HasAttribute("height")) 
+            {
+                height = int.Parse(entity.GetAttribute("height"));
+            }
+
+            if (entity.HasChildNodes) 
+            {
+                nodes = new List<Vector2>();
+                foreach (XmlElement child in entity.ChildNodes) 
+                {
+                    var nx = int.Parse(child.GetAttribute("x"));
+                    var ny = int.Parse(child.GetAttribute("y"));
+
+                    Vector2 node = new Vector2(nx, ny);
+                    nodes.Add(node);
+                }
+            }
+
+            Dictionary<string, object> customDatas = new Dictionary<string, object>();
+
+            if (actor.CustomValues != null)
+            {
+                foreach (XmlAttribute attr in entity.Attributes)
+                {
+                    if (!actor.CustomValues.ContainsKey(attr.Name)) 
+                    {
+                        continue;
+                    }
+
+                    var value = attr.Value;
+                    if (int.TryParse(value, out var output)) 
+                    {
+                        customDatas.Add(attr.Name, output);
+                    }
+                    else if (float.TryParse(value, out var output2)) 
+                    {
+                        customDatas.Add(attr.Name, output2);
+                    }
+                    else if (attr.Value.ToLowerInvariant() == "true") 
+                    {
+                        customDatas.Add(attr.Name, true);
+                    }
+                    else if (attr.Value.ToLowerInvariant() == "false") 
+                    {
+                        customDatas.Add(attr.Name, false);
+                    }
+                    else 
+                    {
+                        customDatas.Add(attr.Name, value);
+                    }
+                }
+            }
+
+            var levelActor = new LevelActor(Resource.TowerFallTexture, actor, actor.Texture, entityID);
+            levelActor.PosX = x;
+            levelActor.PosY = y;
+            levelActor.Data.HasNodes = actor.HasNodes;
+            levelActor.Nodes = nodes;
+            levelActor.CustomData = customDatas;
+            if (actor.ResizeableX) 
+            {
+                levelActor.Data.ResizeableX = true;
+                levelActor.Width = width;
+            }
+            if (actor.ResizeableY) 
+            {
+                levelActor.Data.ResizeableY = true;
+                levelActor.Height = height;
+            }
+            levelActor.Scene = this;
+            currentLevel.Actors.Add(levelActor);
+
+            if (entityID > id) 
+            {
+                id = entityID;
+            }
+            idTaken.Add(entityID);
+        }
+
+        actorManager.TotalIDs = id;
+        for (ulong i = 0; i <= id; i++) 
+        {
+            if (idTaken.Contains(i))
+                continue;
+            actorManager.RetriveID(i);
+        }
+    }
+
+    private void UpdateTiles(int gridX, int gridY, Array2D<bool> also) 
+    {
+        currentLevel.Solids.UpdateTile(gridX - 1, gridY, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX - 1, gridY));
+        currentLevel.Solids.UpdateTile(gridX + 1, gridY, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX + 1, gridY));
+
+        currentLevel.Solids.UpdateTile(gridX, gridY - 1, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX, gridY - 1));
+        currentLevel.Solids.UpdateTile(gridX, gridY + 1, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX, gridY + 1));
+
+        currentLevel.Solids.UpdateTile(gridX - 1, gridY - 1, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX - 1, gridY - 1));
+        currentLevel.Solids.UpdateTile(gridX + 1, gridY + 1, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX + 1, gridY + 1));
+
+        currentLevel.Solids.UpdateTile(gridX - 1, gridY + 1, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX - 1, gridY + 1));
+        currentLevel.Solids.UpdateTile(gridX + 1, gridY - 1, SolidAutotiler.Tile(currentLevel.Solids.Bits, gridX + 1, gridY - 1));
+
+        currentLevel.BGs.UpdateTile(gridX - 1, gridY, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX - 1, gridY, also));
+        currentLevel.BGs.UpdateTile(gridX + 1, gridY, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX + 1, gridY, also));
+
+        currentLevel.BGs.UpdateTile(gridX, gridY - 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX, gridY - 1, also));
+        currentLevel.BGs.UpdateTile(gridX, gridY + 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX, gridY + 1, also));
+
+        currentLevel.BGs.UpdateTile(gridX - 1, gridY - 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX - 1, gridY - 1, also));
+        currentLevel.BGs.UpdateTile(gridX + 1, gridY + 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX + 1, gridY + 1, also));
+
+        currentLevel.BGs.UpdateTile(gridX - 1, gridY + 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX - 1, gridY + 1, also));
+        currentLevel.BGs.UpdateTile(gridX + 1, gridY - 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX + 1, gridY - 1, also));
+    }
+
+    public void CommitHistory() 
+    {
+        var historyCommit = CurrentLayer switch {
+            Layers.Solids => new History.Commit { Solids = currentLevel.Solids.Bits },
+            Layers.BG => new History.Commit { BGs = currentLevel.BGs.Bits },
+            Layers.BGTiles => new History.Commit { BGTiles = currentLevel.BGTiles.Ids },
+            Layers.SolidTiles => new History.Commit { SolidTiles = currentLevel.SolidTiles.Ids },
+            _ => throw new InvalidOperationException()
+        };
+        currentLevel.PushCommit(historyCommit, CurrentLayer);
+    }
+
+    public override void Process(double delta)
+    {
+        if (currentLevel != null) 
+        {
+            foreach (var actor in currentLevel.Actors) 
+            {
+                actor.Update(delta);
+            }
+            if (actorToRemove != null) 
+            {
+                currentLevel.RemoveActor(actorToRemove);
+                HasRemovedEntity = true;
+                actorManager.RetriveID(actorToRemove.ID);
+                actorToRemove = null;
+            }
+        }
+        
+        solidTilesPanel.Update();
+        bgTilesPanel.Update();
+
+        if (currentLevel == null || openFallbackTheme)
+        {
+            return;
+        }
+
+        if (hasSelection) 
+        {
+            UpdateSelected();
+        }
+
+
+        if (isDrawing && Input.Mouse.AnyPressedButton.IsUp) 
+        {
+            isDrawing = false;
+        }
+
+        if (Input.Keyboard.IsPressed(KeyCode.D1)) 
+        {
+            ToolSelected = Tool.Pen;
+        }
+        else if (Input.Keyboard.IsPressed(KeyCode.D2)) 
+        {
+            ToolSelected = Tool.Rect;
+        }
+        else if (Input.Keyboard.IsDown(KeyCode.LeftShift) && Input.Keyboard.IsPressed(KeyCode.H)) 
+        {
+            OnHorizontalSymmetry();
+        }
+        else if (Input.Keyboard.IsDown(KeyCode.LeftShift) && Input.Keyboard.IsPressed(KeyCode.V)) 
+        {
+            OnVerticalSymmetry();
+        }
+        else if (Input.Keyboard.IsPressed(KeyCode.D5)) 
+        {
+            ToolSelected = Tool.Node;
+        }
+
+        if (Input.Keyboard.IsDown(KeyCode.LeftControl)) 
+        {
+            if (Input.Keyboard.IsDown(KeyCode.LeftShift)) 
+            {
+                if (Input.Keyboard.IsPressed(KeyCode.S))  
+                {
+                    Save(true);
+                }
+            }
+            else if (Input.Keyboard.IsPressed(KeyCode.S)) 
+            {
+                Save();
+            }
+
+            if (!isDrawing && Input.Keyboard.IsPressed(KeyCode.Z)) 
+            {
+                if (currentLevel.PopCommit(out var res))
+                {
+                    switch (res.Layer) 
+                    {
+                    case Layers.Solids:
+                        currentLevel.Solids.Clear();
+                        currentLevel.Solids.Bits = res.Solids.Clone();
+                        currentLevel.Solids.UpdateTiles(SolidAutotiler);
+                        break;
+                    case Layers.BG:
+                        currentLevel.BGs.Clear();
+                        currentLevel.BGs.Bits = res.BGs.Clone();
+                        currentLevel.BGs.UpdateTiles(BgAutotiler, currentLevel.Solids.Bits);
+                        break;
+                    case Layers.BGTiles:
+                        currentLevel.BGTiles.Clear();
+                        currentLevel.BGTiles.SetTiles(res.BGTiles);
+                        break;
+                    case Layers.SolidTiles:
+                        currentLevel.SolidTiles.Clear();
+                        currentLevel.SolidTiles.SetTiles(res.SolidTiles);
+                        break;
+                    }
+                }
+            }
+        }
+
+        int x = Input.Mouse.X;
+        int y = Input.Mouse.Y;
+
+        if (tileRect.Started) 
+        {
+            tileRect.Update(x, y);
+        }
+
+        if (Input.Mouse.LeftButton.Released && tileRect.Started) 
+        {
+            TileMouseReleased(0);
+        }
+
+        if (Input.Mouse.RightButton.Released && tileRect.Started) 
+        {
+            TileMouseReleased(1);
+        }
+
+        if (ImGui.GetIO().WantCaptureMouse) 
+        {
+            HasRemovedEntity = false;
+            return;
+        }
+
+        PhantomActor.Update(delta);
+
+        if (Input.Mouse.LeftButton.Pressed) 
+        {
+            if (ToolSelected == Tool.Pen)
+            {
+                switch (CurrentLayer) 
+                {
+                case Layers.Entities:
+                    {
+                        int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                        int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                        if (InBounds(gridX, gridY) && actorSelected != null) 
+                        {
+                            ulong id = actorManager.GetID();
+                            var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, actorSelected.Texture, id);
+                            actor.Scene = this;
+                            actor.PosX = PhantomActor.PosX;
+                            actor.PosY = PhantomActor.PosY;
+                            currentLevel.AddActor(actor);
+                            if (actor != null) 
+                            {
+                                Select(actor);
+                            }
+                            ToolSelected = Tool.Rect;
+                        }
+
+                    }
+                    break;
+                }
+            }
+            else if (ToolSelected == Tool.Node && currentSelected != null && currentSelected.Data.HasNodes) 
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                if (InBounds(gridX, gridY)) 
+                {
+                    int posX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+                    int posY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+                    Vector2 position = new Vector2(posX, posY);
+                    currentSelected.AddNode(position);
+                }
+            }
+        }
+
+        if (!tileRect.Started) 
+        {
+            if (Input.Mouse.LeftButton.IsDown) 
+            {
+                if (ToolSelected == Tool.Pen)
+                {
+                    if (Input.Keyboard.IsHeld(KeyCode.LeftShift)) 
+                    {
+                        int posX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+                        int posY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+                        tileRect.Start(posX, posY, TileRect.Type.Place);
+                    }
+                    else 
+                    {
+                        Place(x, y, true);
+                    }
+                }
+            }
+            else if (Input.Mouse.RightButton.IsDown) 
+            {
+                if (Input.Keyboard.IsHeld(KeyCode.LeftShift)) 
+                {
+                    int posX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+                    int posY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+                    tileRect.Start(posX, posY, TileRect.Type.Remove);
+                }
+                else 
+                {
+                    Place(x, y, false);
+                }
+            }
+        }
+
+        HasRemovedEntity = false;
+    }
+
+    private void TileMouseReleased(int buttonID) 
+    {
+        const int LeftClicked = 0;
+        const int RightClicked = 1;
+        tileRect.Started = false;
+        tileRect.AdjustIfNeeded();
+
+        CommitHistory();
+
+        for (int dx = 0; dx < tileRect.Width / 10; dx += 1) 
+        {
+            for (int dy = 0; dy < tileRect.Height / 10; dy += 1) 
+            {
+                int gridX = WorldUtils.ToGrid(tileRect.StartX) + dx;
+                int gridY = WorldUtils.ToGrid(tileRect.StartY) + dy;
+
+                if (InBounds(gridX, gridY)) 
+                {
+                    if (buttonID == LeftClicked) 
+                    {
+                        PlaceGrid(gridX, gridY, true);
+                    }
+                    else if (buttonID == RightClicked) 
+                    {
+                        PlaceGrid(gridX, gridY, false);
+                    }
+                }
+            }
+        }
+
+        tileRect.Width = 0;
+        tileRect.Height = 0;
+    }
+
+    private void PlaceGrid(int gridX, int gridY, bool placeTile) 
+    {
+        (GridTiles currentTile, Autotiler autotiler, Array2D<bool> also) = CurrentLayer switch 
+        {
+            Layers.Solids => (currentLevel.Solids, SolidAutotiler, null),
+            _ => (currentLevel.BGs, BgAutotiler, currentLevel.Solids.Bits)
+        };
+        {
+            if (currentTile.SetGrid(gridX, gridY, placeTile)) 
+            {
+                currentTile.UpdateTile(gridX, gridY, autotiler.Tile(currentTile.Bits, gridX, gridY, also));
+                UpdateTiles(gridX, gridY, currentLevel.Solids.Bits);
+            }
+            isDrawing = true;
+        }
+    }
+
+    private void PlaceDecor(int gridX, int gridY, bool placeTile) 
+    {
+        if (!bgTilesPanel.IsWindowHovered && !solidTilesPanel.IsWindowHovered)
+        {
+            var data = bgTilesPanel.GetData();
+            if (!isDrawing && InBounds(gridX, gridY)) 
+            {
+                CommitHistory();
+            }
+            for (int nx = 0; nx < data.Columns; nx++) 
+            {
+                for (int ny = 0; ny < data.Rows; ny++) 
+                {
+                    int relNx = gridX + nx;
+                    int relNy = gridY + ny;
+                    if (InBounds(relNx, relNy)) 
+                    {
+                        int tile = placeTile ? data[ny, nx] : -1;
+                        currentLevel.BGTiles.SetTile(relNx, relNy, tile);
+                    }
+                }
+            }
+            isDrawing = true;
+        }
+    }
+
+    private void Place(int x, int y, bool placeTile) 
+    {
+        switch (CurrentLayer) 
+        {
+        case Layers.Solids:
+        case Layers.BG:
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+
+                if (!isDrawing) 
+                {
+                    CommitHistory();
+                }
+
+                if (InBounds(gridX, gridY)) 
+                {
+                    PlaceGrid(gridX, gridY, placeTile);
+                }
+            }
+
+            break;
+        case Layers.BGTiles:
+        case Layers.SolidTiles:
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                PlaceDecor(gridX, gridY, placeTile);
+            }
+
+            break;
+        }
+    }
+
+    private static bool InBounds(int gridX, int gridY) 
+    {
+        return gridX > -1 && gridY > -1 && gridX < 32 && gridY < 24;
+    }
+
+    private void OnOpenTheme() 
+    {
+        towerSettings.Enabled = true;
+    }
+
+    private void ImGuiCallback()
+    {
+#if DEBUG
+        ImGui.ShowDemoWindow();
+#endif
+
+        if (towerSettings.Enabled) 
+        {
+            ImGui.OpenPopup("Theme Settings");
+        }
+
+        if (openFallbackTheme) 
+        {
+            ImGui.OpenPopup("Fallback Theme");
+        }
+
+        towerSettings.DrawGui();
+
+        if (ImGui.BeginPopupModal("Fallback Theme", ref openFallbackTheme, ImGuiWindowFlags.AlwaysAutoResize)) 
+        {
+            ImGui.Text("Theme not found, fallback to another one: ");
+            ImGui.Combo("Fallback Theme", ref fallbackSelected, Themes.ThemeNames, Themes.ThemeNames.Length);
+
+            if (ImGui.Button("OK")) 
+            {
+                var name = Themes.ThemeNames[fallbackSelected];
+                Themes.TryGetTheme(name, out var theme);
+                tower.SetTheme(theme);
+                SetTheme(tower.Theme);
+                openFallbackTheme = false;
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
+        }
+        
+        menuBar.UpdateGui();
+        levelSelection.UpdateGui();
+        tools.UpdateGui();
+        layers.UpdateGui();
+        switch (CurrentLayer) 
+        {
+        case Layers.SolidTiles:
+            solidTilesPanel.UpdateGui();
+            break;
+        case Layers.BGTiles:
+            bgTilesPanel.UpdateGui();
+            break;
+        }
+    }
+
+    public override void Render(RenderTarget swapchain)
+    {
+        imGui.Update(GameInstance.InputDevice, ImGuiCallback);
+
+        {
+            levelBatch.Begin(Resource.BGAtlasTexture, DrawSampler.PointClamp);
+            backdropRenderer.Draw(levelBatch);
+            levelBatch.End();
+
+            levelBatch.Begin(Resource.TowerFallTexture, DrawSampler.PointClamp);
+
+            if (currentLevel != null) 
+            {
+                currentLevel.BGs.Draw(levelBatch);
+                currentLevel.Solids.Draw(levelBatch);
+                currentLevel.BGTiles.Draw(levelBatch);
+                currentLevel.SolidTiles.Draw(levelBatch);
+                foreach (var actor in currentLevel.Actors) 
+                {
+                    actor.Draw(levelBatch);
+                }
+            }
+            DrawGrid();
+            tileRect.Draw(levelBatch);
+            PhantomActor.Draw(levelBatch);
+            levelBatch.End();
+
+            var renderPass = GraphicsDevice.BeginTarget(target, Color.Black, true);
+            renderPass.BindGraphicsPipeline(GameContext.DefaultMaterial.ShaderPipeline);
+            levelBatch.Render(renderPass);
+            GraphicsDevice.EndTarget(renderPass);
+        }
+        
+        {
+            batch.Begin(target, DrawSampler.PointClamp);
+            batch.Draw(new TextureQuad(target), new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, new Vector2(2));
+            batch.End();
+
+            var renderPass = GraphicsDevice.BeginTarget(swapchain, Color.Black, true);
+            renderPass.BindGraphicsPipeline(GameContext.DefaultMaterial.ShaderPipeline);
+            batch.Render(renderPass);
+            imGui.Render(renderPass);
+            GraphicsDevice.EndTarget(renderPass);
+        }
+    }
+
+    private void DrawGrid() 
+    {
+        for (int i = 0; i < 320 / 10; i++) 
+        {
+            DrawUtils.Line(levelBatch, new Vector2(i * 10, 0), new Vector2(i * 10, 240), Color.White * 0.2f);
+        }
+
+        for (int i = 0; i < 240 / 10; i++) 
+        {
+            DrawUtils.Line(levelBatch, new Vector2(0, i * 10), new Vector2(320, i * 10), Color.White * 0.2f);
+        }
+    }
+
+    private void Open() 
+    {
+        FileDialog.OpenFile((filepath) => {
+            tower = new Tower();
+            if (tower.Load(filepath)) 
+            {
+                SetTheme(tower.Theme);
+            }
+            else 
+            {
+                openFallbackTheme = true;
+            }
+
+            levelSelection.SelectTower(tower);
+            SetLevel(null);
+        }, null, new Filter("Tower Xml File", "xml"));
+    }
+
+    public void Save(bool specifyPath = false) 
+    {
+        XmlDocument document = new XmlDocument();
+        string solid = currentLevel.Solids.Save();
+        string bg = currentLevel.BGs.Save();
+        var rootElement = document.CreateElement("level");
+        document.AppendChild(rootElement);
+
+        var Solids = document.CreateElement("Solids");
+        Solids.SetAttribute("exportMode", "Bitstring");
+        Solids.InnerText = solid;
+
+        var BG = document.CreateElement("BG");
+        BG.SetAttribute("exportMode", "Bitstring");
+        BG.InnerText = bg;
+
+        var SolidTiles = document.CreateElement("SolidTiles");
+        SolidTiles.SetAttribute("exportMode", "TrimmedCSV");
+        SolidTiles.InnerText = currentLevel.SolidTiles.Save();
+
+        var BGTiles = document.CreateElement("BGTiles");
+        BGTiles.SetAttribute("exportMode", "TrimmedCSV");
+        BGTiles.InnerText = currentLevel.BGTiles.Save();
+
+        var Entities = document.CreateElement("Entities");
+
+        foreach (var entity in currentLevel.Actors) 
+        {
+            if (entity is not LevelActor actor)
+                continue;
+            var actorInfo = actor.Save();
+            var element = document.CreateElement(actorInfo.Name);
+            element.SetAttribute("id", actorInfo.ID.ToString());
+            element.SetAttribute("x", actorInfo.X.ToString());
+            element.SetAttribute("y", actorInfo.Y.ToString());
+            foreach (var value in actorInfo.Values) 
+            {
+                element.SetAttribute(value.Key, value.Value.ToString());
+            }
+            if (actorInfo.Nodes != null) 
+            {
+                foreach (var node in actorInfo.Nodes) 
+                {
+                    var xmlNode = document.CreateElement("node");
+                    xmlNode.SetAttribute("x", node.X.ToString());
+                    xmlNode.SetAttribute("y", node.Y.ToString());
+                    element.AppendChild(xmlNode);
+                }
+            }
+            Entities.AppendChild(element);
+        }
+
+        rootElement.AppendChild(Solids);
+        rootElement.AppendChild(BG);
+        rootElement.AppendChild(SolidTiles);
+        rootElement.AppendChild(BGTiles);
+        rootElement.AppendChild(Entities);
+
+        if (specifyPath) 
+        {
+            FileDialog.Save((filepath) => {
+                document.Save(filepath);
+                currentLevel.Unsaved = false;
+            }, null, new Filter("Tower Xml", "xml"));
+        }
+        else 
+        {
+            document.Save(currentLevel.Path);
+            currentLevel.Unsaved = false;
+        }
+
+    }
+
+    public override void End() 
+    {
+        imGui.Destroy();
+        target.Dispose();
+    }
+}

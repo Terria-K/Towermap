@@ -31,7 +31,16 @@ public class Autotiler
     public int[] Below;
 
     private bool initialized;
-    private int initialSeed = 0;
+    private int seed = 0;
+    public int Seed 
+    {
+        get => seed;
+        set 
+        {
+            seed = value;
+            random = new Random(seed);
+        }
+    }
 
     private bool current = false;
     private bool left = false;
@@ -42,6 +51,7 @@ public class Autotiler
     private bool upRight = false;
     private bool downLeft = false;
     private bool downRight = false;
+    private Random random = new Random();
 
     private static bool Check(int x, int y, Array2D<bool> data) 
     {
@@ -51,7 +61,7 @@ public class Autotiler
         return data[x, y];
     }
 
-    public void Init(string xmlPath, XmlElement tileset) 
+    public void Init(XmlElement tileset) 
     {
         Center = SplitElementToInt(tileset, "Center");
         Single = SplitElementToInt(tileset, "Single");
@@ -78,19 +88,17 @@ public class Autotiler
         initialized = true;
     }
 
-    public void SetInitialSeed(int seed) 
+    public int Tile(Array2D<bool> bits, int x, int y, Array2D<bool> also = null) 
     {
-        initialSeed = seed;
+        return Tile(random, bits, x, y, also);
     }
 
-    public int Tile(Array2D<bool> bits, int x, int y, Array2D<bool> also = null) 
+    public int Tile(Random random, Array2D<bool> bits, int x, int y, Array2D<bool> also = null) 
     {
         if (!initialized || !ArrayUtils.ArrayCheck(x, y, bits) || !(current = bits[x, y]))
         {
             return -1;
         }
-
-        var random = new Random(initialSeed * x + y);
 
         if (also != null) 
         {

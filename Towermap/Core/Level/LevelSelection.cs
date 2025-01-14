@@ -8,15 +8,16 @@ namespace Towermap;
 
 public class LevelSelection : ImGuiElement
 {
-    private List<string> levels = [];
-    private string path;
-    public Action<string> OnSelect;
+    private List<Level> levels = [];
+    public IReadOnlyList<Level> Levels => levels;
+    public Action<Level> OnSelect;
 
-    public void SelectTower(string towerPath) 
+    public void SelectTower(Tower tower) 
     {
         levels.Clear();
-        path = towerPath;
-        var files = Directory.GetFiles(towerPath);
+
+        string path = Path.GetDirectoryName(tower.TowerPath);
+        var files = Directory.GetFiles(path);
         Array.Sort(files);
         foreach (var file in files)
         {
@@ -24,7 +25,7 @@ public class LevelSelection : ImGuiElement
             {
                 continue;
             }
-            levels.Add(Path.GetFileName(file));
+            levels.Add(new Level(file));
         }
     }
 
@@ -38,9 +39,18 @@ public class LevelSelection : ImGuiElement
         ImGui.Begin("Levels", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
         foreach (var level in levels) 
         {
-            if (ImGui.Selectable(level)) 
+            string filename;
+            if (level.Unsaved) 
             {
-                OnSelect?.Invoke(Path.Combine(path, level));
+                filename = level.FileName + "*";
+            }
+            else 
+            {
+                filename = level.FileName;
+            }
+            if (ImGui.Selectable(filename)) 
+            {
+                OnSelect?.Invoke(level);
             }
         }
         ImGui.End();

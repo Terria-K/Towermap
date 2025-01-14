@@ -7,14 +7,20 @@ using Riateu.Inputs;
 namespace Towermap;
 
 
-public class PhantomActor : Entity 
+public class PhantomActor
 {
     private Actor actor;
     private ActorManager manager;
+    public Vector2 Position;
+    public float PosX => Position.X;
+    public float PosY => Position.Y;
+    public Scene Scene;
 
-    public PhantomActor(ActorManager manager) 
+    public bool Active { get; set; }
+
+    public PhantomActor(Scene scene, ActorManager manager) 
     {
-        Depth = -3;
+        Scene = scene;
         this.manager = manager;
     }
 
@@ -23,24 +29,22 @@ public class PhantomActor : Entity
         this.actor = actor;
     }
 
-    public override void Update(double delta)
+    public void Update(double delta)
     {
-        if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen)
+        if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen || !Active)
             return;
         int x = Input.Mouse.X;
         int y = Input.Mouse.Y;
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
-        Transform.PosX = gridX;
-        Transform.PosY = gridY;
-        base.Update(delta);
+        Position.X = gridX;
+        Position.Y = gridY;
     }
 
-    public override void Draw(Batch spriteBatch)
+    public void Draw(Batch spriteBatch)
     {
-        if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen)
+        if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen || !Active)
             return;
-        base.Draw(spriteBatch);
         DrawUtils.Rect(spriteBatch, Position, Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
         spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY), 
             Color.White * 0.7f, Vector2.One, actor.Origin);
@@ -72,17 +76,5 @@ public class PhantomActor : Entity
             spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY - 240), 
                 Color.White * 0.7f, Vector2.One, actor.Origin);
         }
-    }
-
-    public LevelActor PlaceActor(Scene scene) 
-    {
-        if (this.actor == null)
-            return null;
-        ulong id = manager.GetID();
-        var actor = new LevelActor(Resource.TowerFallTexture, this.actor, this.actor.Texture, id);
-        actor.PosX = PosX;
-        actor.PosY = PosY;
-        scene.Add(actor);
-        return actor;
     }
 }

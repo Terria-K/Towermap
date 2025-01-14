@@ -55,7 +55,7 @@ public class TilePanel : ImGuiElement
 
     public void Update() 
     {
-        SDL.SDL_GetGlobalMouseState(out float x, out float y);
+        var buttons = (uint)SDL.SDL_GetGlobalMouseState(out float x, out float y);
 
         var fx = framePos.X;
         var fy = framePos.Y;
@@ -85,7 +85,7 @@ public class TilePanel : ImGuiElement
                 currentRect.Height = -(currentRect.Y - texture.Height);
             }
         }
-        if (IsImageHovered && Input.Mouse.LeftButton.Pressed) 
+        if (IsImageHovered && (buttons & 0b0001) != 0 && !holding) 
         {
             if (rx >= 0 && ry >= 0 && rx <= texture.Width - 10 && ry <= texture.Height - 10)
             {
@@ -94,7 +94,7 @@ public class TilePanel : ImGuiElement
             }
         }
 
-        if (Input.Mouse.LeftButton.IsUp) 
+        if ((buttons & 0b0001) == 0) 
         {
             holding = false;
         }

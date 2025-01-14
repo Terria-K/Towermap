@@ -30,6 +30,11 @@ public class GridTiles : Entity
         sheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas[atlas], 10, 10);
     }
 
+    public void SetSpriteSheet(Spritesheet spritesheet)
+    {
+        sheet = spritesheet;
+    }
+
     public void Clear() 
     {
         tilemap.Clear();
@@ -57,13 +62,14 @@ public class GridTiles : Entity
 
     public void UpdateTiles(Autotiler autotiler, Array2D<bool> also = null) 
     {
+        var random = new Random(autotiler.Seed);
         for (int x = 0; x < Bits.Rows; x++) 
         {
             for (int y = 0; y < Bits.Columns; y++) 
             {
                 if (Bits[x, y]) 
                 {
-                    UpdateTile(x, y, autotiler.Tile(Bits, x, y, also)); 
+                    UpdateTile(x, y, autotiler.Tile(random, Bits, x, y, also)); 
                 }
             }
         }

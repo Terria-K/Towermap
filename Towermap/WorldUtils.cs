@@ -1,3 +1,5 @@
+using System;
+
 namespace Towermap;
 
 public static class WorldUtils 
@@ -10,4 +12,9 @@ public static class WorldUtils
     public const double WorldSize = 2;
 
     public const int TileSize = 10;
+
+    public static int ToGrid(float num) 
+    {
+        return (int)Math.Floor(num / (5 * WorldSize));
+    }
 }

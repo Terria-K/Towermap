@@ -36,6 +36,11 @@ public class Tiles : Entity
         tilemap.Clear();
     }
 
+    public void UpdateTiles() 
+    {
+        SetTiles(Ids);
+    }
+
     public void SetTile(int x, int y, int tileID) 
     {
         if (tileID == -1) 

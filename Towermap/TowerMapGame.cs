@@ -9,6 +9,7 @@ public class TowermapGame : GameApp
     public TowermapGame(WindowSettings settings, GraphicsSettings graphicsSettings) : base(settings, graphicsSettings) {}
     public override GameLoop Initialize()
     {
+        Themes.InitThemes();
         return new EditorScene(this);
     }
 

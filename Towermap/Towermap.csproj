@@ -4,13 +4,27 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+  <PropertyGroup>
+    <BeautySharedRuntimeMode>False</BeautySharedRuntimeMode>
+    <BeautyLibsDir Condition="$(BeautySharedRuntimeMode) == 'True'">../libraries</BeautyLibsDir>
+    <BeautyLibsDir Condition="$(BeautySharedRuntimeMode) != 'True'">./libraries</BeautyLibsDir>
+    <DisableBeauty>False</DisableBeauty>
+    <BeautyOnPublishOnly>True</BeautyOnPublishOnly>
+    <BeautyNoRuntimeInfo>False</BeautyNoRuntimeInfo>
+    <BeautyNBLoaderVerPolicy>auto</BeautyNBLoaderVerPolicy>
+    <BeautyEnableDebugging>False</BeautyEnableDebugging>
+    <BeautyUsePatch>True</BeautyUsePatch>
+    <BeautyLogLevel>Info</BeautyLogLevel>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../Riateu/Riateu/Riateu.csproj"/>
+    <ProjectReference Include="../../Riateu/Riateu/Riateu.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="nulastudio.NetBeauty" Version="2.1.4.6" />
     <PackageReference Include="TeuJson" Version="3.2.0" />
     <PackageReference Include="TeuJson.Generator" Version="3.2.0" />
   </ItemGroup>

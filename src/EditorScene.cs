@@ -360,22 +360,22 @@ public class EditorScene : Scene
     {
         switch (layer) 
         {
-        case "Solids":
+        case FA6.BorderAll + " Solids":
             CurrentLayer = Layers.Solids;
             break;
-        case "BG":
+        case FA6.BorderNone + " BG":
             CurrentLayer = Layers.BG;
             break;
-        case "Entities":
+        case FA6.Person + " Entities":
             CurrentLayer = Layers.Entities;
             PhantomActor.Active = true;
             entityData.Enabled = true;
             entities.Enabled = true;
             return;
-        case "SolidTiles":
+        case FA6.SquareFull + " SolidTiles":
             CurrentLayer = Layers.SolidTiles;
             break;
-        case "BGTiles":
+        case FA6.SquareMinus + " BGTiles":
             CurrentLayer = Layers.BGTiles;
             break;
         }

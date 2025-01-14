@@ -9,11 +9,11 @@ public class LayersPanel : ImGuiElement
     public Action<string> OnLayerSelect;
     public Action<int, bool> ShowOrHide;
     private string[] layers = [
-        "Solids",
-        "BG",
-        "Entities",
-        "SolidTiles",
-        "BGTiles"
+        FA6.BorderAll + " Solids",
+        FA6.BorderNone + " BG",
+        FA6.Person + " Entities",
+        FA6.SquareFull + " SolidTiles",
+        FA6.SquareMinus + " BGTiles"
     ];
 
     private bool[] visibility = [

@@ -25,12 +25,11 @@ public class Tools : ImGuiElement
         var mainViewport = ImGui.GetMainViewport();
         ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.SetNextWindowSize(new Vector2(360, 35), ImGuiCond.Always);
         ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(155, 20));
-        ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar);
+        ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.AlwaysAutoResize);
         foreach (var tool in toolName) 
         {
-            if (ImGui.Button(tool.Name)) 
+            if (ImGui.Button(tool.Name, new Vector2(40, 40))) 
             {
                 tool.OnCallback();
             }

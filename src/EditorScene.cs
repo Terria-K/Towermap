@@ -8,6 +8,7 @@ using Riateu;
 using Riateu.Graphics;
 using Riateu.ImGuiRend;
 using Riateu.Inputs;
+using System.Runtime.InteropServices;
 
 namespace Towermap;
 
@@ -62,6 +63,7 @@ public class EditorScene : Scene
     private Level currentLevel;
     private TileRect tileRect;
     private bool hasSelection;
+    private bool[] visibility = [true, true, true, true, true];
 
     public Tool ToolSelected;
     public Layers CurrentLayer = Layers.Solids;
@@ -105,6 +107,7 @@ public class EditorScene : Scene
 
         layers = new LayersPanel();
         layers.OnLayerSelect = OnLayerSelected;
+        layers.ShowOrHide = OnShowOrHideLayer;
 
         entities = new Entities(actorManager, imGuiTexture);
         entities.Enabled = false;
@@ -124,28 +127,44 @@ public class EditorScene : Scene
 
         tools = new Tools();
 
-        tools.AddTool("Pen [1]", () => ToolSelected = Tool.Pen);
-        tools.AddTool("Rect [2]", () => ToolSelected = Tool.Rect);
-        tools.AddTool("HSym [H]", OnHorizontalSymmetry);
-        tools.AddTool("VSym [V]", OnVerticalSymmetry);
-        tools.AddTool("Node [5]", () => ToolSelected = Tool.Node);
+        tools.AddTool(FA6.Pen, () => ToolSelected = Tool.Pen);
+        tools.AddTool(FA6.UpDownLeftRight, () => ToolSelected = Tool.Rect);
+        tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry);
+        tools.AddTool(FA6.UpDown, OnVerticalSymmetry);
+        tools.AddTool(FA6.CircleNodes, () => ToolSelected = Tool.Node);
     }
 
     private unsafe void ImGuiInit(ImGuiIOPtr io) 
     {
-        // const int FontAwesomeIconRangeStart = 0xe005;
-        // const int FontAwesomeIconRangeEnd = 0xf8ff;
+        ImFontConfig* config = ImGuiNative.ImFontConfig_ImFontConfig();
+        config->MergeMode = 1;
+        config->PixelSnapH = 1;
+        config->FontDataOwnedByAtlas = 0;
 
-        // ushort[] ranges = [FontAwesomeIconRangeStart, FontAwesomeIconRangeEnd];
-        // fixed (ushort* rangesPtr = ranges)
-        // {
-        //     ImFontConfig* iconConfig = ImGuiNative.ImFontConfig_ImFontConfig();
-        //     iconConfig->MergeMode = 1;
-        //     iconConfig->PixelSnapH = 1;
-        //     iconConfig->GlyphMinAdvanceX = 13 * 2.0f / 3.0f;
-        //     io.Fonts.AddFontFromFileTTF("../Assets/font/fontawesome3.ttf", 13 * 2.0f / 3.0f,
-        //         iconConfig, (IntPtr)rangesPtr);
-        // }
+        config->GlyphMaxAdvanceX = float.MaxValue;
+        config->RasterizerMultiply = 1.0f;
+        config->OversampleH = 2;
+        config->OversampleV = 1;
+
+        ushort* ranges = stackalloc ushort[3];
+        ranges[0] = FA6.IconMin;
+        ranges[1] = FA6.IconMax;
+        ranges[2] = 0;
+
+
+        byte *iconFontRange = (byte*)NativeMemory.Alloc(6);
+        NativeMemory.Copy(ranges, iconFontRange, 6);
+        config->GlyphRanges = (ushort*)iconFontRange;
+        FA6.IconFontRanges = (IntPtr)iconFontRange;
+
+        byte[] fontDataBuffer = Convert.FromBase64String(FA6.IconFontData);
+
+        fixed (byte *buffer = &fontDataBuffer[0])
+        {
+            var fontPtr = ImGui.GetIO().Fonts.AddFontFromMemoryTTF(new IntPtr(buffer), fontDataBuffer.Length, 11, config, FA6.IconFontRanges);
+        }
+
+        ImGuiNative.ImFontConfig_destroy(config);
     }
 
     public override void Begin()
@@ -264,6 +283,11 @@ public class EditorScene : Scene
     }
 
 #region Events
+    private void OnShowOrHideLayer(int id, bool visible)
+    {
+        visibility[id] = visible; 
+    }
+
     private void OnSettingsChangeTheme(int num)
     {
         SetTowerTheme(Themes.ThemeNames[num]);
@@ -602,7 +626,7 @@ public class EditorScene : Scene
 
     public override void Process(double delta)
     {
-        if (currentLevel != null) 
+        if (currentLevel != null && visibility[2]) 
         {
             foreach (var actor in currentLevel.Actors) 
             {
@@ -724,6 +748,13 @@ public class EditorScene : Scene
             return;
         }
 
+        // Try to not update when it is not visible
+        if (!visibility[(int)CurrentLayer]) 
+        {
+            HasRemovedEntity = false;
+            return;
+        }
+
         PhantomActor.Update(delta);
 
         if (Input.Mouse.LeftButton.Pressed) 
@@ -765,6 +796,7 @@ public class EditorScene : Scene
                     int posY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
                     Vector2 position = new Vector2(posX, posY);
                     currentSelected.AddNode(position);
+                    currentLevel.Unsaved = true;
                 }
             }
         }
@@ -989,13 +1021,32 @@ public class EditorScene : Scene
 
             if (currentLevel != null) 
             {
-                currentLevel.BGs.Draw(levelBatch);
-                currentLevel.Solids.Draw(levelBatch);
-                currentLevel.BGTiles.Draw(levelBatch);
-                currentLevel.SolidTiles.Draw(levelBatch);
-                foreach (var actor in currentLevel.Actors) 
+                if (visibility[1])
                 {
-                    actor.Draw(levelBatch);
+                    currentLevel.BGs.Draw(levelBatch);
+                }
+
+                if (visibility[0]) 
+                {
+                    currentLevel.Solids.Draw(levelBatch);
+                }
+
+                if (visibility[4])
+                {
+                    currentLevel.BGTiles.Draw(levelBatch);
+                }
+
+                if (visibility[3])
+                {
+                    currentLevel.SolidTiles.Draw(levelBatch);
+                }
+
+                if (visibility[2])
+                {
+                    foreach (var actor in currentLevel.Actors) 
+                    {
+                        actor.Draw(levelBatch);
+                    }
                 }
             }
             DrawGrid();

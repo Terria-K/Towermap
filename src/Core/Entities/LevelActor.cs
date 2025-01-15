@@ -12,31 +12,33 @@ public class LevelActor : Entity
     public Actor Data;
     public ulong ID;
 
-    public TextureQuad TextureQuad;
     public Dictionary<string, object> CustomData;
     public int Width;
     public int Height;
+    public Vector2 Size => new Vector2(Width, Height);
     public List<Vector2> Nodes;
     public bool RenderFlipped;
     public bool Selected;
 
+    public TextureQuad TextureQuad;
     private Texture texture;
     private Transform rectTransform;
     private float transparency;
     private Rectangle rect;
     private bool isHeld;
     private Vector2 lastHold;
+    private bool isHovering;
     
 
-    public LevelActor(Texture texture, Actor actor, TextureQuad quad, ulong id) 
+    public LevelActor(Texture texture, Actor actor, ulong id) 
     {
         Depth = -3;
         this.Data = actor;
-        this.TextureQuad = quad;
         this.texture = texture;
         rectTransform = new Transform();
         AddTransform(rectTransform);
         rectTransform.Scale = new Vector2(20, 20);
+        TextureQuad = actor.Texture;
         this.ID = id;
         Width = actor.Width;
         Height = actor.Height;
@@ -184,10 +186,13 @@ public class LevelActor : Entity
                         (Transform.PosY - Data.Origin.Y) - ((y - WorldUtils.WorldY) * 0.5f) + Data.Origin.Y
                     );
                 }
+
+                isHovering = true;
             }
             return;
         }
 
+        isHovering = false;
         transparency = 0.3f;
     }
 
@@ -202,41 +207,67 @@ public class LevelActor : Entity
         Color color = Color.Yellow * transparency;
         if (Selected) 
         {
-            color = Color.Yellow * (transparency + 0.3f);
+            color = Color.Green * (transparency + 0.3f);
         }
         DrawUtils.Rect(spriteBatch, Position, color, new Vector2(Width, Height), Data.Origin);
-        Data.OnRender?.Invoke(this, Position, spriteBatch);
+        Data.OnRender?.Invoke(this, Data, Position, Size, spriteBatch, Color.White);
         spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY), Color.White, Vector2.One, Data.Origin);
+
+        if (isHovering) 
+        {
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX - 3, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+        }
+
         if (PosX - Data.Origin.X < Width) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX + 320, PosY), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, new Vector2(PosX + 320, PosY), spriteBatch);
-            spriteBatch.Draw(Data.Texture, new Vector2(PosX + 320, PosY), 
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX + 320, PosY), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX + 320, PosY), 
                 Color.White, Vector2.One, Data.Origin);
+
+            if (isHovering) 
+            {
+                DrawUtils.Rect(spriteBatch, new Vector2(PosX + 317, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+            }
         }
 
         if (PosX - Data.Origin.X > 320 - Width) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX - 320, PosY), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, new Vector2(PosX - 320, PosY), spriteBatch);
-            spriteBatch.Draw(Data.Texture, new Vector2(PosX - 320, PosY), 
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX - 320, PosY), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX - 320, PosY), 
                 Color.White, Vector2.One, Data.Origin);
+
+            if (isHovering) 
+            {
+                DrawUtils.Rect(spriteBatch, new Vector2(PosX - 317, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+            }
         }
 
         if (PosY - Data.Origin.Y < Height) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + 240), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, new Vector2(PosX, PosY + 240), spriteBatch);
-            spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY + 240), 
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX, PosY + 240), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY + 240), 
                 Color.White, Vector2.One, Data.Origin);
+
+            if (isHovering) 
+            {
+                DrawUtils.Rect(spriteBatch, new Vector2(PosX - 3, PosY - 237), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+            }
         }
 
         if (PosY - Data.Origin.Y > 240 - Height) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - 240), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, new Vector2(PosX, PosY - 240), spriteBatch);
-            spriteBatch.Draw(Data.Texture, new Vector2(PosX, PosY - 240), 
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX, PosY - 240), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY - 240), 
                 Color.White, Vector2.One, Data.Origin);
+
+            if (isHovering) 
+            {
+                DrawUtils.Rect(spriteBatch, new Vector2(PosX - 3, PosY - 237), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+            }
         }
 
         // Render the Nodes
@@ -257,7 +288,8 @@ public class LevelActor : Entity
                 var end = new Vector2(gridX, gridY);
 
                 DrawUtils.Line(spriteBatch, start, end, Color.White * 0.6f);
-                spriteBatch.Draw(Data.Texture, end, 
+                Data.OnRender?.Invoke(this, Data, end, Size, spriteBatch, Color.White * 0.4f);
+                spriteBatch.Draw(TextureQuad, end, 
                     Color.White * 0.4f, Vector2.One, Data.Origin);
             }
 
@@ -272,7 +304,8 @@ public class LevelActor : Entity
                     DrawUtils.Line(spriteBatch, start, end, Color.White * opacity);
                     if (Nodes.Count == 1) 
                     {
-                        spriteBatch.Draw(Data.Texture, end, 
+                        Data.OnRender?.Invoke(this, Data, end, Size, spriteBatch, Color.White * 0.4f);
+                        spriteBatch.Draw(TextureQuad, end, 
                             Color.White * 0.4f, Vector2.One, Data.Origin);
                     }
                 }
@@ -282,7 +315,8 @@ public class LevelActor : Entity
                     var end = Nodes[i];
 
                     DrawUtils.Line(spriteBatch, start, end, Color.White * opacity);
-                    spriteBatch.Draw(Data.Texture, end, 
+                    Data.OnRender?.Invoke(this, Data, end, Size, spriteBatch, Color.White * 0.4f);
+                    spriteBatch.Draw(TextureQuad, end, 
                         Color.White * 0.4f, Vector2.One, Data.Origin);
                 }
                 else 

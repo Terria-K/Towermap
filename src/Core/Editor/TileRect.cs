@@ -73,7 +73,7 @@ public class TileRect
         }
 
         Color color = ButtonType switch {
-            Type.Place => new Color(1f, 1f, 0f, 0.5f),
+            Type.Place => Color.Green * 0.5f,
             Type.Remove => new Color(1f, 0f, 0f, 0.5f),
             _ => throw new InvalidOperationException()
         };

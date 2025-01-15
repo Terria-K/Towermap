@@ -30,7 +30,9 @@ public class LayersPanel : ImGuiElement
         ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(1024 - 200, 20));
 
         var size = new Vector2(158, 0.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0, 0.5f));
         ImGui.Begin("Layers", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
+
         for (int i = 0; i < layers.Length; i++) 
         {
             var span = layers[i];
@@ -47,6 +49,8 @@ public class LayersPanel : ImGuiElement
             }
             ImGui.PopID();
         }
+
+        ImGui.PopStyleVar();
         UpdateChildrens();
         ImGui.End();
         ImGui.PopStyleVar();

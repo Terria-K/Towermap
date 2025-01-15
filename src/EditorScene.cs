@@ -550,7 +550,7 @@ public class EditorScene : Scene
                 }
             }
 
-            var levelActor = new LevelActor(Resource.TowerFallTexture, actor, actor.Texture, entityID);
+            var levelActor = new LevelActor(Resource.TowerFallTexture, actor, entityID);
             levelActor.PosX = x;
             levelActor.PosY = y;
             levelActor.Data.HasNodes = actor.HasNodes;
@@ -770,7 +770,7 @@ public class EditorScene : Scene
                         if (InBounds(gridX, gridY) && actorSelected != null) 
                         {
                             ulong id = actorManager.GetID();
-                            var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, actorSelected.Texture, id);
+                            var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, id);
                             actor.Scene = this;
                             actor.PosX = PhantomActor.PosX;
                             actor.PosY = PhantomActor.PosY;

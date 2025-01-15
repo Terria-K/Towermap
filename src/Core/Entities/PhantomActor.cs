@@ -46,35 +46,40 @@ public class PhantomActor
         if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen || !Active)
             return;
         DrawUtils.Rect(spriteBatch, Position, Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+        actor.OnRender?.Invoke(null, actor, Position, new Vector2(actor.Width, actor.Height), spriteBatch, Color.Yellow * 0.4f);
         spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY), 
-            Color.White * 0.7f, Vector2.One, actor.Origin);
+            Color.White * 0.4f, Vector2.One, actor.Origin);
 
         if (PosX - actor.Origin.X < actor.Width) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX + 320, PosY), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            actor.OnRender?.Invoke(null, actor, new Vector2(PosX + 320, PosY), new Vector2(actor.Width, actor.Height), spriteBatch, Color.Yellow * 0.4f);
             spriteBatch.Draw(actor.Texture, new Vector2(PosX + 320, PosY), 
-                Color.White * 0.7f, Vector2.One, actor.Origin);
+                Color.Yellow * 0.4f, Vector2.One, actor.Origin);
         }
 
         if (PosX - actor.Origin.X > 320 - actor.Width) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX - 320, PosY), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            actor.OnRender?.Invoke(null, actor, new Vector2(PosX - 320, PosY), new Vector2(actor.Width, actor.Height), spriteBatch, Color.Yellow * 0.4f);
             spriteBatch.Draw(actor.Texture, new Vector2(PosX - 320, PosY), 
-                Color.White * 0.7f, Vector2.One, actor.Origin);
+                Color.Yellow * 0.4f, Vector2.One, actor.Origin);
         }
 
         if (PosY - actor.Origin.Y < actor.Height) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + 240), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            actor.OnRender?.Invoke(null, actor, new Vector2(PosX, PosY + 240), new Vector2(actor.Width, actor.Height), spriteBatch, Color.Yellow * 0.4f);
             spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY + 240), 
-                Color.White * 0.7f, Vector2.One, actor.Origin);
+                Color.Yellow * 0.4f, Vector2.One, actor.Origin);
         }
 
         if (PosY - actor.Origin.Y > 240 - actor.Height) 
         {
             DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - 240), Color.Yellow * 0.2f, new Vector2(actor.Width, actor.Height), actor.Origin);
+            actor.OnRender?.Invoke(null, actor, new Vector2(PosX, PosY - 240), new Vector2(actor.Width, actor.Height), spriteBatch, Color.Yellow * 0.4f);
             spriteBatch.Draw(actor.Texture, new Vector2(PosX, PosY - 240), 
-                Color.White * 0.7f, Vector2.One, actor.Origin);
+                Color.Yellow * 0.4f, Vector2.One, actor.Origin);
         }
     }
 }

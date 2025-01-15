@@ -5,7 +5,7 @@ using Riateu.Graphics;
 
 namespace Towermap;
 
-public delegate void ActorRender(LevelActor actor, Vector2 position, Batch spriteBatch);
+public delegate void ActorRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color);
 
 public class ActorManager 
 {

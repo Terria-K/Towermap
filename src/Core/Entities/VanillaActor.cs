@@ -33,7 +33,7 @@ public static class VanillaActor
             ["Group"] = 0
         }), new Point(10, 10), TileRender1x3);
 
-        manager.AddActor(new ActorInfo("CrackedPlatform", "crackedPlatform", 10, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
+        manager.AddActor(new ActorInfo("CrackedPlatform", "crackedPlatform", 20, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
 
         manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
         manager.AddActor(new ActorInfo("CrumbleWall", "crumbleWall", 20, 20, 0, 0));
@@ -55,7 +55,7 @@ public static class VanillaActor
         manager.AddActor(new ActorInfo("BGMushroom", "details/wallMushroom", 10, 10, 5, 0), new Point(10, 10));
         manager.AddActor(new ActorInfo("Cobwebs", "details/cobwebs", 20, 20, 10, 10), new Point(20, 20));
         manager.AddActor(new ActorInfo("SnowEd", "details/snowDeposit", 10, 10, 0, 10, true), new Point(10, 10), TileRender1x3);
-        manager.AddActor(new ActorInfo("SnowClump", "details/snowDeposit", 10, 10, 0, 10, true), new Point(10, 10), TileRender1x3);
+        manager.AddActor(new ActorInfo("SnowClump", "details/snowDeposit", 10, 10, 0, 10), new Point(10, 10));
         manager.AddActor(new ActorInfo("KingIntro", "throneRoom", 20, 35, 10, 20), new Point(20, 35));
     }
 

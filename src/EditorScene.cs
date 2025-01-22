@@ -1008,7 +1008,7 @@ public class EditorScene : Scene
         }
     }
 
-    public override void Render(RenderTarget swapchain)
+    public override void Render(CommandBuffer commandBuffer, RenderTarget swapchain)
     {
         imGui.Update(GameInstance.InputDevice, ImGuiCallback);
 
@@ -1054,10 +1054,12 @@ public class EditorScene : Scene
             PhantomActor.Draw(levelBatch);
             levelBatch.End();
 
-            var renderPass = GraphicsDevice.BeginTarget(target, Color.Black, true);
-            renderPass.BindGraphicsPipeline(GameContext.DefaultMaterial.ShaderPipeline);
+            levelBatch.Flush(commandBuffer);
+
+            var renderPass = commandBuffer.BeginRenderPass(new ColorTargetInfo(target, Color.Black, true));
+            renderPass.BindGraphicsPipeline(GameContext.BatchMaterial.ShaderPipeline);
             levelBatch.Render(renderPass);
-            GraphicsDevice.EndTarget(renderPass);
+            commandBuffer.EndRenderPass(renderPass);
         }
         
         {
@@ -1065,11 +1067,13 @@ public class EditorScene : Scene
             batch.Draw(new TextureQuad(target), new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, new Vector2(2));
             batch.End();
 
-            var renderPass = GraphicsDevice.BeginTarget(swapchain, Color.Black, true);
-            renderPass.BindGraphicsPipeline(GameContext.DefaultMaterial.ShaderPipeline);
+            batch.Flush(commandBuffer);
+
+            var renderPass = commandBuffer.BeginRenderPass(new ColorTargetInfo(swapchain, Color.Black, true));
+            renderPass.BindGraphicsPipeline(GameContext.BatchMaterial.ShaderPipeline);
             batch.Render(renderPass);
             imGui.Render(renderPass);
-            GraphicsDevice.EndTarget(renderPass);
+            commandBuffer.EndRenderPass(renderPass);
         }
     }
 
@@ -1097,6 +1101,13 @@ public class EditorScene : Scene
             else 
             {
                 openFallbackTheme = true;
+            }
+            var dataPath = Path.Combine(Path.GetDirectoryName(filepath), "data.xml");
+            if (File.Exists(dataPath))
+            {
+                XmlDocument document = new XmlDocument();
+                document.Load(dataPath);
+                towerSettings.SetData(document["data"]);
             }
 
             levelSelection.SelectTower(tower);

@@ -30,6 +30,8 @@ public class Level
     public GridTiles BGs;
     public Tiles BGTiles;
     public Tiles SolidTiles;
+    public int Width;
+    public int Height;
 
     private History history = new History();
 

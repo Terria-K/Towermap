@@ -34,6 +34,7 @@ public static class VanillaActor
         }), new Point(10, 10), TileRender1x3);
 
         manager.AddActor(new ActorInfo("CrackedPlatform", "crackedPlatform", 20, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
+        manager.AddActor(new ActorInfo("GhostPlatform", "loopPlatformTiles", 10, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
 
         manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
         manager.AddActor(new ActorInfo("CrumbleWall", "crumbleWall", 20, 20, 0, 0));
@@ -422,7 +423,7 @@ public static class VanillaActor
         {
             return;
         }
-        if (position.X > (320 / 2)) 
+        if (position.X > (WorldUtils.WorldWidth / 2)) 
         {
             if (!level.RenderFlipped) 
             {

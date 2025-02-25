@@ -131,15 +131,19 @@ public class LevelActor : Entity
                 isHeld = false;
                 // Possible negative numbers should be resolved
                 if (Transform.PosX < 0)
-                    Transform.PosX = Transform.PosX + 320;
+                {
+                    Transform.PosX = Transform.PosX + WorldUtils.WorldWidth;
+                }
                 if (Transform.PosY < 0)
-                    Transform.PosY = Transform.PosY + 240;
+                {
+                    Transform.PosY = Transform.PosY + WorldUtils.WorldHeight;
+                }
                 return;
             }
             int snapX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize) + lastHold.X) / 5.0f) * 5.0f);
             int snapY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize) + lastHold.Y) / 5.0f) * 5.0f);
-            Transform.PosX = snapX % 320;
-            Transform.PosY = snapY % 240;
+            Transform.PosX = snapX % WorldUtils.WorldWidth;
+            Transform.PosY = snapY % WorldUtils.WorldHeight;
             return;
         }
 
@@ -147,28 +151,28 @@ public class LevelActor : Entity
         {
             if (Input.Keyboard.IsPressed(KeyCode.Left)) 
             {
-                PosX = MathUtils.Wrap(PosX - 5, 0, 320);
+                PosX = MathUtils.Wrap(PosX - 5, 0, WorldUtils.WorldWidth);
             }
             else if (Input.Keyboard.IsPressed(KeyCode.Right)) 
             {
-                PosX = MathUtils.Wrap(PosX + 5, 0, 320);
+                PosX = MathUtils.Wrap(PosX + 5, 0, WorldUtils.WorldWidth);
             }
             else if (Input.Keyboard.IsPressed(KeyCode.Up)) 
             {
-                PosY = MathUtils.Wrap(PosY - 5, 0, 240);
+                PosY = MathUtils.Wrap(PosY - 5, 0, WorldUtils.WorldHeight);
             }
             else if (Input.Keyboard.IsPressed(KeyCode.Down)) 
             {
-                PosY = MathUtils.Wrap(PosY + 5, 0, 240);
+                PosY = MathUtils.Wrap(PosY + 5, 0, WorldUtils.WorldHeight);
             }
         }
 
         if (InBounds(gridX, gridY) && 
             (rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y) ||
-            rect.Contains(gridX + (int)Data.Origin.X + 320, gridY + (int)Data.Origin.Y) ||
-            rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y + 240) ||
-            rect.Contains(gridX + (int)Data.Origin.X - 320, gridY + (int)Data.Origin.Y) ||
-            rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y - 240)))
+            rect.Contains(gridX + (int)Data.Origin.X + (int)WorldUtils.WorldWidth, gridY + (int)Data.Origin.Y) ||
+            rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y + (int)WorldUtils.WorldHeight) ||
+            rect.Contains(gridX + (int)Data.Origin.X - (int)WorldUtils.WorldWidth, gridY + (int)Data.Origin.Y) ||
+            rect.Contains(gridX + (int)Data.Origin.X, gridY + (int)Data.Origin.Y - (int)WorldUtils.WorldHeight)))
         {
             if (scene.ToolSelected == Tool.Rect) 
             {
@@ -198,7 +202,7 @@ public class LevelActor : Entity
 
     private bool InBounds(int x, int y) 
     {
-        return x >= 0 && x <= 320 && y >= 0 && y <= 240;
+        return x >= 0 && x <= WorldUtils.WorldWidth && y >= 0 && y <= WorldUtils.WorldHeight;
     }
 
     public override void Draw(Batch spriteBatch)
@@ -220,35 +224,35 @@ public class LevelActor : Entity
 
         if (PosX - Data.Origin.X < Width) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(PosX + 320, PosY), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, Data, new Vector2(PosX + 320, PosY), Size, spriteBatch, Color.White);
-            spriteBatch.Draw(TextureQuad, new Vector2(PosX + 320, PosY), 
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX + WorldUtils.WorldWidth, PosY), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX + WorldUtils.WorldWidth, PosY), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX + WorldUtils.WorldWidth, PosY), 
                 Color.White, Vector2.One, Data.Origin);
 
             if (isHovering) 
             {
-                DrawUtils.Rect(spriteBatch, new Vector2(PosX + 317, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+                DrawUtils.Rect(spriteBatch, new Vector2(PosX + WorldUtils.WorldWidth - 3, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
             }
         }
 
-        if (PosX - Data.Origin.X > 320 - Width) 
+        if (PosX - Data.Origin.X > WorldUtils.WorldWidth - Width) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(PosX - 320, PosY), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, Data, new Vector2(PosX - 320, PosY), Size, spriteBatch, Color.White);
-            spriteBatch.Draw(TextureQuad, new Vector2(PosX - 320, PosY), 
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX - WorldUtils.WorldWidth, PosY), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX - WorldUtils.WorldWidth, PosY), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX - WorldUtils.WorldWidth, PosY), 
                 Color.White, Vector2.One, Data.Origin);
 
             if (isHovering) 
             {
-                DrawUtils.Rect(spriteBatch, new Vector2(PosX - 317, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
+                DrawUtils.Rect(spriteBatch, new Vector2(PosX - WorldUtils.WorldWidth - 3, PosY - 3), color * 0.4f, new Vector2(Width + 6, Height + 6), Data.Origin);
             }
         }
 
         if (PosY - Data.Origin.Y < Height) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + 240), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, Data, new Vector2(PosX, PosY + 240), Size, spriteBatch, Color.White);
-            spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY + 240), 
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY + WorldUtils.WorldHeight), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX, PosY + WorldUtils.WorldHeight), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY + WorldUtils.WorldHeight), 
                 Color.White, Vector2.One, Data.Origin);
 
             if (isHovering) 
@@ -257,11 +261,11 @@ public class LevelActor : Entity
             }
         }
 
-        if (PosY - Data.Origin.Y > 240 - Height) 
+        if (PosY - Data.Origin.Y > WorldUtils.WorldHeight - Height) 
         {
-            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - 240), color, new Vector2(Width, Height), Data.Origin);
-            Data.OnRender?.Invoke(this, Data, new Vector2(PosX, PosY - 240), Size, spriteBatch, Color.White);
-            spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY - 240), 
+            DrawUtils.Rect(spriteBatch, new Vector2(PosX, PosY - WorldUtils.WorldHeight), color, new Vector2(Width, Height), Data.Origin);
+            Data.OnRender?.Invoke(this, Data, new Vector2(PosX, PosY - WorldUtils.WorldHeight), Size, spriteBatch, Color.White);
+            spriteBatch.Draw(TextureQuad, new Vector2(PosX, PosY - WorldUtils.WorldHeight), 
                 Color.White, Vector2.One, Data.Origin);
 
             if (isHovering) 

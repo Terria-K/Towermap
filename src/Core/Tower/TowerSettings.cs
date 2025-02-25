@@ -13,31 +13,30 @@ public class TowerSettings : ImGuiElement
     private Theme theme;
     private string themeName = "";
     private int currentTheme;
-    private List<Wave> waves;
+    private List<Wave>[] waves = new List<Wave>[2];
     public Action<int> OnSave;
 
     public TowerSettings() 
     {
         Enabled = false;
-        waves = new List<Wave>()
-        {
-            new Wave() 
-            {
-                Groups = new List<Group>() 
-                {
-                    new Group(),
-                    new Group(0)
-                }
-            }
-        };
+        waves = [
+            new List<Wave>(),
+            new List<Wave>()
+        ];
     }
 
     public void SetData(XmlElement data) 
     {
-        waves.Clear();
-        var normal = data["normal"];
+        waves[0].Clear();
+        waves[1].Clear();
 
-        foreach (XmlElement wave in normal.GetElementsByTagName("wave"))
+        SetWaveData(waves[0], data["normal"]);
+        SetWaveData(waves[1], data["hardcore"]);
+    }
+
+    public void SetWaveData(List<Wave> waves, XmlElement data) 
+    {
+        foreach (XmlElement wave in data.GetElementsByTagName("wave"))
         {
             bool dark = AttrBool(wave, "dark");
             bool scroll = AttrBool(wave, "scroll");
@@ -104,66 +103,90 @@ public class TowerSettings : ImGuiElement
 
                 if (ImGui.BeginTabItem("Data")) 
                 {
-                    int waveNum = 1;
-
-                    foreach (var wave in waves) 
+                    if (ImGui.BeginTabBar("DifficultyTab"))
                     {
-                        if (ImGui.CollapsingHeader($"Wave {waveNum}"))
+                        for (int i = 0; i < waves.Length; i++)
                         {
-                            ImGui.PushID(waveNum);
-                            ImGui.Checkbox("Dark", ref wave.IsDark);
-                            ImGui.SameLine();
-                            ImGui.Checkbox("Slow", ref wave.IsSlow);
-                            ImGui.SameLine();
-                            ImGui.Checkbox("Scroll", ref wave.IsScroll);
-                            ImGui.PopID();
-
-                            int groupNum = 1;
-                            foreach (var group in wave.Groups) 
+                            if (ImGui.BeginTabItem(i == 0 ? "Normal" : "Hardcore"))
                             {
-                                ImGui.PushID($"Wave{waveNum}-Group{groupNum}");
-                                if (ImGui.TreeNode($"Group {groupNum}")) 
+                                int waveNum = 1;
+                                foreach (var wave in waves[i]) 
                                 {
-                                    ImGui.Checkbox("Floor", ref group.IsFloor);
-                                    if (group.IsFloor)
-                                    {
-                                        ImGui.InputInt("Floor Number", ref group.FloorNumber);
-                                    }
-                                    else 
-                                    {
-                                        ImGui.SeparatorText("Treasure");
-                                        ImGui.SeparatorText("Spawns");
-                                        ImGui.SeparatorText("Enemies");
-                                    }
-                                    ImGui.TreePop();
+                                    RenderWave(wave, waveNum);
+
+                                    waveNum += 1;
                                 }
 
+                                ImGui.Separator();
+                                if (ImGui.Button("Add Wave")) 
+                                {
+                                    waves[i].Add(new Wave());
+                                }
 
-                                ImGui.PopID();
-                                groupNum += 1;
+                                ImGui.EndTabItem();
                             }
-                            ImGui.PushID(waveNum);
-                            if (ImGui.Button("Add Group")) 
-                            {
-                                wave.Groups.Add(new Group());
-                            }
-                            ImGui.PopID();
                         }
 
-                        waveNum += 1;
+                        ImGui.EndTabBar();
                     }
 
-                    ImGui.Separator();
-                    if (ImGui.Button("Add Wave")) 
-                    {
-                        waves.Add(new Wave());
-                    }
                     ImGui.EndTabItem();
                 }
                 ImGui.EndTabBar();
             }
 
             ImGui.EndPopup();
+        }
+    }
+
+    private void RenderWave(Wave wave, int waveNum) 
+    {
+        if (ImGui.CollapsingHeader($"Wave {waveNum}"))
+        {
+            ImGui.PushID(waveNum);
+            ImGui.Checkbox("Dark", ref wave.IsDark);
+            ImGui.SameLine();
+            ImGui.Checkbox("Slow", ref wave.IsSlow);
+            ImGui.SameLine();
+            ImGui.Checkbox("Scroll", ref wave.IsScroll);
+            ImGui.PopID();
+
+            int groupNum = 1;
+            foreach (var group in wave.Groups) 
+            {
+                ImGui.PushID($"Wave{waveNum}-Group{groupNum}");
+                if (ImGui.TreeNode($"Group {groupNum}")) 
+                {
+                    ImGui.Checkbox("Floor", ref group.IsFloor);
+                    if (group.IsFloor)
+                    {
+                        ImGui.InputInt("Floor Number", ref group.FloorNumber);
+                    }
+                    else 
+                    {
+                        ImGui.SeparatorText("Treasure");
+                        ImGui.Combo("Select Treasure", ref group.TreasureID, Pickups.PickupNames, Pickups.PickupNames.Length);
+                        ImGui.SeparatorText("Spawns");
+                        ImGui.Text("Tower must have a level name called 'level.oel'");
+                        ImGui.SeparatorText("Enemies");
+                    }
+                    ImGui.TreePop();
+                }
+
+
+                ImGui.PopID();
+                groupNum += 1;
+            }
+            ImGui.PushID(waveNum);
+
+            ImGui.Spacing();
+            ImGui.Spacing();
+
+            if (ImGui.Button("Add Group")) 
+            {
+                wave.Groups.Add(new Group());
+            }
+            ImGui.PopID();
         }
     }
 }
@@ -185,6 +208,7 @@ public class Group
     // if not, then this one
     public List<string> Spawns;
     public List<string> Enemies;
+    public int TreasureID;
 
 
     public Group(bool isFloor = false) 

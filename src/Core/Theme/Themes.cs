@@ -102,7 +102,7 @@ public static class Themes
             renderer.AddElement("snow", Vector2.Zero, 0.03f);
             renderer.AddElement("sea", new Vector2(0, 180), 0.04f);
             renderer.AddElement("sea", new Vector2(0, 185), 0.35f);
-            renderer.AddElement("WaterSplash", new Vector2(0, 240), 1, new Point(320, 100));
+            renderer.AddElement("WaterSplash", new Vector2(0, WorldUtils.WorldHeight), 1, new Point((int)WorldUtils.WorldWidth, 100));
         }));
 
         themes.Add("TowerForge", new Theme(document["TilesetData"], "TowerForge", "TowerForge", "TowerForgeBG", (renderer) => {
@@ -157,7 +157,7 @@ public static class Themes
             renderer.AddElement("snow", Vector2.Zero, 0.03f);
             renderer.AddElement("sea", new Vector2(0, 180));
             renderer.AddElement("sea", new Vector2(0, 185));
-            renderer.AddElement("WaterSplash", new Vector2(0, 240), 1, new Point(320, 100));
+            renderer.AddElement("WaterSplash", new Vector2(0, WorldUtils.WorldHeight), 1, new Point((int)WorldUtils.WorldWidth, 100));
             renderer.AddElement("fastClouds", Vector2.Zero, 0.03f);
             renderer.AddElement("cloudRain", Vector2.Zero, 0.04f);
             renderer.AddElement("fastRain", Vector2.Zero, 0.05f);

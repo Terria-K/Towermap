@@ -14,12 +14,12 @@ public class Tiles : Entity
     private Array2D<TextureQuad?> tiles;
     public Array2D<int> Ids;
 
-    public Tiles(Texture texture, Spritesheet spritesheet) 
+    public Tiles(Texture texture, Spritesheet spritesheet, int gridWidth, int gridHeight) 
     {
         this.spritesheet = spritesheet;
-        tiles = new Array2D<TextureQuad?>(32, 24);
+        tiles = new Array2D<TextureQuad?>(gridWidth, gridHeight);
         tiles.Fill(null);
-        Ids = new Array2D<int>(32, 24);
+        Ids = new Array2D<int>(gridWidth, gridHeight);
         Ids.Fill(-1);
         tilemap = new Tilemap(tiles, 10);
         AddComponent(tilemap);
@@ -73,7 +73,13 @@ public class Tiles : Entity
 
     public void SetTiles(string csv) 
     {
-        string[] splitted = csv.Split('\n');
+        string newLine = "\n";
+        if (csv.Contains("\r\n"))
+        {
+            // yeah, I hate this
+            newLine = "\r\n";
+        }
+        string[] splitted = csv.Split(newLine);
         for (int i = 0; i < splitted.Length; i++) 
         {
             string[] strTiles = splitted[i].Split(',');

@@ -6,12 +6,8 @@ namespace Towermap;
 
 public class TowermapGame : GameApp
 {
+    private EditorScene Scene;
     public TowermapGame(WindowSettings settings, GraphicsSettings graphicsSettings) : base(settings, graphicsSettings) {}
-    public override GameLoop Initialize()
-    {
-        Themes.InitThemes();
-        return new EditorScene(this);
-    }
 
     public override void LoadContent(AssetStorage storage)
     {
@@ -24,11 +20,34 @@ public class TowermapGame : GameApp
         Resource.Pixel = new TextureQuad(Resource.TowerFallTexture, new Rectangle(particle.Source.X, particle.Source.Y, 1, 1));
     }
 
+    public override void Initialize()
+    {
+        Themes.InitThemes();
+        Scene = new EditorScene(this);
+        Scene.Begin();
+    }
+
     public override void Destroy()
     {
         base.Destroy();
         Scene.End();
         Resource.TowerFallTexture.Dispose();
         Resource.Font.Texture.Dispose();
+    }
+
+    public override void Update(float delta)
+    {
+        Scene.Update(delta);
+    }
+
+    public override void Render()
+    {
+        CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        var swapchainTarget = commandBuffer.AcquireSwapchainTarget(MainWindow);
+        if (swapchainTarget != null)
+        {
+            Scene.Render(commandBuffer, swapchainTarget);
+        }
+        GraphicsDevice.Submit(commandBuffer);
     }
 }

@@ -27,7 +27,7 @@ public class LayersPanel : ImGuiElement
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
         ImGui.SetNextWindowSize(new Vector2(200, 620), ImGuiCond.Always);
-        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(1024 - 200, 20));
+        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(1280 - 200, 20));
 
         var size = new Vector2(158, 0.0f);
         ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0, 0.5f));

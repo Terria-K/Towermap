@@ -80,15 +80,15 @@ public class EditorScene : Scene
 
     public EditorScene(GameApp game) : base(game)
     {
-        target = new RenderTarget(game.GraphicsDevice, 320, 240);
+        target = new RenderTarget(game.GraphicsDevice, (uint)WorldUtils.WorldWidth + 100, (uint)WorldUtils.WorldHeight);
 
-        levelBatch = new Batch(game.GraphicsDevice, 320, 240);
-        batch = new Batch(game.GraphicsDevice, 1024, 640);
+        levelBatch = new Batch(game.GraphicsDevice, (int)WorldUtils.WorldWidth + 100, (int)WorldUtils.WorldHeight);
+        batch = new Batch(game.GraphicsDevice, 1280, 640);
         actorManager = new ActorManager();
         PhantomActor = new PhantomActor(this, actorManager);
         tileRect = new TileRect();
         VanillaActor.Init(actorManager);
-        imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1024, 640, ImGuiInit);
+        imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1280, 640, ImGuiInit);
         imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
@@ -409,35 +409,71 @@ public class EditorScene : Scene
         if (level.Unsaved) 
         {
             currentLevel = level;
+            if (currentLevel.Width == 420)
+            {
+                WorldUtils.TurnWide();
+            }
+            else 
+            {
+                WorldUtils.TurnStandard();
+            }
             return;
         }
 
         level.Actors.Clear();
-
-        if (level.Solids == null) 
-        {
-            var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.SolidTilesQuad, 10, 10);
-            var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.BGTilesQuad, 10, 10);
-            level.Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet);
-            level.BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet);
-            level.SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet);
-            level.BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet);
-        }
-        else 
-        {
-            level.Solids.Clear();
-            level.BGs.Clear();
-            level.SolidTiles.Clear();
-            level.BGTiles.Clear();
-        }
         
         XmlDocument document = new XmlDocument();
         document.Load(level.Path);
 
         var loadingLevel = document["level"];
+#if !DEBUG
         try 
         {
+#endif
             currentLevel = level;
+
+            if (int.TryParse(loadingLevel.GetAttribute("width"), out int width))
+            {
+                currentLevel.Width = width;
+            }
+            else 
+            {
+                currentLevel.Width = 320;
+            }
+
+            if (int.TryParse(loadingLevel.GetAttribute("height"), out int height))
+            {
+                currentLevel.Height = height;
+            }
+            else 
+            {
+                currentLevel.Height = 240;
+            }
+
+            if (currentLevel.Width == 420)
+            {
+                if (!WorldUtils.TurnWide())
+                {
+                    var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.SolidTilesQuad, 10, 10);
+                    var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.BGTilesQuad, 10, 10);
+                    level.Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, 42, 24);
+
+                    level.BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, 42, 24);
+                    level.SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, 42, 24);
+                    level.BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, 42, 24);
+                }
+            }
+            else 
+            {
+                WorldUtils.TurnStandard();
+                var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.SolidTilesQuad, 10, 10);
+                var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.BGTilesQuad, 10, 10);
+                level.Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, 32, 24);
+
+                level.BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, 32, 24);
+                level.SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, 32, 24);
+                level.BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, 32, 24);
+            }
 
             var solid = loadingLevel["Solids"];
             currentLevel.Solids.SetGrid(solid.InnerText);
@@ -452,6 +488,7 @@ public class EditorScene : Scene
             currentLevel.BGTiles.SetTiles(bgTiles.InnerText);
 
             SpawnEntities(loadingLevel);
+#if !DEBUG
         }
         catch (Exception ex)
         {
@@ -459,6 +496,7 @@ public class EditorScene : Scene
             Logger.Error($"Failed to load this level: '{Path.GetFileName(path)}'");
             Logger.Error(ex.ToString());
         }
+#endif
 
         currentLevel.Solids.UpdateTiles(SolidAutotiler);
         currentLevel.BGs.UpdateTiles(BgAutotiler, currentLevel.Solids.Bits);
@@ -767,7 +805,7 @@ public class EditorScene : Scene
                     {
                         int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
                         int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                        if (InBounds(gridX, gridY) && actorSelected != null) 
+                        if (WorldUtils.InBounds(gridX, gridY) && actorSelected != null) 
                         {
                             ulong id = actorManager.GetID();
                             var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, id);
@@ -790,7 +828,7 @@ public class EditorScene : Scene
             {
                 int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
                 int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                if (InBounds(gridX, gridY)) 
+                if (WorldUtils.InBounds(gridX, gridY)) 
                 {
                     int posX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
                     int posY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
@@ -853,7 +891,7 @@ public class EditorScene : Scene
                 int gridX = WorldUtils.ToGrid(tileRect.StartX) + dx;
                 int gridY = WorldUtils.ToGrid(tileRect.StartY) + dy;
 
-                if (InBounds(gridX, gridY)) 
+                if (WorldUtils.InBounds(gridX, gridY)) 
                 {
                     if (buttonID == LeftClicked) 
                     {
@@ -893,7 +931,7 @@ public class EditorScene : Scene
         if (!bgTilesPanel.IsWindowHovered && !solidTilesPanel.IsWindowHovered)
         {
             var data = bgTilesPanel.GetData();
-            if (!isDrawing && InBounds(gridX, gridY)) 
+            if (!isDrawing && WorldUtils.InBounds(gridX, gridY)) 
             {
                 CommitHistory();
             }
@@ -903,7 +941,7 @@ public class EditorScene : Scene
                 {
                     int relNx = gridX + nx;
                     int relNy = gridY + ny;
-                    if (InBounds(relNx, relNy)) 
+                    if (WorldUtils.InBounds(relNx, relNy)) 
                     {
                         int tile = placeTile ? data[ny, nx] : -1;
                         currentLevel.BGTiles.SetTile(relNx, relNy, tile);
@@ -929,7 +967,7 @@ public class EditorScene : Scene
                     CommitHistory();
                 }
 
-                if (InBounds(gridX, gridY)) 
+                if (WorldUtils.InBounds(gridX, gridY)) 
                 {
                     PlaceGrid(gridX, gridY, placeTile);
                 }
@@ -946,11 +984,6 @@ public class EditorScene : Scene
 
             break;
         }
-    }
-
-    private static bool InBounds(int gridX, int gridY) 
-    {
-        return gridX > -1 && gridY > -1 && gridX < 32 && gridY < 24;
     }
 
     private void OnOpenTheme() 
@@ -1064,7 +1097,14 @@ public class EditorScene : Scene
         
         {
             batch.Begin(target, DrawSampler.PointClamp);
-            batch.Draw(new TextureQuad(target), new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), Color.White, new Vector2(2));
+            batch.Draw(
+                new TextureQuad(
+                    new Point(420, 240),
+                    new Rectangle(0, 0, (int)WorldUtils.WorldWidth, (int)WorldUtils.WorldHeight)), 
+                new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), 
+                Color.White, 
+                new Vector2(2)
+            );
             batch.End();
 
             batch.Flush(commandBuffer);
@@ -1072,21 +1112,21 @@ public class EditorScene : Scene
             var renderPass = commandBuffer.BeginRenderPass(new ColorTargetInfo(swapchain, Color.Black, true));
             renderPass.BindGraphicsPipeline(GameContext.BatchMaterial.ShaderPipeline);
             batch.Render(renderPass);
-            imGui.Render(renderPass);
+            imGui.Render(commandBuffer, renderPass);
             commandBuffer.EndRenderPass(renderPass);
         }
     }
 
     private void DrawGrid() 
     {
-        for (int i = 0; i < 320 / 10; i++) 
+        for (int i = 0; i < WorldUtils.WorldWidth / 10; i++) 
         {
-            DrawUtils.Line(levelBatch, new Vector2(i * 10, 0), new Vector2(i * 10, 240), Color.White * 0.1f);
+            DrawUtils.Line(levelBatch, new Vector2(i * 10, 0), new Vector2(i * 10, WorldUtils.WorldHeight), Color.White * 0.1f);
         }
 
-        for (int i = 0; i < 240 / 10; i++) 
+        for (int i = 0; i < WorldUtils.WorldHeight / 10; i++) 
         {
-            DrawUtils.Line(levelBatch, new Vector2(0, i * 10), new Vector2(320, i * 10), Color.White * 0.1f);
+            DrawUtils.Line(levelBatch, new Vector2(0, i * 10), new Vector2(WorldUtils.WorldWidth, i * 10), Color.White * 0.1f);
         }
     }
 
@@ -1121,6 +1161,8 @@ public class EditorScene : Scene
         string solid = currentLevel.Solids.Save();
         string bg = currentLevel.BGs.Save();
         var rootElement = document.CreateElement("level");
+        rootElement.SetAttribute("width", WorldUtils.WorldWidth.ToString());
+        rootElement.SetAttribute("height", WorldUtils.WorldHeight.ToString());
         document.AppendChild(rootElement);
 
         var Solids = document.CreateElement("Solids");

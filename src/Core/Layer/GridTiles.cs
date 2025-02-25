@@ -14,12 +14,12 @@ public class GridTiles : Entity
     private Spritesheet sheet;
     public Array2D<bool> Bits;
 
-    public GridTiles(Texture texture, Spritesheet sheet) 
+    public GridTiles(Texture texture, Spritesheet sheet, int gridWidth, int gridHeight) 
     {
         this.sheet = sheet;
-        var tiles = new Array2D<TextureQuad?>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
+        var tiles = new Array2D<TextureQuad?>(gridWidth, gridHeight);
         tiles.Fill(null);
-        Bits = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
+        Bits = new Array2D<bool>(gridWidth, gridHeight);
         tilemap = new Tilemap(tiles, 10, null);
         AddComponent(tilemap);
     }
@@ -81,23 +81,23 @@ public class GridTiles : Entity
         Array2D<bool> array = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         int x = 0;
         int y = 0;
+        bool hasInclude = false;
         for (int i = 0; i < bitSpan.Length; i++) 
         {
             var c = bitSpan[i];
-            if (c == '\n') 
+            // can we just have \n instead? please, Windows?
+            if (c == '\r' || c == '\n') 
             {
-                x = 0;
-                y++;
+                if (hasInclude)
+                {
+                    x = 0;
+                    y++;
+                    hasInclude = false;
+                }
                 continue;
             }
-            if (c == '0') 
-            {
-                array[x, y] = false;
-            }
-            else 
-            {
-                array[x, y] = true;
-            }
+            hasInclude = true;
+            array[x, y] = c != '0';
             x++;
         }
         Bits = array;

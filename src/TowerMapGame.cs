@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Riateu;
 using Riateu.Content;
 using Riateu.Graphics;
@@ -23,8 +24,18 @@ public class TowermapGame : GameApp
 
     public override void Initialize()
     {
+        var savePath = Path.Join(SaveIO.SavePath.AsSpan(), "towersave.json");
+        SaveState saveState;
+        if (File.Exists(savePath))
+        {
+            saveState = SaveIO.LoadJson<SaveState>("towersave.json", SaveStateContext.Default.SaveState);
+        }
+        else 
+        {
+            saveState = new SaveState();
+        }
         Themes.InitThemes();
-        Scene = new EditorScene(this);
+        Scene = new EditorScene(this, saveState);
         Scene.Begin();
     }
 

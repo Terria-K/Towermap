@@ -1,4 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Dynamic;
+using System.IO;
 using System.Numerics;
+using Jint;
+using Jint.Native;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -7,74 +13,155 @@ public static class VanillaActor
 {
     public static void Init(ActorManager manager) 
     {
-        manager.AddActor(new ActorInfo("PlayerSpawn", "player/statues/greenAlt", originX: 10, originY: 10), onRender: PlayerRender);
-        manager.AddActor(new ActorInfo("TeamSpawn", "player/statues/pink", originX: 10, originY: 10), onRender: PlayerRender);
-        manager.AddActor(new ActorInfo("TeamSpawnA", "player/statues/blue", originX: 10, originY: 10), onRender: PlayerRender);
-        manager.AddActor(new ActorInfo("TeamSpawnB", "player/statues/red", originX: 10, originY: 10), onRender: PlayerRender);
-        manager.AddActor(new ActorInfo("TreasureChest", "treasureChest", 10, 10, 5, 5, customValues: new () {
-            ["Mode"] = "Normal",
-            ["Treasure"] = "Arrows",
-            ["Type"] = "Normal",
-            ["Timer"] = 300
-        }), new Point(10, 10));
-        manager.AddActor(new ActorInfo("BigTreasureChest", "bigChest", 20, 20, 10, 10), new Point(20, 20));
-        manager.AddActor(new ActorInfo("Spawner", "spawnPortal", 20, 20, 10, 10, hasNodes: true, customValues: new() {
-            ["name"] = "..."
-        }), new Point(20, 20));
-        manager.AddActor(new ActorInfo("EndlessPortal", "nextLevelPortal", 50, 50, 25, 25), new Point(50, 50));
-        manager.AddActor(new ActorInfo("OrbEd", "orb", 12, 12, 6, 6));
-        manager.AddActor(new ActorInfo("ExplodingOrb", "explodingOrb", 12, 12, 6, 6), new Point(12, 12));
+        var entitiesPath = Path.GetFullPath("Entities");
+        Engine engine = new Engine((opt) => opt.AllowClr().EnableModules(entitiesPath, true));
+        var files = Directory.GetFiles(entitiesPath);
 
-        manager.AddActor(new ActorInfo("Chain", "chain", 10, 10, 0, 0, false, true), new Point(10, 10), VerticalTileRender);
-        manager.AddActor(new ActorInfo("Lantern", "lantern", 10, 10, 0, 0), new Point(10, 10));
-        manager.AddActor(new ActorInfo("JumpPad", "jumpPadOff", 20, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
-        manager.AddActor(new ActorInfo("Dummy", "dummy/dummy", 12, 20, 6, 10), new Point(12, 20), PlayerRender);
-        manager.AddActor(new ActorInfo("FloorMiasma", "quest/floorMiasma", 10, 10, 0, 5, true, customValues: new() {
-            ["Group"] = 0
-        }), new Point(10, 10), TileRender1x3);
+        for (int i = 0; i < files.Length; i += 1)
+        {
+            var jsPath = files[i];
+            
+            var jsObject = engine.Evaluate(File.ReadAllText(jsPath));
+            var name = jsObject.Get("name").AsString();
+            var texture = jsObject.Get("texture").AsString();
+            var width = jsObject.Get("width");
+            if (width == JsValue.Undefined)
+            {
+                width = 20;
+            }
 
-        manager.AddActor(new ActorInfo("CrackedPlatform", "crackedPlatform", 20, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
-        manager.AddActor(new ActorInfo("GhostPlatform", "loopPlatformTiles", 10, 10, 0, 0, true), new Point(10, 10), TileRender1x3);
+            var height = jsObject.Get("height");
+            if (height == JsValue.Undefined)
+            {
+                height = 20;
+            }
 
-        manager.AddActor(new ActorInfo("CrackedWall", "crackedWall", 20, 20, 0, 0));
-        manager.AddActor(new ActorInfo("CrumbleWall", "crumbleWall", 20, 20, 0, 0));
-        manager.AddActor(new ActorInfo("CrumbleBlock", "crumbleBlockTiles", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender5x5);
-        manager.AddActor(new ActorInfo("GraniteBlock", "graniteTiles", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender4x4);
-        manager.AddActor(new ActorInfo("ProximityBlock", "proximityBlockAnim", 20, 20, 0, 0), new Point(20, 20));
+            var originX = jsObject.Get("originX");
+            if (originX == JsValue.Undefined)
+            {
+                originX = 0;
+            }
+            var originY = jsObject.Get("originY");
+            if (originY == JsValue.Undefined)
+            {
+                originY = 0;
+            }
 
-        manager.AddActor(new ActorInfo("MovingPlatform", "movingTiles", 20, 20, 0, 0, true, true, true), new Point(10, 10), TileRender3x3);
-        manager.AddActor(new ActorInfo("RedSwitchBlock", "redSwitchBlock", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender3x3);
-        manager.AddActor(new ActorInfo("BlueSwitchBlock", "blueSwitchBlock", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender3x3);
-        manager.AddActor(new ActorInfo("MoonGlassBlock", "moonGlassTiles", 20, 20, 0, 0, true, true), new Point(10, 10), TileRender3x3);
+            var resizableX = jsObject.Get("resizableX");
+            if (resizableX == JsValue.Undefined)
+            {
+                resizableX = false;
+            }
+            var resizableY = jsObject.Get("resizableY");
+            if (resizableY == JsValue.Undefined)
+            {
+                resizableY = false;
+            }
 
-        manager.AddActor(new ActorInfo("BGLantern", "details/lantern", 10, 10, 5, 5, customValues: new () {
-            ["Lit"] = true
-        }));
-        manager.AddActor(new ActorInfo("BGCrystal", "details/wallCrystal", 10, 15, 5, 8), new Point(10, 15));
-        manager.AddActor(new ActorInfo("BGSkeleton", "details/bones", 20, 20, 10, 20), new Point(20, 20));
-        manager.AddActor(new ActorInfo("BGBigMushroom", "details/bigMushroom", 10, 20, 5, 20), onRender: BigMushroomRender);
-        manager.AddActor(new ActorInfo("BGMushroom", "details/wallMushroom", 10, 10, 5, 0), new Point(10, 10));
-        manager.AddActor(new ActorInfo("Cobwebs", "details/cobwebs", 20, 20, 10, 10), new Point(20, 20));
-        manager.AddActor(new ActorInfo("SnowEd", "details/snowDeposit", 10, 10, 0, 10, true), new Point(10, 10), TileRender1x3);
-        manager.AddActor(new ActorInfo("SnowClump", "details/snowDeposit", 10, 10, 0, 10), new Point(10, 10));
-        manager.AddActor(new ActorInfo("KingIntro", "throneRoom", 20, 35, 10, 20), new Point(20, 35));
+            var hasNodes = jsObject.Get("hasNodes");
+            if (hasNodes == JsValue.Undefined)
+            {
+                hasNodes = false;
+            }
+
+            Point? point = null;
+            var textureSize = jsObject.Get("textureSize");
+            if (textureSize != JsValue.Undefined)
+            {
+                var pointArray = textureSize.AsArray();
+                point = new Point((int)pointArray[0].AsNumber(), (int)pointArray[1].AsNumber());
+            }
+
+            string[] tags = null;
+            var jsTags = jsObject.Get("tags");
+            if (jsTags != JsValue.Undefined)
+            {
+                var tagArray = jsTags.AsArray();
+                tags = new string[tagArray.Length];
+                int j = 0;
+                foreach (var t in tagArray)
+                {
+                    tags[j] = t.AsString();
+                    j += 1;
+                }
+            }
+            Dictionary<string, object> customValues = null;
+            var values = jsObject.Get("values");
+            if (values != JsValue.Undefined)
+            {
+                customValues = new Dictionary<string, object>();
+                ExpandoObject expObj = (ExpandoObject)values.ToObject();
+                foreach (var obj in expObj)
+                {
+                    customValues[obj.Key] = obj.Value;
+                }
+            }
+
+
+            var onRender = jsObject.Get("onRender");
+
+            ActorRender renderer = null;
+
+            if (onRender.IsString())
+            {
+                var text = onRender.AsString();
+                switch (text) 
+                {
+                    case "PlayerRender":
+                        renderer = PlayerRender;
+                        break;
+                    case "TileRender3x1":
+                        renderer = TileRender1x3;
+                        break;
+                    case "TileRender3x3":
+                        renderer = TileRender3x3;
+                        break;
+                    case "TileRender4x4":
+                        renderer = TileRender4x4;
+                        break;
+                    case "TileRender5x5":
+                        renderer = TileRender5x5;
+                        break;
+                    case "VerticalTileRender":
+                        renderer = VerticalTileRender;
+                        break;
+                    case "BigMushroomRender":
+                        renderer = BigMushroomRender;
+                        break;
+                }
+            }
+            else if (onRender != JsValue.Undefined)
+            {
+                var funcInstance = onRender.AsFunctionInstance();
+                renderer = (level, actor, position, size, spriteBatch, color) => {
+                    funcInstance.Call(jsObject, new Jint.Native.JsValue[] {
+                        // level, actor, position, size, spriteBatch, color
+                    });
+                };
+            }
+
+            manager.AddActor(
+                new ActorInfo(
+                    name, 
+                    texture, 
+                    (int)width.AsNumber(), 
+                    (int)height.AsNumber(), 
+                    (int)originX.AsNumber(), 
+                    (int)originY.AsNumber(),
+                    resizableX.AsBoolean(),
+                    resizableY.AsBoolean(),
+                    hasNodes.AsBoolean(),
+                    customValues
+                ), 
+                tags,
+                point,
+                renderer);
+        }
     }
 
     private static void BigMushroomRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color) 
     {
         spriteBatch.Draw(Resource.Atlas["details/bigMushroomBase"], new Vector2(position.X - 5, position.Y - 10), color);
-    }
-
-    private static void BlockTileRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color) 
-    {
-        for (int x = 0; x < size.X / 10; x++) 
-        {
-            for (int y = 0; y < size.Y / 10; y++) 
-            {
-                spriteBatch.Draw(actor.Texture,
-                    new Vector2(position.X + (x * 10), position.Y + (y * 10)), color, Vector2.One, actor.Origin);
-            }
-        }
     }
 
     private static void TileRender3x3(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color) 

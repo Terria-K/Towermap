@@ -12,6 +12,7 @@ public class MenuItem : ImGuiElement
         Name = name;
         OnCallback = onCallback;
     }
+
     public override void DrawGui()
     {
         if (ImGui.MenuItem(Name))

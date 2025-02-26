@@ -12,8 +12,9 @@ public class ActorManager
     public ulong TotalIDs = 0;
     private Queue<ulong> unusedIds = new();
     public Dictionary<string, Actor> Actors = new();
+    public Dictionary<string, List<Actor>> ActorTagged = new();
 
-    public void AddActor(ActorInfo info, Point? textureSize = null, ActorRender onRender = null) 
+    public void AddActor(ActorInfo info, string[] tags, Point? textureSize = null, ActorRender onRender = null) 
     {
         var texture = Resource.Atlas[info.Texture];
         if (textureSize != null) 
@@ -38,6 +39,18 @@ public class ActorManager
         };
         
         Actors.Add(info.Name, actor);
+        for (int i = 0; i < tags.Length; i++)
+        {
+            string key = tags[i];
+            if (ActorTagged.TryGetValue(key, out var list))
+            {
+                list.Add(actor);
+                continue;
+            }
+            var l = new List<Actor>();
+            l.Add(actor);
+            ActorTagged[tags[i]] = l;
+        }
     }
 
     public Actor GetEntity(string currentSelected) 

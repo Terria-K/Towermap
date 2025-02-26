@@ -4,9 +4,9 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PublishTrimmed>true</PublishTrimmed>
+    <!-- <PublishTrimmed>true</PublishTrimmed> -->
   </PropertyGroup>
-  <PropertyGroup>
+  <!-- <PropertyGroup>
     <BeautySharedRuntimeMode>False</BeautySharedRuntimeMode>
     <BeautyLibsDir Condition="$(BeautySharedRuntimeMode) == 'True'">../libraries</BeautyLibsDir>
     <BeautyLibsDir Condition="$(BeautySharedRuntimeMode) != 'True'">./libraries</BeautyLibsDir>
@@ -17,18 +17,19 @@
     <BeautyEnableDebugging>False</BeautyEnableDebugging>
     <BeautyUsePatch>True</BeautyUsePatch>
     <BeautyLogLevel>Info</BeautyLogLevel>
-  </PropertyGroup>
+  </PropertyGroup> -->
 
   <ItemGroup>
     <ProjectReference Include="../../Riateu/Riateu/Riateu.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="nulastudio.NetBeauty" Version="2.1.4.6" />
+    <PackageReference Include="Jint" Version="4.2.0" />
+    <!-- <PackageReference Include="nulastudio.NetBeauty" Version="2.1.4.6" /> -->
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Content/**/*">
+    <Content Include="Entities/**/*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

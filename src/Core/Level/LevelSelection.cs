@@ -53,6 +53,7 @@ public class LevelSelection : ImGuiElement
                 OnSelect?.Invoke(level);
             }
         }
+        ImGui.Selectable("+ Add Level");
         ImGui.End();
         ImGui.PopStyleVar();
     }

@@ -74,12 +74,16 @@ public class EditorScene : Scene
 
     private BackdropRenderer backdropRenderer;
 
+    private EntityMenu entityMenu;
 
     private bool openFallbackTheme = false;
     private int fallbackSelected = 0;
+    private SaveState saveState;
+    private MenuSelectionItem recentItems;
 
-    public EditorScene(GameApp game) : base(game)
+    public EditorScene(GameApp game, SaveState state) : base(game)
     {
+        saveState = state;
         target = new RenderTarget(game.GraphicsDevice, (uint)WorldUtils.WorldWidth + 100, (uint)WorldUtils.WorldHeight);
 
         levelBatch = new Batch(game.GraphicsDevice, (int)WorldUtils.WorldWidth + 100, (int)WorldUtils.WorldHeight);
@@ -90,10 +94,17 @@ public class EditorScene : Scene
         VanillaActor.Init(actorManager);
         imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1280, 640, ImGuiInit);
         imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
+        recentItems = new MenuSelectionItem("Open Recent");
+        foreach (var recentTower in saveState.RecentTowers)
+        {
+            recentItems.Add(new MenuItem(recentTower, () => OpenTowerFile(recentTower)));
+        }
+
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
                 .Add(new MenuItem("New"))
                 .Add(new MenuItem("Open", Open))
+                .Add(recentItems)
                 .Add(new MenuItem("Save", () => Save()))
                 .Add(new MenuItem("Save As", () => Save(true)))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
@@ -132,6 +143,10 @@ public class EditorScene : Scene
         tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry);
         tools.AddTool(FA6.UpDown, OnVerticalSymmetry);
         tools.AddTool(FA6.CircleNodes, () => ToolSelected = Tool.Node);
+
+        entityMenu = new EntityMenu(actorManager, imGuiTexture);
+        entityMenu.OnSelectActor = OnSelectActor;
+        entityMenu.Enabled = false;
     }
 
     private unsafe void ImGuiInit(ImGuiIOPtr io) 
@@ -682,6 +697,11 @@ public class EditorScene : Scene
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
+        if (CurrentLayer == Layers.Entities && Input.Keyboard.IsPressed(KeyCode.E))
+        {
+            entityMenu.Enabled = !entityMenu.Enabled;
+        }
+
         if (currentLevel == null || openFallbackTheme)
         {
             return;
@@ -926,11 +946,11 @@ public class EditorScene : Scene
         }
     }
 
-    private void PlaceDecor(int gridX, int gridY, bool placeTile) 
+    private void PlaceDecor(int gridX, int gridY, bool placeTile, TilePanel panel, Tiles tiles) 
     {
-        if (!bgTilesPanel.IsWindowHovered && !solidTilesPanel.IsWindowHovered)
+        if (!panel.IsWindowHovered)
         {
-            var data = bgTilesPanel.GetData();
+            var data = panel.GetData();
             if (!isDrawing && WorldUtils.InBounds(gridX, gridY)) 
             {
                 CommitHistory();
@@ -944,7 +964,7 @@ public class EditorScene : Scene
                     if (WorldUtils.InBounds(relNx, relNy)) 
                     {
                         int tile = placeTile ? data[ny, nx] : -1;
-                        currentLevel.BGTiles.SetTile(relNx, relNy, tile);
+                        tiles.SetTile(relNx, relNy, tile);
                     }
                 }
             }
@@ -975,11 +995,17 @@ public class EditorScene : Scene
 
             break;
         case Layers.BGTiles:
+            {
+                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                PlaceDecor(gridX, gridY, placeTile, bgTilesPanel, currentLevel.BGTiles);
+            }
+            break;
         case Layers.SolidTiles:
             {
                 int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
                 int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                PlaceDecor(gridX, gridY, placeTile);
+                PlaceDecor(gridX, gridY, placeTile, solidTilesPanel, currentLevel.SolidTiles);
             }
 
             break;
@@ -1039,6 +1065,7 @@ public class EditorScene : Scene
             bgTilesPanel.UpdateGui();
             break;
         }
+        entityMenu.UpdateGui();
     }
 
     public override void Render(CommandBuffer commandBuffer, RenderTarget swapchain)
@@ -1130,28 +1157,36 @@ public class EditorScene : Scene
         }
     }
 
+    private void OpenTowerFile(string filepath)
+    {
+        tower = new Tower();
+        if (tower.Load(filepath)) 
+        {
+            SetTheme(tower.Theme);
+        }
+        else 
+        {
+            openFallbackTheme = true;
+        }
+        var dataPath = Path.Combine(Path.GetDirectoryName(filepath), "data.xml");
+        if (File.Exists(dataPath))
+        {
+            XmlDocument document = new XmlDocument();
+            document.Load(dataPath);
+            towerSettings.SetData(document["data"]);
+        }
+
+        levelSelection.SelectTower(tower);
+        SetLevel(null);
+    }
+
     private void Open() 
     {
         FileDialog.OpenFile((filepath) => {
-            tower = new Tower();
-            if (tower.Load(filepath)) 
-            {
-                SetTheme(tower.Theme);
-            }
-            else 
-            {
-                openFallbackTheme = true;
-            }
-            var dataPath = Path.Combine(Path.GetDirectoryName(filepath), "data.xml");
-            if (File.Exists(dataPath))
-            {
-                XmlDocument document = new XmlDocument();
-                document.Load(dataPath);
-                towerSettings.SetData(document["data"]);
-            }
-
-            levelSelection.SelectTower(tower);
-            SetLevel(null);
+            OpenTowerFile(filepath);
+            saveState.AddToRecent(filepath);
+            SaveIO.SaveJson<SaveState>("towersave.json", saveState, SaveStateContext.Default.SaveState);
+            recentItems.Add(new MenuItem(filepath, () => OpenTowerFile(filepath)));
         }, null, new Filter("Tower Xml File", "xml"));
     }
 

@@ -50,6 +50,7 @@ public class PromptScene : Scene
     {
         saveState.TFPath = TFPath;
         SaveIO.SaveJson<SaveState>("towersave.json", saveState, SaveStateContext.Default.SaveState);
+        GameInstance.ReloadContent();
         (GameInstance as TowermapGame).InitEditor(imGui, saveState);
     }
 

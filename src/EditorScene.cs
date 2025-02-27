@@ -81,7 +81,7 @@ public class EditorScene : Scene
     private SaveState saveState;
     private MenuSelectionItem recentItems;
 
-    public EditorScene(GameApp game, SaveState state) : base(game)
+    public EditorScene(GameApp game, ImGuiRenderer renderer, SaveState state) : base(game)
     {
         saveState = state;
         target = new RenderTarget(game.GraphicsDevice, (uint)WorldUtils.WorldWidth + 100, (uint)WorldUtils.WorldHeight);
@@ -92,7 +92,7 @@ public class EditorScene : Scene
         PhantomActor = new PhantomActor(this, actorManager);
         tileRect = new TileRect();
         VanillaActor.Init(actorManager);
-        imGui = new ImGuiRenderer(game.GraphicsDevice, game.MainWindow, 1280, 640, ImGuiInit);
+        imGui = renderer;
         imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
         recentItems = new MenuSelectionItem("Open Recent");
         foreach (var recentTower in saveState.RecentTowers)
@@ -149,50 +149,17 @@ public class EditorScene : Scene
         entityMenu.Enabled = false;
     }
 
-    private unsafe void ImGuiInit(ImGuiIOPtr io) 
-    {
-        ImFontConfig* config = ImGuiNative.ImFontConfig_ImFontConfig();
-        config->MergeMode = 1;
-        config->PixelSnapH = 1;
-        config->FontDataOwnedByAtlas = 0;
-
-        config->GlyphMaxAdvanceX = float.MaxValue;
-        config->RasterizerMultiply = 1.0f;
-        config->OversampleH = 2;
-        config->OversampleV = 1;
-
-        ushort* ranges = stackalloc ushort[3];
-        ranges[0] = FA6.IconMin;
-        ranges[1] = FA6.IconMax;
-        ranges[2] = 0;
-
-
-        byte *iconFontRange = (byte*)NativeMemory.Alloc(6);
-        NativeMemory.Copy(ranges, iconFontRange, 6);
-        config->GlyphRanges = (ushort*)iconFontRange;
-        FA6.IconFontRanges = (IntPtr)iconFontRange;
-
-        byte[] fontDataBuffer = Convert.FromBase64String(FA6.IconFontData);
-
-        fixed (byte *buffer = &fontDataBuffer[0])
-        {
-            var fontPtr = ImGui.GetIO().Fonts.AddFontFromMemoryTTF(new IntPtr(buffer), fontDataBuffer.Length, 11, config, FA6.IconFontRanges);
-        }
-
-        ImGuiNative.ImFontConfig_destroy(config);
-    }
-
     public override void Begin()
     {
         solidTilesPanel = new TilePanel(imGuiTexture, "tilesets/flight", "SolidTiles");
         bgTilesPanel = new TilePanel(imGuiTexture, "tilesets/flightBG", "BGTiles");
-
-        tower = new Tower();
-        tower.Load("../Assets/tower.xml");
-        levelSelection.SelectTower(tower);
         SolidAutotiler = new Autotiler();
         BgAutotiler = new Autotiler();
-        SetTheme(tower.Theme);
+
+        // tower = new Tower();
+        // tower.Load("../Assets/tower.xml");
+        // levelSelection.SelectTower(tower);
+        // SetTheme(tower.Theme);
     }
 
     public void SetTowerTheme(string name) 
@@ -210,11 +177,9 @@ public class EditorScene : Scene
     {
         towerSettings.SetTheme(theme);
         backdropRenderer.SetTheme(theme);
-        XmlDocument document = new XmlDocument();
-        document.Load("../Assets/tilesetData.xml");
-
         XmlDocument doc = new XmlDocument();
-        doc.Load("../Assets/tilesetData.xml");
+
+        doc.Load(Path.Combine(saveState.TFPath, "Content", "Atlas", "GameData", "tilesetData.xml"));
         var tilesetData = doc["TilesetData"];
 
         foreach (var level in levelSelection.Levels) 
@@ -1162,10 +1127,12 @@ public class EditorScene : Scene
         tower = new Tower();
         if (tower.Load(filepath)) 
         {
+            levelSelection.SelectTower(tower);
             SetTheme(tower.Theme);
         }
         else 
         {
+            levelSelection.SelectTower(tower);
             openFallbackTheme = true;
         }
         var dataPath = Path.Combine(Path.GetDirectoryName(filepath), "data.xml");
@@ -1176,7 +1143,6 @@ public class EditorScene : Scene
             towerSettings.SetData(document["data"]);
         }
 
-        levelSelection.SelectTower(tower);
         SetLevel(null);
     }
 

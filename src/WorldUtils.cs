@@ -4,7 +4,7 @@ namespace Towermap;
 
 public static class WorldUtils 
 {
-    public static int WorldX = 200;
+    public static int WorldX = 285;
     public static int WorldY = 90;
 
     public static float WorldWidth = 320;
@@ -27,6 +27,7 @@ public static class WorldUtils
     {
         bool isAlready = WorldWidth == 320;
         WorldWidth = 320;
+        WorldX = 285;
         return isAlready;
     }
 
@@ -34,6 +35,7 @@ public static class WorldUtils
     {
         bool isAlready = WorldHeight == 420;
         WorldWidth = 420;
+        WorldX = 200;
         return isAlready;
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json.Serialization;
 
 namespace Towermap;
@@ -7,6 +8,11 @@ public class SaveState
 {
     public string TFPath { get; set; }
     public List<string> RecentTowers { get; set; }
+
+    public bool DarkWorld 
+    {
+        get => Directory.Exists(Path.Combine(TFPath, "DarkWorldContent"));
+    }
 
     public SaveState()
     {

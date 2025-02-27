@@ -9,5 +9,4 @@ public static class Resource
     public static TowerFallAtlas Atlas;
     public static TowerFallAtlas BGAtlas;
     public static TextureQuad Pixel;
-    public static SpriteFont Font;
 }

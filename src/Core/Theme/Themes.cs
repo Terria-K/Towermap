@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Xml;
@@ -12,10 +13,10 @@ public static class Themes
     private static Dictionary<string, Theme> themes = new Dictionary<string, Theme>();
     public static string[] ThemeNames;
 
-    public static void InitThemes() 
+    public static void InitThemes(SaveState saveState) 
     {
         XmlDocument document = new XmlDocument();
-        document.Load("../Assets/tilesetData.xml");
+        document.Load(Path.Combine(saveState.TFPath, "Content", "Atlas", "GameData", "tilesetData.xml"));
 
         themes.Add("SacredGround", new Theme(document["TilesetData"], "SacredGround", "SacredGround", "SacredGroundBG", (renderer) => {
             renderer.AddElement("distantSky");

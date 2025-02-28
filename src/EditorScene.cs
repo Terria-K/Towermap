@@ -771,7 +771,7 @@ public class EditorScene : Scene
         solidTilesPanel.Update();
         bgTilesPanel.Update();
 
-        if (CurrentLayer == Layers.Entities && Input.Keyboard.IsPressed(KeyCode.E))
+        if (CurrentLayer == Layers.Entities && Input.Keyboard.IsPressed(KeyCode.E) && !ImGui.GetIO().WantTextInput)
         {
             entityMenu.Enabled = !entityMenu.Enabled;
         }

@@ -65,6 +65,7 @@ public class EditorScene : Scene
     private TileRect tileRect;
     private bool hasSelection;
     private bool[] visibility = [true, true, true, true, true];
+    private HashSet<ScreenWrapError> wrapErrors = new HashSet<ScreenWrapError>();
 
     public Tool ToolSelected;
     public Layers CurrentLayer = Layers.Solids;
@@ -682,6 +683,60 @@ public class EditorScene : Scene
 
         currentLevel.BGs.UpdateTile(gridX - 1, gridY + 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX - 1, gridY + 1, also));
         currentLevel.BGs.UpdateTile(gridX + 1, gridY - 1, BgAutotiler.Tile(currentLevel.BGs.Bits, gridX + 1, gridY - 1, also));
+        VerifySolids();
+    }
+
+    private void VerifySolids()
+    {
+        wrapErrors.Clear();
+        var bits = currentLevel.Solids.Bits;
+        // Top-Down
+        for (int x = 0; x < WorldUtils.WorldWidth / 10; x++)
+        {
+            if (bits[x, 0])
+            {
+                // Check the downside
+                if (bits[x, ((int)WorldUtils.WorldHeight / 10) - 1])
+                {
+                    continue;
+                }
+                wrapErrors.Add(new ScreenWrapError(x, ((int)WorldUtils.WorldHeight / 10) - 1));
+            }
+
+            if (bits[x, ((int)WorldUtils.WorldHeight / 10) - 1])
+            {
+                // Check the upside
+                if (bits[x, 0])
+                {
+                    continue;
+                }
+                wrapErrors.Add(new ScreenWrapError(x, 0));
+            }
+        }
+
+        // Left-Right
+        for (int y = 0; y < WorldUtils.WorldHeight / 10; y++)
+        {
+            if (bits[0, y])
+            {
+                // Check the leftside
+                if (bits[((int)WorldUtils.WorldWidth / 10) - 1, y])
+                {
+                    continue;
+                }
+                wrapErrors.Add(new ScreenWrapError(((int)WorldUtils.WorldWidth / 10) - 1, y));
+            }
+
+            if (bits[((int)WorldUtils.WorldWidth / 10) - 1, y])
+            {
+                // Check the rightside
+                if (bits[0, y])
+                {
+                    continue;
+                }
+                wrapErrors.Add(new ScreenWrapError(0, y));
+            }
+        }
     }
 
     public void CommitHistory() 
@@ -1115,6 +1170,16 @@ public class EditorScene : Scene
                 if (visibility[0]) 
                 {
                     currentLevel.Solids.Draw(levelBatch);
+                    foreach (var error in wrapErrors)
+                    {
+                        DrawUtils.Rect(
+                            levelBatch, 
+                            new Vector2(error.X * 10, error.Y * 10), 
+                            Color.Red, 
+                            new Vector2(10, 10), 
+                            Vector2.Zero
+                        );
+                    }
                 }
 
                 if (visibility[4])
@@ -1301,4 +1366,6 @@ public class EditorScene : Scene
         imGui.Destroy();
         target.Dispose();
     }
+
+    private record struct ScreenWrapError(int X, int Y);
 }

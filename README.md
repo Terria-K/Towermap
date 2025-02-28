@@ -1,5 +1,5 @@
 <p align="center">
-<img width="480" src="Towermap.png" alt="Towermap logo">
+<img width="608" src="Towermap.png" alt="Towermap logo">
 </p>
 # Towermap
 An alternative TowerFall Level editor that supports more game elements and game mode.

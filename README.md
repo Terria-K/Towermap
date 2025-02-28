@@ -5,6 +5,9 @@
 # Towermap
 An alternative TowerFall Level editor that supports more game elements and game mode.
 
+> [!CAUTION]
+> DO NOT CURRENTLY EDIT VANILLA LEVELS AS MOST ENTITIES WERE MISSING
+
 ## WORK IN PROGRESS
 This level editor is still work in poggers, and it still effectively being developed by a
 single person.

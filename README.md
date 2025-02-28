@@ -1,3 +1,4 @@
+![towermap-logo](./src/Assets/towermap-logo.png)
 # Towermap
 An alternative TowerFall Level editor that supports more game elements and game mode.
 

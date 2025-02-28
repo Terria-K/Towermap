@@ -16,3 +16,4 @@ dependencies and build its native library.
 ## Dependencies:
 + [SDL3](https://www.libsdl.org) - Rendering backend, File dialog handling, etc.
 + [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.
++ [Jint](https://github.com/sebastienros/jint) - For extensible entity definition using JavaScript.

@@ -5,5 +5,6 @@ return {
     height: 10,
     tags: ["Solid", "Interactable", "Platform"],
     textureSize: [10, 10],
+    darkWorld: true,
     onRender: "TileRender3x1"
 }

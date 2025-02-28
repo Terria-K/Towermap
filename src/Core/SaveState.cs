@@ -9,6 +9,7 @@ public class SaveState
     public string TFPath { get; set; }
     public List<string> RecentTowers { get; set; }
 
+    [JsonIgnore]
     public bool DarkWorld 
     {
         get => Directory.Exists(Path.Combine(TFPath, "DarkWorldContent"));
@@ -26,7 +27,4 @@ public class SaveState
 }
 
 [JsonSerializable(typeof(SaveState))]
-internal partial class SaveStateContext : JsonSerializerContext
-{
-
-}
+internal partial class SaveStateContext : JsonSerializerContext {}

@@ -43,6 +43,7 @@ public class EditorScene : Scene
     private Entities entities;
     private EntityData entityData;
     private TowerSettings towerSettings;
+    private NewTower newTower;
 #endregion
     private Autotiler SolidAutotiler;
     private Autotiler BgAutotiler;
@@ -91,7 +92,7 @@ public class EditorScene : Scene
         actorManager = new ActorManager();
         PhantomActor = new PhantomActor(this, actorManager);
         tileRect = new TileRect();
-        VanillaActor.Init(actorManager);
+        VanillaActor.Init(actorManager, saveState);
         imGui = renderer;
         imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
         recentItems = new MenuSelectionItem("Open Recent");
@@ -102,7 +103,7 @@ public class EditorScene : Scene
 
         menuBar = new MenuBar()
             .Add(new MenuSlot("File")
-                .Add(new MenuItem("New"))
+                .Add(new MenuItem("New", New))
                 .Add(new MenuItem("Open", Open))
                 .Add(recentItems)
                 .Add(new MenuItem("Save", () => Save()))
@@ -115,6 +116,7 @@ public class EditorScene : Scene
 
         levelSelection = new LevelSelection();
         levelSelection.OnSelect = OnLevelSelected;
+        levelSelection.OnCreated = OnLevelCreated;
 
         layers = new LayersPanel();
         layers.OnLayerSelect = OnLayerSelected;
@@ -147,6 +149,10 @@ public class EditorScene : Scene
         entityMenu = new EntityMenu(actorManager, imGuiTexture);
         entityMenu.OnSelectActor = OnSelectActor;
         entityMenu.Enabled = false;
+
+        newTower = new NewTower(saveState);
+        newTower.OnCreateTower = OnCreateTower;
+        newTower.Enabled = false;
     }
 
     public override void Begin()
@@ -155,11 +161,6 @@ public class EditorScene : Scene
         bgTilesPanel = new TilePanel(imGuiTexture, "tilesets/flightBG", "BGTiles");
         SolidAutotiler = new Autotiler();
         BgAutotiler = new Autotiler();
-
-        // tower = new Tower();
-        // tower.Load("../Assets/tower.xml");
-        // levelSelection.SelectTower(tower);
-        // SetTheme(tower.Theme);
     }
 
     public void SetTowerTheme(string name) 
@@ -184,10 +185,10 @@ public class EditorScene : Scene
 
         foreach (var level in levelSelection.Levels) 
         {
-            // Solid Tileset
             foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
             {
-                if (tileset.GetAttribute("id") == theme.SolidTilesetID) 
+                var id = tileset.GetAttribute("id");
+                if (id == theme.SolidTilesetID) 
                 {
                     SolidAutotiler.Init(tileset);
                     solidTilesPanel.SetTheme(tileset);
@@ -199,12 +200,8 @@ public class EditorScene : Scene
                         level.Solids.UpdateTiles(SolidAutotiler);
                     }
                 }
-            }
 
-            // BG Tileset
-            foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
-            {
-                if (tileset.GetAttribute("id") == theme.BGTilesetID) 
+                else if (id == theme.BGTilesetID)
                 {
                     BgAutotiler.Init(tileset);
                     bgTilesPanel.SetTheme(tileset);
@@ -263,6 +260,63 @@ public class EditorScene : Scene
     }
 
 #region Events
+    private void OnLevelCreated()
+    {
+        if (currentLevel != null)
+        {
+            Save();
+        }
+        SetTheme(tower.Theme);
+    }
+
+    private void OnCreateTower(string towerName, string towerPath, int currentMode, int currentTheme)
+    {
+        var directory = Path.Combine(towerPath, towerName);
+        Directory.CreateDirectory(directory);
+
+        XmlDocument tower = new XmlDocument();
+        var rootElement = tower.CreateElement("tower");
+        tower.AppendChild(rootElement);
+
+        var theme = tower.CreateElement("theme");
+        theme.InnerText = Themes.ThemeNames[currentTheme];
+        rootElement.AppendChild(theme);
+
+        switch (currentMode)
+        {
+        case 0: // Versus
+            var treasure = tower.CreateElement("treasure");
+            treasure.InnerText = "Arrows,Shield,Wings,TimeOrb,DarkOrb,LavaOrb";
+            rootElement.AppendChild(treasure);
+            break;
+        case 1: // Quest
+            XmlDocument data = new XmlDocument();
+            var dataRootElement = data.CreateElement("data");
+            data.AppendChild(dataRootElement);
+
+            var normal = data.CreateElement("normal");
+            normal.AppendChild(data.CreateComment("Add all of your wave group sequence here"));
+            dataRootElement.AppendChild(normal);
+
+            var hardcore = data.CreateElement("hardcore");
+            hardcore.AppendChild(data.CreateComment("Add all of your wave group sequence here"));
+            dataRootElement.AppendChild(hardcore);
+            data.Save(Path.Combine(directory, "data.xml"));
+            break;
+        case 2: // Dark World
+            // WIP
+            break;
+        }
+
+        var filepath = Path.Combine(directory, "tower.xml");
+        tower.Save(filepath);
+
+        OpenTowerFile(filepath);
+        saveState.AddToRecent(filepath);
+        SaveIO.SaveJson<SaveState>("towersave.json", saveState, SaveStateContext.Default.SaveState);
+        recentItems.Add(new MenuItem(filepath, () => OpenTowerFile(filepath)));
+    }
+
     private void OnShowOrHideLayer(int id, bool visible)
     {
         visibility[id] = visible; 
@@ -993,11 +1047,17 @@ public class EditorScene : Scene
             ImGui.OpenPopup("Theme Settings");
         }
 
+        if (newTower.Enabled) 
+        {
+            ImGui.OpenPopup("New Tower");
+        }
+
         if (openFallbackTheme) 
         {
             ImGui.OpenPopup("Fallback Theme");
         }
 
+        newTower.DrawGui();
         towerSettings.DrawGui();
 
         if (ImGui.BeginPopupModal("Fallback Theme", ref openFallbackTheme, ImGuiWindowFlags.AlwaysAutoResize)) 
@@ -1144,6 +1204,11 @@ public class EditorScene : Scene
         }
 
         SetLevel(null);
+    }
+
+    private void New()
+    {
+        newTower.Enabled = true;
     }
 
     private void Open() 

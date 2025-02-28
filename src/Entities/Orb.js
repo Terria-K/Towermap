@@ -6,4 +6,5 @@ return {
     originX: 6,
     originY: 6,
     tags: ["Hazard", "Interactable"],
+    onRender: "OrbRender"
 }

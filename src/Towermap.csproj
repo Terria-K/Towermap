@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PublishTrimmed>true</PublishTrimmed>
@@ -23,9 +23,12 @@
     <ProjectReference Include="../../Riateu/Riateu/Riateu.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="$(Configuration) == 'Release'">
+    <PackageReference Include="nulastudio.NetBeauty" Version="2.1.4.6" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Jint" Version="4.2.0" />
-    <PackageReference Include="nulastudio.NetBeauty" Version="2.1.4.6" />
   </ItemGroup>
 
   <ItemGroup>

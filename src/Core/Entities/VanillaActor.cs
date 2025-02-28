@@ -5,13 +5,14 @@ using System.IO;
 using System.Numerics;
 using Jint;
 using Jint.Native;
+using Riateu;
 using Riateu.Graphics;
 
 namespace Towermap;
 
 public static class VanillaActor 
 {
-    public static void Init(ActorManager manager) 
+    public static void Init(ActorManager manager, SaveState saveState) 
     {
         var entitiesPath = Path.GetFullPath("Entities");
         Engine engine = new Engine((opt) => opt.AllowClr().EnableModules(entitiesPath, true));
@@ -22,6 +23,18 @@ public static class VanillaActor
             var jsPath = files[i];
             
             var jsObject = engine.Evaluate(File.ReadAllText(jsPath));
+            var darkWorld = jsObject.Get("darkWorld");
+            if (darkWorld == JsValue.Undefined)
+            {
+                darkWorld = false;
+            }
+
+            if (darkWorld.AsBoolean() && !saveState.DarkWorld)
+            {
+                continue;
+            }
+
+
             var name = jsObject.Get("name").AsString();
             var texture = jsObject.Get("texture").AsString();
             var width = jsObject.Get("width");
@@ -128,6 +141,9 @@ public static class VanillaActor
                     case "BigMushroomRender":
                         renderer = BigMushroomRender;
                         break;
+                    case "OrbRender":
+                        renderer = OrbRender;
+                        break;
                 }
             }
             else if (onRender != JsValue.Undefined)
@@ -157,6 +173,11 @@ public static class VanillaActor
                 point,
                 renderer);
         }
+    }
+
+    private static void OrbRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color)
+    {
+        spriteBatch.Draw(Resource.Atlas["details/orbHolder"], new Vector2(position.X - actor.Origin.X - 2, position.Y + actor.Origin.Y - 2), color);
     }
 
     private static void BigMushroomRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color) 

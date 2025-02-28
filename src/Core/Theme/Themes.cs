@@ -147,42 +147,46 @@ public static class Themes
             renderer.AddElement("SkyClouds5b", new Vector2(0, 128));
         }));
 
-        themes.Add("TheAmaranth", new Theme(document["TilesetData"], "TheAmaranth", "TheAmaranth", "TheAmaranthBG", (renderer) => {
-            renderer.AddElement("distantSky");
-            renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
-            renderer.AddElement("snow", Vector2.Zero, 0.03f);
-            renderer.AddElement("sea", new Vector2(0, 154));
-            renderer.AddElement("sea", new Vector2(0, 165));
-            renderer.AddElement("ghostShip", new Vector2(160, 195), 1, new Point(129, 96));
-            renderer.AddElement("sea2", new Vector2(0, 170), 0.5f);
-            renderer.AddElement("snow", Vector2.Zero, 0.03f);
-            renderer.AddElement("sea", new Vector2(0, 180));
-            renderer.AddElement("sea", new Vector2(0, 185));
-            renderer.AddElement("WaterSplash", new Vector2(0, WorldUtils.WorldHeight), 1, new Point((int)WorldUtils.WorldWidth, 100));
-            renderer.AddElement("fastClouds", Vector2.Zero, 0.03f);
-            renderer.AddElement("cloudRain", Vector2.Zero, 0.04f);
-            renderer.AddElement("fastRain", Vector2.Zero, 0.05f);
-        }));
+        if (saveState.DarkWorld)
+        {
+            themes.Add("TheAmaranth", new Theme(document["TilesetData"], "TheAmaranth", "TheAmaranth", "TheAmaranthBG", (renderer) => {
+                renderer.AddElement("distantSky");
+                renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
+                renderer.AddElement("snow", Vector2.Zero, 0.03f);
+                renderer.AddElement("sea", new Vector2(0, 154));
+                renderer.AddElement("sea", new Vector2(0, 165));
+                renderer.AddElement("ghostShip", new Vector2(160, 195), 1, new Point(129, 96));
+                renderer.AddElement("sea2", new Vector2(0, 170), 0.5f);
+                renderer.AddElement("snow", Vector2.Zero, 0.03f);
+                renderer.AddElement("sea", new Vector2(0, 180));
+                renderer.AddElement("sea", new Vector2(0, 185));
+                renderer.AddElement("WaterSplash", new Vector2(0, WorldUtils.WorldHeight), 1, new Point((int)WorldUtils.WorldWidth, 100));
+                renderer.AddElement("fastClouds", Vector2.Zero, 0.03f);
+                renderer.AddElement("cloudRain", Vector2.Zero, 0.04f);
+                renderer.AddElement("fastRain", Vector2.Zero, 0.05f);
+            }));
 
-        themes.Add("Dreadwood", new Theme(document["TilesetData"], "Dreadwood", "Dreadwood", "DreadwoodBG", (renderer) => {
-            renderer.AddElement("dreadSky");
-            renderer.AddElement("dreadLeaves");
-            renderer.AddElement("dreadTrees");
-        }));
+            themes.Add("Dreadwood", new Theme(document["TilesetData"], "Dreadwood", "Dreadwood", "DreadwoodBG", (renderer) => {
+                renderer.AddElement("dreadSky");
+                renderer.AddElement("dreadLeaves");
+                renderer.AddElement("dreadTrees");
+            }));
 
-        themes.Add("Darkfang", new Theme(document["TilesetData"], "Darkfang", "Darkfang", "DarkfangBG", (renderer) => {
-            renderer.AddElement("darkFangBack");
-            renderer.AddElement("snow", Vector2.Zero, 0.06f);
-            renderer.AddElement("thickMist", Vector2.Zero, 0.2f);
-        }));
+            themes.Add("Darkfang", new Theme(document["TilesetData"], "Darkfang", "Darkfang", "DarkfangBG", (renderer) => {
+                renderer.AddElement("darkFangBack");
+                renderer.AddElement("snow", Vector2.Zero, 0.06f);
+                renderer.AddElement("thickMist", Vector2.Zero, 0.2f);
+            }));
 
-        themes.Add("Cataclysm", new Theme(document["TilesetData"], "Cataclysm", "Cataclysm", "CataclysmBG", (renderer) => {
-            renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
-        }));
+            themes.Add("Cataclysm", new Theme(document["TilesetData"], "Cataclysm", "Cataclysm", "CataclysmBG", (renderer) => {
+                renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
+            }));
 
-        themes.Add("DarkGauntlet", new Theme(document["TilesetData"], "DarkGauntlet", "Cataclysm", "CataclysmBG", (renderer) => {
-            renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
-        }));
+            themes.Add("DarkGauntlet", new Theme(document["TilesetData"], "DarkGauntlet", "Cataclysm", "CataclysmBG", (renderer) => {
+                renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
+            }));
+        }
+
         ThemeNames = themes.Values.Select(x => x.Name).ToArray();
     }
 

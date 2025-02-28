@@ -7,5 +7,6 @@ return {
     originY: 11,
     resizableY: true,
     tags: ["Hazard"],
-    onRender: "SpikeBallEdRender"
+    onRender: "SpikeBallEdRender",
+    textureSize: [22, 22]
 }

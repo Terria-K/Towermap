@@ -150,6 +150,12 @@ public static class VanillaActor
                     case "SpikeBallEdRender":
                         renderer = SpikeBallEdRender;
                         break;
+                    case "ShiftBlockRender":
+                        renderer = ShiftBlockRender;
+                        break;
+                    case "SensorBlockRender":
+                        renderer = SensorBlockRender;
+                        break;
                 }
             }
             else if (onRender != JsValue.Undefined)
@@ -178,6 +184,109 @@ public static class VanillaActor
                 tags,
                 point,
                 renderer);
+        }
+    }
+
+    private static void ShiftBlockRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color)
+    {
+        TileRender3x3(level, actor, position, size, spriteBatch, color);
+
+        if (size.X > 20 && size.Y > 20)
+        {
+            var face = Resource.Atlas["shiftBlockFace"];
+            var usingFace = new TextureQuad(Resource.TowerFallTexture, face.Source with {
+                Width = 20,
+                Height = 20
+            });
+            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), Color.White);
+        }
+        else if (size.Y <= 20)
+        {
+            var face = Resource.Atlas["shiftBlockFaceHorizontal"];
+            var usingFace = new TextureQuad(Resource.TowerFallTexture, face.Source with {
+                Width = 20,
+                Height = 20
+            });
+            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), Color.White);
+        }
+        else 
+        {
+            var face = Resource.Atlas["shiftBlockFaceVertical"];
+            var usingFace = new TextureQuad(Resource.TowerFallTexture, face.Source with {
+                Width = 20,
+                Height = 20
+            });
+            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), Color.White);
+        }
+    }
+
+    private static void SensorBlockRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color)
+    {
+        var left = new TextureQuad(Resource.TowerFallTexture, actor.Texture.Source with {
+            Width = actor.Texture.Source.Width + 10
+        });
+        var mid = new TextureQuad(Resource.TowerFallTexture, actor.Texture.Source with {
+            X = actor.Texture.Source.X + 20,
+            Width = actor.Texture.Source.Width
+        });
+        var right = new TextureQuad(Resource.TowerFallTexture, actor.Texture.Source with {
+            X = actor.Texture.Source.X + 10,
+            Width = actor.Texture.Source.Width
+        });
+        for (int i = 0; i < size.X; i += 10)
+        {
+            TextureQuad quad;
+            if (i == 0)
+            {
+                quad = left;
+            }
+            else if (i == size.X - 10)
+            {
+                quad = mid;
+            }
+            else 
+            {
+                quad = right;
+            }
+            spriteBatch.Draw(quad, new Vector2(position.X + i, position.Y), Color.White);
+        }
+
+        var gemPos = new Vector2(position.X + (size.X / 2) - 5, position.Y + (size.Y / 2) - 5);
+
+        if (size.X <= 40)
+        {
+            spriteBatch.Draw(
+                Resource.Atlas["sensorGem"], 
+                gemPos,
+                Color.White);
+        }
+        else if (size.X <= 80)
+        {
+            var num = size.X / 3f;
+            for (int i = 0; i < 2; i++)
+            {
+                spriteBatch.Draw(
+                    Resource.Atlas["sensorGem"], 
+                    gemPos,
+                    Color.White,
+                    Vector2.One,
+                    Vector2.UnitX * (-num / 2f + num * (float)i)
+                );
+            }
+        }
+        else 
+        {
+            var num = size.X / 4f;
+            for (int i = 0; i < 3; i++)
+            {
+                spriteBatch.Draw(
+                    Resource.Atlas["sensorGem"], 
+                    gemPos,
+                    Color.White,
+                    Vector2.One,
+                    Vector2.UnitX * (-num + num * (float)i)
+                );
+            }
         }
     }
 

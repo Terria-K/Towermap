@@ -6,6 +6,7 @@ return {
     originX: 11,
     originY: 11,
     resizableY: true,
+    darkWorld: true,
     tags: ["Hazard"],
     onRender: "SpikeBallEdRender",
     textureSize: [22, 22]

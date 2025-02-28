@@ -103,7 +103,8 @@ public class LevelSelection : ImGuiElement
         {
             ImGui.InputText("Level Name", ref levelName, 100);
             ImGui.Combo("Width", ref currentWidth, widths, 2);
-            if (string.IsNullOrEmpty(levelName) || levels.Select(x => x.FileName == levelName + ".oel").FirstOrDefault())
+            bool condition = string.IsNullOrEmpty(levelName) || levels.Select(x => x.FileName == levelName + ".oel").FirstOrDefault();
+            if (condition)
             {
                 ImGui.BeginDisabled();
             }
@@ -116,7 +117,7 @@ public class LevelSelection : ImGuiElement
                 openNewLevel = false;
             }
 
-            if (string.IsNullOrEmpty(levelName) || levels.Select(x => x.FileName == levelName + ".oel").FirstOrDefault())
+            if (condition)
             {
                 ImGui.EndDisabled();
             }

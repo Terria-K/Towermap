@@ -144,6 +144,12 @@ public static class VanillaActor
                     case "OrbRender":
                         renderer = OrbRender;
                         break;
+                    case "SpikeBallRender":
+                        renderer = SpikeBallRender;
+                        break;
+                    case "SpikeBallEdRender":
+                        renderer = SpikeBallEdRender;
+                        break;
                 }
             }
             else if (onRender != JsValue.Undefined)
@@ -172,6 +178,51 @@ public static class VanillaActor
                 tags,
                 point,
                 renderer);
+        }
+    }
+
+    private static void SpikeBallEdRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color)
+    {
+        if (level == null)
+        {
+            return;
+        }
+        var length = size.Y / 10;
+
+        for (int i = 0; i < length - 1; i++)
+        {
+            spriteBatch.Draw(Resource.Atlas["spikeBallChain"], new Vector2(position.X - 4, position.Y + (i * 10) + 4), Color.White);
+        }
+    }
+
+    private static void SpikeBallRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color)
+    {
+        if (level == null || level.Nodes.Count == 0)
+        {
+            return;
+        }
+
+        if ((bool)level.CustomData["Explodes"])
+        {
+            var explodingSpikeBall = Resource.Atlas["explodingSpikeBall"];
+
+            level.TextureQuad = new TextureQuad(
+                Resource.TowerFallTexture, 
+                new Rectangle(explodingSpikeBall.Source.X, explodingSpikeBall.Source.Y, 22, 22)
+            );
+        }
+        else 
+        {
+            level.TextureQuad = Resource.Atlas["spikeBall"];
+        }
+
+        var firstNode = level.Nodes[0];
+        var dist = position.Y - firstNode.Y;
+        var length = Math.Abs(dist) / 10;
+
+        for (int i = 0; i < length; i++)
+        {
+            spriteBatch.Draw(Resource.Atlas["spikeBallChain"], new Vector2(position.X - 4, position.Y + (i * 10) + 4), Color.White);
         }
     }
 

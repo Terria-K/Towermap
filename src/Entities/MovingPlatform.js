@@ -6,7 +6,7 @@ return {
     resizableX: true,
     resizableY: true,
     hasNodes: true,
-    tags: ["Solid", "Platform"],
+    tags: ["Solid", "Platform", "Hazard"],
     textureSize: [10, 10],
     onRender: "TileRender3x3"
 }

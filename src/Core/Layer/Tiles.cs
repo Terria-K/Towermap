@@ -102,17 +102,19 @@ public class Tiles : Entity
 
     public string Save() 
     {
-        StringBuilder builder = new StringBuilder();
-        for (int x = 0; x < Ids.Columns; x++) 
+        using (ValueStringBuilder builder = new ValueStringBuilder(stackalloc char[4096]))
         {
-            for (int y = 0; y < Ids.Rows; y++) 
+            for (int x = 0; x < Ids.Columns; x++) 
             {
-                builder.Append(Ids[y, x]);
-                if (y != Ids.Rows - 1)
-                    builder.Append(',');
+                for (int y = 0; y < Ids.Rows; y++) 
+                {
+                    builder.AppendFormattable(Ids[y, x]);
+                    if (y != Ids.Rows - 1)
+                        builder.Append(',');
+                }
+                builder.AppendLine();
             }
-            builder.AppendLine();
+            return builder.ToString();
         }
-        return builder.ToString();
     }
 }

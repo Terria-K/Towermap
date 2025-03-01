@@ -47,18 +47,32 @@ public class LevelSelection : ImGuiElement
 
     private void CreateLevel(string name, string width)
     {
-        var arr2D = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
-        StringBuilder builder = new StringBuilder();
-        for (int x = 0; x < arr2D.Columns; x ++) 
+        int w = (int)WorldUtils.WorldWidth / 10;
+        int h = (int)WorldUtils.WorldHeight / 10;
+        int len = w * h; // buffer won't go up beyond 4096 anyway as the game is quite small
+
+
+        var arr2D = new StackArray2D<bool>(w, h, stackalloc bool[len]);
+        string emptyDefault;
+        using (ValueStringBuilder builder = new ValueStringBuilder(stackalloc char[len]))
         {
-            for (int y = 0; y < arr2D.Rows; y++) 
+            for (int y = 0; y < h; y++) 
             {
-                char c = arr2D[y, x] ? '1' : '0';
-                builder.Append(c);
+                for (int x = 0; x < w; x += 2) 
+                {
+                    // we can unroll the loop like this
+                    builder.Append('0');
+                    builder.Append('0');
+                }
+
+                if (y != h - 1)
+                {
+                    builder.AppendLine();
+                }
             }
-            builder.AppendLine();
+            emptyDefault = builder.ToString();
         }
-        var emptyDefault = builder.ToString();
+
 
         XmlDocument document = new XmlDocument();
         var level = document.CreateElement("level");

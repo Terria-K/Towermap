@@ -105,16 +105,23 @@ public class GridTiles : Entity
 
     public string Save() 
     {
-        StringBuilder builder = new StringBuilder();
-        for (int x = 0; x < Bits.Columns; x ++) 
+        const int NewLineCount = 23;
+        int len = Bits.Columns * Bits.Rows + NewLineCount;
+        using (ValueStringBuilder builder = new ValueStringBuilder(stackalloc char[len]))
         {
-            for (int y = 0; y < Bits.Rows; y++) 
+            for (int x = 0; x < Bits.Columns; x ++) 
             {
-                char c = Bits[y, x] ? '1' : '0';
-                builder.Append(c);
+                for (int y = 0; y < Bits.Rows; y++) 
+                {
+                    char c = Bits[y, x] ? '1' : '0';
+                    builder.Append(c);
+                }
+                if (x != Bits.Columns - 1)
+                {
+                    builder.AppendLine();
+                }
             }
-            builder.AppendLine();
+            return builder.ToString();
         }
-        return builder.ToString();
     }
 }

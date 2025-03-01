@@ -13,23 +13,16 @@ public class Theme
     public TextureQuad SolidTilesQuad;
     public TextureQuad BGTilesQuad;
 
-    public Theme(XmlElement tilesetData, string name, string solidTilesetID, string bgTilesetID, Action<BackdropRenderer> backdropRender) 
+    public Theme(string name, string solidTilesetID, string bgTilesetID, Action<BackdropRenderer> backdropRender) 
     {
         Name = name;
         SolidTilesetID = solidTilesetID;
         BGTilesetID = bgTilesetID;
         BackdropRender = backdropRender;
-        foreach (XmlElement tileset in tilesetData.ChildNodes) 
-        {
-            string id = tileset.GetAttribute("id");
-            if (id == SolidTilesetID) 
-            {
-                SolidTilesQuad = Resource.Atlas[tileset.GetAttribute("image")];
-            }
-            else if (id == BGTilesetID) 
-            {
-                BGTilesQuad = Resource.Atlas[tileset.GetAttribute("image")];
-            }
-        }
+        var solidTileset = Resource.TilesetData.Tilesets[solidTilesetID];
+        var bgTileset = Resource.TilesetData.Tilesets[bgTilesetID];
+        SolidTilesQuad = Resource.Atlas[solidTileset.Image];
+        BGTilesQuad = Resource.Atlas[bgTileset.Image];
+        
     }
 }

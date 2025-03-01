@@ -179,41 +179,30 @@ public class EditorScene : Scene
     {
         towerSettings.SetTheme(theme);
         backdropRenderer.SetTheme(theme);
-        XmlDocument doc = new XmlDocument();
-
-        doc.Load(Path.Combine(saveState.TFPath, "Content", "Atlas", "GameData", "tilesetData.xml"));
-        var tilesetData = doc["TilesetData"];
 
         foreach (var level in levelSelection.Levels) 
         {
-            foreach (XmlElement tileset in tilesetData.GetElementsByTagName("Tileset")) 
-            {
-                var id = tileset.GetAttribute("id");
-                if (id == theme.SolidTilesetID) 
-                {
-                    SolidAutotiler.Init(tileset);
-                    solidTilesPanel.SetTheme(tileset);
-                    if (level.SolidTiles != null)
-                    {
-                        level.SolidTiles.SetTheme(tileset);
-                        level.SolidTiles.UpdateTiles();
-                        level.Solids.SetTheme(tileset);
-                        level.Solids.UpdateTiles(SolidAutotiler);
-                    }
-                }
+            var solidTileData = Resource.TilesetData.Tilesets[theme.SolidTilesetID];
+            var bgTileData = Resource.TilesetData.Tilesets[theme.BGTilesetID];
 
-                else if (id == theme.BGTilesetID)
-                {
-                    BgAutotiler.Init(tileset);
-                    bgTilesPanel.SetTheme(tileset);
-                    if (level.BGTiles != null)
-                    {
-                        level.BGTiles.SetTheme(tileset);
-                        level.BGTiles.UpdateTiles();
-                        level.BGs.SetTheme(tileset);
-                        level.BGs.UpdateTiles(BgAutotiler, level.Solids.Bits);
-                    }
-                }
+            SolidAutotiler.Init(solidTileData);
+            solidTilesPanel.SetTheme(solidTileData);
+            if (level.SolidTiles != null)
+            {
+                level.SolidTiles.SetTheme(solidTileData);
+                level.SolidTiles.UpdateTiles();
+                level.Solids.SetTheme(solidTileData);
+                level.Solids.UpdateTiles(SolidAutotiler);
+            }
+
+            BgAutotiler.Init(bgTileData);
+            bgTilesPanel.SetTheme(bgTileData);
+            if (level.BGTiles != null)
+            {
+                level.BGTiles.SetTheme(bgTileData);
+                level.BGTiles.UpdateTiles();
+                level.BGs.SetTheme(bgTileData);
+                level.BGs.UpdateTiles(BgAutotiler, level.Solids.Bits);
             }
         }
     }

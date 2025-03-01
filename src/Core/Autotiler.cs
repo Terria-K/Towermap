@@ -1,35 +1,13 @@
 using System;
 using System.Xml;
 using Riateu;
+using Towermap.TowerFall;
 
 namespace Towermap;
 
 
 public class Autotiler 
 {
-    // TODO Rewrite this TF's Autotiling madness
-    public int[] Center;
-    public int[] Single;
-    public int[] SingleHorizontalLeft;
-    public int[] SingleHorizontalCenter;
-    public int[] SingleHorizontalRight;
-    public int[] SingleVerticalTop;
-    public int[] SingleVerticalCenter;
-    public int[] SingleVerticalBottom;
-    public int[] Top;
-    public int[] Bottom;
-    public int[] Left;
-    public int[] Right;
-    public int[] TopLeft;
-    public int[] TopRight;
-    public int[] BottomLeft;
-    public int[] BottomRight;
-    public int[] InsideTopLeft;
-    public int[] InsideTopRight;
-    public int[] InsideBottomLeft;
-    public int[] InsideBottomRight;
-    public int[] Below;
-
     private bool initialized;
     private int seed = 0;
     public int Seed 
@@ -51,6 +29,7 @@ public class Autotiler
     private bool upRight = false;
     private bool downLeft = false;
     private bool downRight = false;
+    private TilesetData.Tileset tileset;
     private Random random = new Random();
 
     private static bool Check(int x, int y, Array2D<bool> data) 
@@ -61,30 +40,9 @@ public class Autotiler
         return data[x, y];
     }
 
-    public void Init(XmlElement tileset) 
+    public void Init(TilesetData.Tileset tileset) 
     {
-        Center = SplitElementToInt(tileset, "Center");
-        Single = SplitElementToInt(tileset, "Single");
-        SingleHorizontalLeft = SplitElementToInt(tileset, "SingleHorizontalLeft");
-        SingleHorizontalCenter = SplitElementToInt(tileset, "SingleHorizontalCenter");
-        SingleHorizontalRight = SplitElementToInt(tileset, "SingleHorizontalRight");
-        SingleVerticalTop = SplitElementToInt(tileset, "SingleVerticalTop");
-        SingleVerticalCenter = SplitElementToInt(tileset, "SingleVerticalCenter");
-        SingleVerticalBottom = SplitElementToInt(tileset, "SingleVerticalBottom");
-        Top = SplitElementToInt(tileset, "Top");
-        Bottom = SplitElementToInt(tileset, "Bottom");
-        Left = SplitElementToInt(tileset, "Left");
-        Right = SplitElementToInt(tileset, "Right");
-        TopLeft = SplitElementToInt(tileset, "TopLeft");
-        TopRight = SplitElementToInt(tileset, "TopRight");
-        BottomLeft = SplitElementToInt(tileset, "BottomLeft");
-        BottomRight = SplitElementToInt(tileset, "BottomRight");
-        InsideTopLeft = SplitElementToInt(tileset, "InsideTopLeft");
-        InsideTopRight = SplitElementToInt(tileset, "InsideTopRight");
-        InsideBottomLeft = SplitElementToInt(tileset, "InsideBottomLeft");
-        InsideBottomRight = SplitElementToInt(tileset, "InsideBottomRight");
-        Below = SplitElementToInt(tileset, "Below");
-
+        this.tileset = tileset;
         initialized = true;
     }
 
@@ -135,76 +93,76 @@ public class Autotiler
         {
             if (left && right && up && down && upLeft && upRight && downLeft && downRight)
             {
-                return Center;
+                return tileset.Center;
             }
             if (!up && !down) 
             {
                 if (left && right) 
                 {
-                    return SingleHorizontalCenter;
+                    return tileset.SingleHorizontalCenter;
                 }
                 if (!left && !right) 
                 {
-                    return Single;
+                    return tileset.Single;
                 }
                 if (left) 
                 {
-                    return SingleHorizontalRight;
+                    return tileset.SingleHorizontalRight;
                 }
-                return SingleHorizontalLeft;
+                return tileset.SingleHorizontalLeft;
             }
             else if (!left && !right) 
             {
                 if (up && down)  
                 {
-                    return SingleVerticalCenter;
+                    return tileset.SingleVerticalCenter;
                 }
                 if (down) 
                 {
-                    return SingleVerticalTop;
+                    return tileset.SingleVerticalTop;
                 }
-                return SingleVerticalBottom;
+                return tileset.SingleVerticalBottom;
             }
             else
             {
                 if (up && down && left && !right) 
-                    return Right;
+                    return tileset.Right;
 
                 if (up && down && !left && right) 
-                    return Left;
+                    return tileset.Left;
 
                 if (up && !down && !left && right) 
-                    return BottomLeft;
+                    return tileset.BottomLeft;
 
                 if (up && !down && left && !right) 
-                    return BottomRight;
+                    return tileset.BottomRight;
                 
                 if (!up && down && !left && right)
-                    return TopLeft;
+                    return tileset.TopLeft;
 
                 if (!up && down && left && !right)
-                    return TopRight;
+                    return tileset.TopRight;
 
                 if (up && down && downLeft && !downRight)
-                    return InsideTopLeft;
+                    return tileset.InsideTopLeft;
 
                 if (up && down && !downLeft && downRight)
-                    return InsideTopRight;
+                    return tileset.InsideTopRight;
 
                 if (up && down && upLeft && !upRight)
-                    return InsideBottomLeft;
+                    return tileset.InsideBottomLeft;
 
                 if (up && down && !upLeft && upRight)
-                    return InsideBottomRight;
+                    return tileset.InsideBottomRight;
 
                 if (!down)
-                    return Bottom;
-                return Top;
+                    return tileset.Bottom;
+                return tileset.Top;
             }
         }
         else if (up)
         {
-            return Below;
+            return tileset.Below;
         }
         return null;
     }

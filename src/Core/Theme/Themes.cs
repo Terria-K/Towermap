@@ -15,10 +15,7 @@ public static class Themes
 
     public static void InitThemes(SaveState saveState) 
     {
-        XmlDocument document = new XmlDocument();
-        document.Load(Path.Combine(saveState.TFPath, "Content", "Atlas", "GameData", "tilesetData.xml"));
-
-        themes.Add("SacredGround", new Theme(document["TilesetData"], "SacredGround", "SacredGround", "SacredGroundBG", (renderer) => {
+        themes.Add("SacredGround", new Theme("SacredGround", "SacredGround", "SacredGroundBG", (renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("darkSky");
             renderer.AddElement("moon", new Vector2(211, 34));
@@ -29,7 +26,7 @@ public static class Themes
             renderer.AddElement("fastRain", Vector2.Zero, 0.05f);
         }));
 
-        themes.Add("TwilightSpire", new Theme(document["TilesetData"], "TwilightSpire", "TwilightSpire", "TwilightSpireBG", (renderer) => {
+        themes.Add("TwilightSpire", new Theme("TwilightSpire", "TwilightSpire", "TwilightSpireBG", (renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("shine1", new Vector2(160, 50), 0.4f, new Point(60, 52));
             renderer.AddElement("shine1", new Vector2(60, 120), 0.4f, new Point(60, 52));
@@ -41,7 +38,7 @@ public static class Themes
             renderer.AddElement("fastClouds", Vector2.Zero, 0.01f);
         }));
 
-        themes.Add("Backfire", new Theme(document["TilesetData"], "Backfire", "Backfire", "BackfireBG", (renderer) => {
+        themes.Add("Backfire", new Theme("Backfire", "Backfire", "BackfireBG", (renderer) => {
             renderer.AddElement("CavesBack");
             renderer.AddElement("cavesFlickerA", new Vector2(222, 12), 1, new Point(9, 13));
             renderer.AddElement("cavesFlickerB", new Vector2(189, 94), 1, new Point(10, 11));
@@ -52,19 +49,19 @@ public static class Themes
             renderer.AddElement("thickMist", Vector2.Zero, 0.05f);
         }));
 
-        themes.Add("Flight", new Theme(document["TilesetData"], "Flight", "Flight", "FlightBG", (renderer) => {
+        themes.Add("Flight", new Theme("Flight", "Flight", "FlightBG", (renderer) => {
             renderer.AddElement("daySky");
             renderer.AddElement("flightMoon", new Vector2(45, 30));
             renderer.AddElement("thickMist", Vector2.Zero, 0.18f);
             renderer.AddElement("deepMist", Vector2.Zero, 0.2f);
         }));
 
-        themes.Add("Mirage", new Theme(document["TilesetData"], "Mirage", "Mirage", "MirageBG", (renderer) => {
+        themes.Add("Mirage", new Theme("Mirage", "Mirage", "MirageBG", (renderer) => {
             renderer.AddElement("desertDusk");
             renderer.AddElement("deepMist", Vector2.Zero, 0.1f);
         }));
 
-        themes.Add("Thornwood", new Theme(document["TilesetData"], "Thornwood", "Thornwood", "ThornwoodBG", (renderer) => {
+        themes.Add("Thornwood", new Theme("Thornwood", "Thornwood", "ThornwoodBG", (renderer) => {
             renderer.AddElement("forestSky");
             renderer.AddElement("forestLeaves");
             renderer.AddElement("frontTrees");
@@ -72,19 +69,19 @@ public static class Themes
             renderer.AddElement("farSilhouette2", new Vector2(246, 58), 1, new Point(23, 23));
         }));
 
-        themes.Add("FrostfangKeep", new Theme(document["TilesetData"], "FrostfangKeep", "FrostfangKeep", "FrostfangKeepBG", (renderer) => {
+        themes.Add("FrostfangKeep", new Theme("FrostfangKeep", "FrostfangKeep", "FrostfangKeepBG", (renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("snow", Vector2.Zero, 0.06f);
         }));
 
-        themes.Add("KingsCourt", new Theme(document["TilesetData"], "KingsCourt", "KingsCourt", "KingsCourtBG", (renderer) => {
+        themes.Add("KingsCourt", new Theme("KingsCourt", "KingsCourt", "KingsCourtBG", (renderer) => {
             renderer.AddElement("capitolBack");
             renderer.AddElement("capitolTowers", Vector2.Zero, 0.85f);
             renderer.AddElement("deepMist", Vector2.Zero, 0.2f);
             renderer.AddElement("snow", Vector2.Zero, 0.5f);
         }));
 
-        themes.Add("SunkenCity", new Theme(document["TilesetData"], "SunkenCity", "SunkenCity", "SunkenCityBG", (renderer) => {
+        themes.Add("SunkenCity", new Theme("SunkenCity", "SunkenCity", "SunkenCityBG", (renderer) => {
             renderer.AddElement("oceanBack");
             renderer.AddElement("shine4", new Vector2(160, 50), 1, new Point(48, 48));
             renderer.AddElement("sunkenBack", Vector2.Zero, 1);
@@ -96,7 +93,7 @@ public static class Themes
             renderer.AddElement("leak2", new Vector2(160, 110), 0.8f, new Point(32, 32));
         }));
 
-        themes.Add("Moonstone", new Theme(document["TilesetData"], "Moonstone", "Moonstone", "MoonstoneBG", (renderer) => {
+        themes.Add("Moonstone", new Theme("Moonstone", "Moonstone", "MoonstoneBG", (renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("floatingRocks", new Vector2(10, 100));
             renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
@@ -106,7 +103,7 @@ public static class Themes
             renderer.AddElement("WaterSplash", new Vector2(0, WorldUtils.WorldHeight), 1, new Point((int)WorldUtils.WorldWidth, 100));
         }));
 
-        themes.Add("TowerForge", new Theme(document["TilesetData"], "TowerForge", "TowerForge", "TowerForgeBG", (renderer) => {
+        themes.Add("TowerForge", new Theme("TowerForge", "TowerForge", "TowerForgeBG", (renderer) => {
             renderer.AddElement("coreBg2");
             renderer.AddElement("godHead", new Vector2(80, 75));
             renderer.AddElement("lavaFall1", new Vector2(70, 0), 0.9f);
@@ -120,7 +117,7 @@ public static class Themes
             renderer.AddElement("redSmokeClouds", new Vector2(0, 150), 0.3f);
         }));
 
-        themes.Add("Ascension", new Theme(document["TilesetData"], "Ascension", "Ascension", "AscensionBG", (renderer) => {
+        themes.Add("Ascension", new Theme("Ascension", "Ascension", "AscensionBG", (renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("SkyClouds1");
             renderer.AddElement("SkyClouds2", new Vector2(0, 32));
@@ -129,7 +126,7 @@ public static class Themes
             renderer.AddElement("SkyClouds5", new Vector2(0, 128));
         }));
 
-        themes.Add("GauntletA", new Theme(document["TilesetData"], "GauntletA", "Gauntlet", "GauntletBG", (renderer) => {
+        themes.Add("GauntletA", new Theme("GauntletA", "Gauntlet", "GauntletBG", (renderer) => {
             renderer.AddElement("antarticSky");
             renderer.AddElement("SkyClouds1");
             renderer.AddElement("SkyClouds2", new Vector2(0, 32));
@@ -138,7 +135,7 @@ public static class Themes
             renderer.AddElement("SkyClouds5b", new Vector2(0, 128));
         }));
 
-        themes.Add("GauntletB", new Theme(document["TilesetData"], "GauntletB", "Gauntlet", "GauntletBG", (renderer) => {
+        themes.Add("GauntletB", new Theme("GauntletB", "Gauntlet", "GauntletBG", (renderer) => {
             renderer.AddElement("antarticSky");
             renderer.AddElement("SkyClouds1");
             renderer.AddElement("SkyClouds2", new Vector2(0, 32));
@@ -149,7 +146,7 @@ public static class Themes
 
         if (saveState.DarkWorld)
         {
-            themes.Add("TheAmaranth", new Theme(document["TilesetData"], "TheAmaranth", "TheAmaranth", "TheAmaranthBG", (renderer) => {
+            themes.Add("TheAmaranth", new Theme("TheAmaranth", "TheAmaranth", "TheAmaranthBG", (renderer) => {
                 renderer.AddElement("distantSky");
                 renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
                 renderer.AddElement("snow", Vector2.Zero, 0.03f);
@@ -166,23 +163,23 @@ public static class Themes
                 renderer.AddElement("fastRain", Vector2.Zero, 0.05f);
             }));
 
-            themes.Add("Dreadwood", new Theme(document["TilesetData"], "Dreadwood", "Dreadwood", "DreadwoodBG", (renderer) => {
+            themes.Add("Dreadwood", new Theme("Dreadwood", "Dreadwood", "DreadwoodBG", (renderer) => {
                 renderer.AddElement("dreadSky");
                 renderer.AddElement("dreadLeaves");
                 renderer.AddElement("dreadTrees");
             }));
 
-            themes.Add("Darkfang", new Theme(document["TilesetData"], "Darkfang", "Darkfang", "DarkfangBG", (renderer) => {
+            themes.Add("Darkfang", new Theme("Darkfang", "Darkfang", "DarkfangBG", (renderer) => {
                 renderer.AddElement("darkFangBack");
                 renderer.AddElement("snow", Vector2.Zero, 0.06f);
                 renderer.AddElement("thickMist", Vector2.Zero, 0.2f);
             }));
 
-            themes.Add("Cataclysm", new Theme(document["TilesetData"], "Cataclysm", "Cataclysm", "CataclysmBG", (renderer) => {
+            themes.Add("Cataclysm", new Theme("Cataclysm", "Cataclysm", "CataclysmBG", (renderer) => {
                 renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
             }));
 
-            themes.Add("DarkGauntlet", new Theme(document["TilesetData"], "DarkGauntlet", "Cataclysm", "CataclysmBG", (renderer) => {
+            themes.Add("DarkGauntlet", new Theme("DarkGauntlet", "Cataclysm", "CataclysmBG", (renderer) => {
                 renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
             }));
         }

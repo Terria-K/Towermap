@@ -4,6 +4,7 @@ using System.Xml;
 using Riateu;
 using Riateu.Components;
 using Riateu.Graphics;
+using Towermap.TowerFall;
 
 namespace Towermap;
 
@@ -24,10 +25,9 @@ public class GridTiles : Entity
         AddComponent(tilemap);
     }
 
-    public void SetTheme(XmlElement tileset) 
+    public void SetTheme(TilesetData.Tileset tileset) 
     {
-        var atlas = tileset.GetAttribute("image");
-        sheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas[atlas], 10, 10);
+        sheet = new Spritesheet(Resource.TowerFallTexture, Resource.Atlas[tileset.Image], 10, 10);
     }
 
     public void SetSpriteSheet(Spritesheet spritesheet)

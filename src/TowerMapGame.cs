@@ -6,6 +6,7 @@ using Riateu;
 using Riateu.Content;
 using Riateu.Graphics;
 using Riateu.ImGuiRend;
+using Towermap.TowerFall;
 
 namespace Towermap;
 
@@ -53,6 +54,7 @@ public class TowermapGame : GameApp
         Resource.BGAtlas = TowerFallAtlas.LoadAtlas(Resource.BGAtlasTexture, bgAtlasXml);
         var particle = Resource.Atlas["particle"];
         Resource.Pixel = new TextureQuad(Resource.TowerFallTexture, new Rectangle(particle.Source.X, particle.Source.Y, 1, 1));
+        Resource.TilesetData = TilesetData.Load(Path.Combine(saveState.TFPath, "Content", "Atlas", "GameData", "tilesetData.xml"));
     }
 
     public override void Initialize()

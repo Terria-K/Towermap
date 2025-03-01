@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Xml;
 using Riateu.Graphics;
 
-namespace Towermap;
+namespace Towermap.TowerFall;
 
-public class TowerFallAtlas 
+public sealed class TowerFallAtlas 
 {
     private Dictionary<string, int> lookup = new();
     private TextureQuad[] textures;
@@ -23,11 +23,11 @@ public class TowerFallAtlas
         tfAtlas.textures = new TextureQuad[subTextures.Count];
         foreach (XmlElement subTexture in subTextures) 
         {
-            string name = subTexture.GetAttribute("name");
-            int x = int.Parse(subTexture.GetAttribute("x"));
-            int y = int.Parse(subTexture.GetAttribute("y"));
-            int width = int.Parse(subTexture.GetAttribute("width"));
-            int height = int.Parse(subTexture.GetAttribute("height"));
+            string name = subTexture.Attr("name");
+            int x = subTexture.AttrInt("x");
+            int y = subTexture.AttrInt("y");
+            int width = subTexture.AttrInt("width");
+            int height = subTexture.AttrInt("height");
 
             TextureQuad spTexture = new TextureQuad(texture, new Rectangle(x, y, width, height));
             tfAtlas.textures[i] = spTexture;

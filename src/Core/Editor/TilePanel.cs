@@ -6,6 +6,7 @@ using Riateu;
 using Riateu.Graphics;
 using Riateu.Inputs;
 using SDL3;
+using Towermap.TowerFall;
 
 namespace Towermap;
 
@@ -29,10 +30,9 @@ public class TilePanel : ImGuiElement
         texture = Resource.Atlas[atlasName];
     }
 
-    public void SetTheme(XmlElement tileset) 
+    public void SetTheme(TilesetData.Tileset tileset) 
     {
-        var image = tileset.GetAttribute("image");
-        texture = Resource.Atlas[image];
+        texture = Resource.Atlas[tileset.Image];
     }
 
     public Array2D<int> GetData() 

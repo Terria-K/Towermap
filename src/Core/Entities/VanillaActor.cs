@@ -15,8 +15,9 @@ public static class VanillaActor
     public static void Init(ActorManager manager, SaveState saveState) 
     {
         var entitiesPath = Path.GetFullPath("Entities");
-        Engine engine = new Engine((opt) => opt.AllowClr().EnableModules(entitiesPath, true));
+        Engine engine = new Engine((opt) => opt.AllowClr());
         var files = Directory.GetFiles(entitiesPath);
+        Array.Sort(files);
 
         for (int i = 0; i < files.Length; i += 1)
         {

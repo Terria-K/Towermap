@@ -467,23 +467,8 @@ public class EditorScene : Scene
 #endif
             currentLevel = level;
 
-            if (int.TryParse(loadingLevel.GetAttribute("width"), out int width))
-            {
-                currentLevel.Width = width;
-            }
-            else 
-            {
-                currentLevel.Width = 320;
-            }
-
-            if (int.TryParse(loadingLevel.GetAttribute("height"), out int height))
-            {
-                currentLevel.Height = height;
-            }
-            else 
-            {
-                currentLevel.Height = 240;
-            }
+            currentLevel.Width = loadingLevel.AttrInt("width", 320);
+            currentLevel.Height = loadingLevel.AttrInt("width", 240);
 
             if (currentLevel.Width == 420)
             {
@@ -558,30 +543,24 @@ public class EditorScene : Scene
                 Logger.Error($"{entityName} is not registered to ActorManager");
                 continue;
             }
-            ulong entityID = ulong.Parse(entity.GetAttribute("id"));
-            var x = int.Parse(entity.GetAttribute("x"));
-            var y = int.Parse(entity.GetAttribute("y"));
-            int width = 0;
-            int height = 0;
+
+            ulong entityID = entity.AttrULong("id");
+            int x = entity.AttrInt("x");
+            int y = entity.AttrInt("y");
+
+            int width = entity.AttrInt("width");
+            int height = entity.AttrInt("width");
             List<Vector2> nodes = actor.HasNodes ? new List<Vector2>() : null;
 
-            if (entity.HasAttribute("width")) 
-            {
-                width = int.Parse(entity.GetAttribute("width"));
-            }
 
-            if (entity.HasAttribute("height")) 
-            {
-                height = int.Parse(entity.GetAttribute("height"));
-            }
 
             if (entity.HasChildNodes) 
             {
                 nodes = new List<Vector2>();
                 foreach (XmlElement child in entity.ChildNodes) 
                 {
-                    var nx = int.Parse(child.GetAttribute("x"));
-                    var ny = int.Parse(child.GetAttribute("y"));
+                    int nx = child.AttrInt("x");
+                    int ny = child.AttrInt("y");
 
                     Vector2 node = new Vector2(nx, ny);
                     nodes.Add(node);
@@ -608,18 +587,32 @@ public class EditorScene : Scene
                     {
                         customDatas.Add(attr.Name, output2);
                     }
-                    else if (attr.Value.ToLowerInvariant() == "true") 
-                    {
-                        customDatas.Add(attr.Name, true);
-                    }
-                    else if (attr.Value.ToLowerInvariant() == "false") 
-                    {
-                        customDatas.Add(attr.Name, false);
-                    }
                     else 
                     {
-                        customDatas.Add(attr.Name, value);
+                        // Need to prevent stackalloc stackoverflow
+                        static void AddStringToData(string value, XmlAttribute attr, Dictionary<string, object> customDatas)
+                        {
+                            ReadOnlySpan<char> val = value;
+                            Span<char> loweredVal = stackalloc char[val.Length];
+                            val.ToLowerInvariant(loweredVal);
+
+                            if (loweredVal.SequenceEqual("true")) 
+                            {
+                                customDatas.Add(attr.Name, true);
+                            }
+                            else if (loweredVal.SequenceEqual("false")) 
+                            {
+                                customDatas.Add(attr.Name, false);
+                            }
+                            else 
+                            {
+                                customDatas.Add(attr.Name, value);
+                            }
+                        }
+
+                        AddStringToData(value, attr, customDatas);
                     }
+
                 }
             }
 

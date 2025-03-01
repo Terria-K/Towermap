@@ -42,14 +42,13 @@ public class ActorManager
         for (int i = 0; i < tags.Length; i++)
         {
             string key = tags[i];
-            if (ActorTagged.TryGetValue(key, out var list))
+            ref var list = ref ActorTagged.FindValue(key, out var exists);
+            if (!exists) 
             {
-                list.Add(actor);
-                continue;
+                list = new List<Actor>();
             }
-            var l = new List<Actor>();
-            l.Add(actor);
-            ActorTagged[tags[i]] = l;
+            
+            list.Add(actor);
         }
     }
 

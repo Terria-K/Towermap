@@ -75,16 +75,15 @@ public class GridTiles : Entity
         }
     }
 
-    public void SetGrid(string bitString) 
+    public void SetGrid(ReadOnlySpan<char> bitString) 
     {
-        ReadOnlySpan<char> bitSpan = bitString;
         Array2D<bool> array = new Array2D<bool>((int)WorldUtils.WorldWidth / 10, (int)WorldUtils.WorldHeight / 10);
         int x = 0;
         int y = 0;
         bool hasInclude = false;
-        for (int i = 0; i < bitSpan.Length; i++) 
+        for (int i = 0; i < bitString.Length; i++) 
         {
-            var c = bitSpan[i];
+            var c = bitString[i];
             // can we just have \n instead? please, Windows?
             if (c == '\r' || c == '\n') 
             {

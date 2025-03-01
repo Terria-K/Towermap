@@ -4,6 +4,7 @@ using Riateu;
 using Riateu.Components;
 using Riateu.Graphics;
 using Towermap.TowerFall;
+using System;
 
 namespace Towermap;
 
@@ -71,32 +72,44 @@ public class Tiles : Entity
         }
     }
 
-    public void SetTiles(string csv) 
+    public void SetTiles(ReadOnlySpan<char> csv) 
     {
-        string newLine = "\n";
-        if (csv.Contains("\r\n"))
+        ReadOnlySpan<char> splitter = "\n";
+        if (csv.Contains("\r\n", StringComparison.InvariantCulture))
         {
             // yeah, I hate this
-            newLine = "\r\n";
+            splitter = "\r\n";
         }
-        string[] splitted = csv.Split(newLine);
-        for (int i = 0; i < splitted.Length; i++) 
-        {
-            string[] strTiles = splitted[i].Split(',');
 
-            for (int j = 0; j < strTiles.Length; j++) 
+        var splitEnumerator = csv.Split(splitter);
+
+        int i = 0;
+        foreach (var sp in splitEnumerator)
+        {
+            var splitted = csv[sp];
+            var strTiles = splitted.Split(',');
+            int j = 0;
+            foreach (var str in strTiles)
             {
-                string tile = strTiles[j];
-                if (string.IsNullOrEmpty(tile))
-                    continue;
-                int num = int.Parse(strTiles[j]);
-                Ids[j, i] = num;
-                if (num == -1) 
+                var tile = splitted[str];
+                if (tile.IsWhiteSpace())
                 {
                     continue;
                 }
-                this.tiles[j, i] = spritesheet.GetTexture(num);
+
+                int num = int.Parse(tile);
+                Ids[j, i] = num;
+
+                if (num == -1)
+                {
+                    j += 1;
+                    continue;
+                }
+
+                tiles[j, i] = spritesheet.GetTexture(num);
+                j += 1;
             }
+            i += 1;
         }
     }
 

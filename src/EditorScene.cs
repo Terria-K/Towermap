@@ -108,7 +108,6 @@ public class EditorScene : Scene
                 .Add(new MenuItem("Open", Open))
                 .Add(recentItems)
                 .Add(new MenuItem("Save", () => Save()))
-                .Add(new MenuItem("Save As", () => Save(true)))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
             .Add(new MenuSlot("Settings")
                 .Add(new MenuItem("Theme", OnOpenTheme))

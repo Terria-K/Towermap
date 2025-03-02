@@ -140,11 +140,12 @@ public class EditorScene : Scene
 
         tools = new Tools();
 
-        tools.AddTool(FA6.Pen, () => ToolSelected = Tool.Pen);
-        tools.AddTool(FA6.UpDownLeftRight, () => ToolSelected = Tool.Rect);
-        tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry);
-        tools.AddTool(FA6.UpDown, OnVerticalSymmetry);
-        tools.AddTool(FA6.CircleNodes, () => ToolSelected = Tool.Node);
+        tools.AddTool(FA6.Pen, () => ToolSelected = Tool.Pen, true);
+        tools.AddTool(FA6.UpDownLeftRight, () => ToolSelected = Tool.Rect, true);
+        tools.AddTool(FA6.CircleNodes, () => ToolSelected = Tool.Node, true);
+
+        tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry, false, 1);
+        tools.AddTool(FA6.UpDown, OnVerticalSymmetry, false, 1);
 
         entityMenu = new EntityMenu(actorManager, imGuiTexture);
         entityMenu.OnSelectActor = OnSelectActor;

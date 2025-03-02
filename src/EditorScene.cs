@@ -538,7 +538,7 @@ public class EditorScene : Scene
             int y = entity.AttrInt("y");
 
             int width = entity.AttrInt("width");
-            int height = entity.AttrInt("width");
+            int height = entity.AttrInt("height");
             List<Vector2> nodes = actor.HasNodes ? new List<Vector2>() : null;
 
 
@@ -763,6 +763,8 @@ public class EditorScene : Scene
             return;
         }
 
+        HasRemovedEntity = false;
+
         if (hasSelection) 
         {
             UpdateSelected();
@@ -858,14 +860,12 @@ public class EditorScene : Scene
 
         if (ImGui.GetIO().WantCaptureMouse) 
         {
-            HasRemovedEntity = false;
             return;
         }
 
         // Try to not update when it is not visible
         if (!visibility[(int)CurrentLayer]) 
         {
-            HasRemovedEntity = false;
             return;
         }
 
@@ -947,8 +947,6 @@ public class EditorScene : Scene
                 }
             }
         }
-
-        HasRemovedEntity = false;
     }
 
     private void TileMouseReleased(int buttonID) 

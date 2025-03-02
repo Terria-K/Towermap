@@ -105,7 +105,7 @@ public class LevelActor : Entity
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
 
-        if (scene.ToolSelected == Tool.Node) 
+        if (scene.ToolSelected == Tool.Node && Selected) 
         {
             if (Nodes != null && Nodes.Count > 0) 
             {

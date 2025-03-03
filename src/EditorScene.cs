@@ -38,7 +38,6 @@ public enum ToolModifierFlags
 public class EditorScene : Scene
 {
     private ImGuiRenderer imGui;
-    private ActorManager actorManager;
 
 #region Elements
     private ImGuiElement menuBar;
@@ -90,6 +89,7 @@ public class EditorScene : Scene
     private int fallbackSelected = 0;
     private SaveState saveState;
     private MenuSelectionItem recentItems;
+    private ExportOption exportOption;
 
     public EditorScene(GameApp game, ImGuiRenderer renderer, SaveState state) : base(game)
     {
@@ -98,10 +98,9 @@ public class EditorScene : Scene
 
         levelBatch = new Batch(game.GraphicsDevice, (int)WorldUtils.WorldWidth + 100, (int)WorldUtils.WorldHeight);
         batch = new Batch(game.GraphicsDevice, 1280, 640);
-        actorManager = new ActorManager();
-        PhantomActor = new PhantomActor(this, actorManager);
+        PhantomActor = new PhantomActor(this);
         tileRect = new TileRect();
-        VanillaActor.Init(actorManager, saveState);
+        VanillaActor.Init(saveState);
         imGui = renderer;
         imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
         recentItems = new MenuSelectionItem("Open Recent");
@@ -116,6 +115,15 @@ public class EditorScene : Scene
                 .Add(new MenuItem("Open", Open))
                 .Add(recentItems)
                 .Add(new MenuItem("Save", () => Save()))
+                .Add(new MenuItem("Export As .tower", () => {
+                    if (tower == null)
+                    {
+                        return;
+                    }
+
+                    exportOption.SetTower(tower);
+                    exportOption.Enabled = true;
+                }))
                 .Add(new MenuItem("Quit", () => GameInstance.Quit())))
             .Add(new MenuSlot("Settings")
                 .Add(new MenuItem("Theme", OnOpenTheme))
@@ -130,7 +138,7 @@ public class EditorScene : Scene
         layers.OnLayerSelect = OnLayerSelected;
         layers.ShowOrHide = OnShowOrHideLayer;
 
-        entities = new Entities(actorManager, imGuiTexture);
+        entities = new Entities(imGuiTexture);
         entities.Enabled = false;
         entities.OnSelectActor = OnSelectActor;
 
@@ -143,7 +151,7 @@ public class EditorScene : Scene
         backdropRenderer = new BackdropRenderer();
         backdropRenderer.SetTheme(theme);
         towerSettings = new TowerSettings();
-        towerSettings.OnSave = OnSettingsChangeTheme;
+        towerSettings.OnSave = OnSettingsApply;
         towerSettings.SetTheme(theme);
 
         tools = new Tools();
@@ -163,13 +171,17 @@ public class EditorScene : Scene
             ToolModifier &= ~ToolModifierFlags.Symmetry;
         }, Tools.ToolType.Toggleable, 2);
 
-        entityMenu = new EntityMenu(actorManager, imGuiTexture);
+        entityMenu = new EntityMenu(imGuiTexture);
         entityMenu.OnSelectActor = OnSelectActor;
         entityMenu.Enabled = false;
 
         newTower = new NewTower(saveState);
         newTower.OnCreateTower = OnCreateTower;
         newTower.Enabled = false;
+
+        exportOption = new ExportOption();
+        exportOption.OnExport = OnExport;
+        exportOption.Enabled = false;
     }
 
     public override void Begin()
@@ -196,10 +208,10 @@ public class EditorScene : Scene
         towerSettings.SetTheme(theme);
         backdropRenderer.SetTheme(theme);
 
-        foreach (var level in levelSelection.Levels) 
+        foreach (var level in tower.Levels) 
         {
-            var solidTileData = Resource.TilesetData.Tilesets[theme.SolidTilesetID];
-            var bgTileData = Resource.TilesetData.Tilesets[theme.BGTilesetID];
+            var solidTileData = Resource.TilesetData.Tilesets[theme.Tileset];
+            var bgTileData = Resource.TilesetData.Tilesets[theme.BGTileset];
 
             SolidAutotiler.Init(solidTileData);
             solidTilesPanel.SetTheme(solidTileData);
@@ -266,6 +278,17 @@ public class EditorScene : Scene
     }
 
 #region Events
+    private void OnExport(ExportOverride exportOverride)
+    {
+        FileDialog.Save((s) => {
+            LevelExport.TowerExport(tower, s, exportOverride);
+            if (currentLevel != null)
+            {
+                currentLevel.Unsaved = false;
+                SetLevel(currentLevel);
+            }
+        }, null, new Filter("Tower", "tower"));
+    }
     private void OnLevelCreated()
     {
         if (currentLevel != null)
@@ -328,9 +351,9 @@ public class EditorScene : Scene
         visibility[id] = visible; 
     }
 
-    private void OnSettingsChangeTheme(int num)
+    private void OnSettingsApply(TowerData data)
     {
-        SetTowerTheme(Themes.ThemeNames[num]);
+        SetTowerTheme(Themes.ThemeNames[data.ThemeID]);
     }
 
     private void OnSelectActor(Actor actor) 
@@ -438,7 +461,7 @@ public class EditorScene : Scene
             return;
         }
 
-        actorManager.ClearIDs();
+        level.ClearIDs();
         
 
         int seed = level.Seed;
@@ -460,59 +483,14 @@ public class EditorScene : Scene
             return;
         }
 
-        level.Actors.Clear();
-        
-        XmlDocument document = new XmlDocument();
-        document.Load(level.Path);
-
-        var loadingLevel = document["level"];
 #if !DEBUG
         try 
         {
 #endif
-            currentLevel = level;
+        level.LoadLevel(tower.Theme);
+        level.SetActorScene(this);
+        currentLevel = level;
 
-            currentLevel.Width = loadingLevel.AttrInt("width", 320);
-            currentLevel.Height = loadingLevel.AttrInt("width", 240);
-
-            if (currentLevel.Width == 420)
-            {
-                if (!WorldUtils.TurnWide())
-                {
-                    var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.SolidTilesQuad, 10, 10);
-                    var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.BGTilesQuad, 10, 10);
-                    level.Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, 42, 24);
-
-                    level.BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, 42, 24);
-                    level.SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, 42, 24);
-                    level.BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, 42, 24);
-                }
-            }
-            else 
-            {
-                WorldUtils.TurnStandard();
-                var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.SolidTilesQuad, 10, 10);
-                var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, towerSettings.Theme.BGTilesQuad, 10, 10);
-                level.Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, 32, 24);
-
-                level.BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, 32, 24);
-                level.SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, 32, 24);
-                level.BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, 32, 24);
-            }
-
-            var solid = loadingLevel["Solids"];
-            currentLevel.Solids.SetGrid(solid.InnerText);
-
-            var bg = loadingLevel["BG"];
-            currentLevel.BGs.SetGrid(bg.InnerText);
-
-            var solidTiles = loadingLevel["SolidTiles"];
-            currentLevel.SolidTiles.SetTiles(solidTiles.InnerText);
-
-            var bgTiles = loadingLevel["BGTiles"];
-            currentLevel.BGTiles.SetTiles(bgTiles.InnerText);
-
-            SpawnEntities(loadingLevel);
 #if !DEBUG
         }
         catch (Exception ex)
@@ -532,129 +510,6 @@ public class EditorScene : Scene
         actorToRemove = actor;
     }
 
-    private void SpawnEntities(XmlElement xml) 
-    {
-        var entities = xml["Entities"];
-        ulong id = 0;
-        HashSet<ulong> idTaken = new();
-
-        foreach (XmlElement entity in entities) 
-        {
-            var entityName = entity.Name;
-
-            var actor = actorManager.GetEntity(entityName);
-            if (actor == null)
-            {
-                Logger.Error($"{entityName} is not registered to ActorManager");
-                continue;
-            }
-
-            ulong entityID = entity.AttrULong("id");
-            int x = entity.AttrInt("x");
-            int y = entity.AttrInt("y");
-
-            int width = entity.AttrInt("width");
-            int height = entity.AttrInt("height");
-            List<Vector2> nodes = actor.HasNodes ? new List<Vector2>() : null;
-
-
-
-            if (entity.HasChildNodes) 
-            {
-                nodes = new List<Vector2>();
-                foreach (XmlElement child in entity.ChildNodes) 
-                {
-                    int nx = child.AttrInt("x");
-                    int ny = child.AttrInt("y");
-
-                    Vector2 node = new Vector2(nx, ny);
-                    nodes.Add(node);
-                }
-            }
-
-            Dictionary<string, object> customDatas = new Dictionary<string, object>();
-
-            if (actor.CustomValues != null)
-            {
-                foreach (XmlAttribute attr in entity.Attributes)
-                {
-                    if (!actor.CustomValues.ContainsKey(attr.Name)) 
-                    {
-                        continue;
-                    }
-
-                    var value = attr.Value;
-                    if (int.TryParse(value, out var output)) 
-                    {
-                        customDatas.Add(attr.Name, output);
-                    }
-                    else if (float.TryParse(value, out var output2)) 
-                    {
-                        customDatas.Add(attr.Name, output2);
-                    }
-                    else 
-                    {
-                        // Need to prevent stackalloc stackoverflow
-                        static void AddStringToData(string value, XmlAttribute attr, Dictionary<string, object> customDatas)
-                        {
-                            ReadOnlySpan<char> val = value;
-                            Span<char> loweredVal = stackalloc char[val.Length];
-                            val.ToLowerInvariant(loweredVal);
-
-                            if (loweredVal.SequenceEqual("true")) 
-                            {
-                                customDatas.Add(attr.Name, true);
-                            }
-                            else if (loweredVal.SequenceEqual("false")) 
-                            {
-                                customDatas.Add(attr.Name, false);
-                            }
-                            else 
-                            {
-                                customDatas.Add(attr.Name, value);
-                            }
-                        }
-
-                        AddStringToData(value, attr, customDatas);
-                    }
-
-                }
-            }
-
-            var levelActor = new LevelActor(Resource.TowerFallTexture, actor, entityID);
-            levelActor.PosX = x;
-            levelActor.PosY = y;
-            levelActor.Data.HasNodes = actor.HasNodes;
-            levelActor.Nodes = nodes;
-            levelActor.CustomData = customDatas;
-            if (actor.ResizeableX) 
-            {
-                levelActor.Data.ResizeableX = true;
-                levelActor.Width = width;
-            }
-            if (actor.ResizeableY) 
-            {
-                levelActor.Data.ResizeableY = true;
-                levelActor.Height = height;
-            }
-            levelActor.Scene = this;
-            currentLevel.Actors.Add(levelActor);
-
-            if (entityID > id) 
-            {
-                id = entityID;
-            }
-            idTaken.Add(entityID);
-        }
-
-        actorManager.TotalIDs = id;
-        for (ulong i = 0; i <= id; i++) 
-        {
-            if (idTaken.Contains(i))
-                continue;
-            actorManager.RetriveID(i);
-        }
-    }
 
     private void UpdateTiles(int gridX, int gridY, Array2D<bool> also) 
     {
@@ -761,7 +616,7 @@ public class EditorScene : Scene
             {
                 currentLevel.RemoveActor(actorToRemove);
                 HasRemovedEntity = true;
-                actorManager.RetriveID(actorToRemove.ID);
+                currentLevel.RetriveID(actorToRemove.ID);
                 actorToRemove = null;
             }
         }
@@ -897,7 +752,7 @@ public class EditorScene : Scene
                     {
                         void Spawn(Vector2 position)
                         {
-                            ulong id = actorManager.GetID();
+                            ulong id = currentLevel.GetID();
                             var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, id);
                             actor.Scene = this;
                             actor.PosX = position.X;
@@ -1147,11 +1002,17 @@ public class EditorScene : Scene
             ImGui.OpenPopup("New Tower");
         }
 
+        if (exportOption.Enabled)
+        {
+            ImGui.OpenPopup("Export Option");
+        }
+
         if (openFallbackTheme) 
         {
             ImGui.OpenPopup("Fallback Theme");
         }
 
+        exportOption.DrawGui();
         newTower.DrawGui();
         towerSettings.DrawGui();
 
@@ -1293,6 +1154,7 @@ public class EditorScene : Scene
         if (tower.Load(filepath)) 
         {
             levelSelection.SelectTower(tower);
+            towerSettings.SetTower(tower);
             SetTheme(tower.Theme);
         }
         else 

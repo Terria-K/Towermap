@@ -15,7 +15,52 @@ public static class Themes
 
     public static void InitThemes(SaveState saveState) 
     {
-        themes.Add("SacredGround", new Theme("SacredGround", "SacredGround", "SacredGroundBG", (renderer) => {
+        var themeData = Path.Combine(saveState.TFPath, "Content", "Atlas", "GameData", "themeData.xml");
+        var document = new XmlDocument();
+        document.Load(themeData);
+
+        var root = document["ThemeData"];
+        foreach (XmlElement themeXml in root.GetElementsByTagName("Theme"))
+        {
+            var id = themeXml.Attr("id");
+            var tileset = themeXml["Tileset"].InnerText;
+            var bgtileset = themeXml["BGTileset"].InnerText;
+            Theme theme = new Theme(tileset, bgtileset);
+            theme.ID = id;
+            theme.Name = themeXml["Name"].InnerText;
+            theme.Icon = themeXml["Icon"].InnerText;
+            theme.Music = themeXml["Music"].InnerText;
+            theme.TowerType = themeXml["TowerType"].InnerText;
+            var mapPosition = themeXml["MapPosition"];
+            theme.MapPosition = new Vector2(mapPosition.AttrInt("x"), mapPosition.AttrInt("y"));
+            theme.Background = themeXml["Background"].InnerText;
+
+            theme.Lanterns = themeXml["Lanterns"]?.InnerText;
+            theme.DrillParticleColor = themeXml["DrillParticleColor"]?.InnerText;
+            theme.CrackedBlockColor = themeXml["CrackedBlockColor"]?.InnerText;
+            theme.World = themeXml["World"]?.InnerText;
+            if (float.TryParse(themeXml["Wind"]?.InnerText, out float wres))
+            {
+                theme.Wind = wres;
+            }
+            if (float.TryParse(themeXml["DarknessOpacity"]?.InnerText, out float darknessOpacity))
+            {
+                theme.DarknessOpacity = darknessOpacity;
+            }
+            if (bool.TryParse(themeXml["Raining"]?.InnerText, out bool rres))
+            {
+                theme.Raining = rres;
+            }
+
+            if (bool.TryParse(themeXml["Cold"]?.InnerText, out bool cres))
+            {
+                theme.Cold = cres;
+            }
+            theme.DarknessColor = themeXml["DarknessColor"]?.InnerText;
+            themes.Add(id, theme);
+        }
+
+        themes["SacredGround"].SetRenderer((renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("darkSky");
             renderer.AddElement("moon", new Vector2(211, 34));
@@ -24,9 +69,9 @@ public static class Themes
             renderer.AddElement("fastClouds", Vector2.Zero, 0.03f);
             renderer.AddElement("cloudRain", Vector2.Zero, 0.04f);
             renderer.AddElement("fastRain", Vector2.Zero, 0.05f);
-        }));
+        });
 
-        themes.Add("TwilightSpire", new Theme("TwilightSpire", "TwilightSpire", "TwilightSpireBG", (renderer) => {
+        themes["TwilightSpire"].SetRenderer((renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("shine1", new Vector2(160, 50), 0.4f, new Point(60, 52));
             renderer.AddElement("shine1", new Vector2(60, 120), 0.4f, new Point(60, 52));
@@ -36,9 +81,9 @@ public static class Themes
             renderer.AddElement("magicSymbols");
             renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
             renderer.AddElement("fastClouds", Vector2.Zero, 0.01f);
-        }));
+        });
 
-        themes.Add("Backfire", new Theme("Backfire", "Backfire", "BackfireBG", (renderer) => {
+        themes["Backfire"].SetRenderer((renderer) => {
             renderer.AddElement("CavesBack");
             renderer.AddElement("cavesFlickerA", new Vector2(222, 12), 1, new Point(9, 13));
             renderer.AddElement("cavesFlickerB", new Vector2(189, 94), 1, new Point(10, 11));
@@ -47,41 +92,41 @@ public static class Themes
             renderer.AddElement("IgnisFatuus", new Vector2(160, 120), 0.3f, new Point(32, 32));
             renderer.AddElement("IgnisFatuus2", new Vector2(160, 120), 0.4f, new Point(32, 32));
             renderer.AddElement("thickMist", Vector2.Zero, 0.05f);
-        }));
+        });
 
-        themes.Add("Flight", new Theme("Flight", "Flight", "FlightBG", (renderer) => {
+        themes["Flight"].SetRenderer((renderer) => {
             renderer.AddElement("daySky");
             renderer.AddElement("flightMoon", new Vector2(45, 30));
             renderer.AddElement("thickMist", Vector2.Zero, 0.18f);
             renderer.AddElement("deepMist", Vector2.Zero, 0.2f);
-        }));
+        });
 
-        themes.Add("Mirage", new Theme("Mirage", "Mirage", "MirageBG", (renderer) => {
+        themes["Mirage"].SetRenderer((renderer) => {
             renderer.AddElement("desertDusk");
             renderer.AddElement("deepMist", Vector2.Zero, 0.1f);
-        }));
+        });
 
-        themes.Add("Thornwood", new Theme("Thornwood", "Thornwood", "ThornwoodBG", (renderer) => {
+        themes["Thornwood"].SetRenderer((renderer) => {
             renderer.AddElement("forestSky");
             renderer.AddElement("forestLeaves");
             renderer.AddElement("frontTrees");
             renderer.AddElement("farSilhouette", new Vector2(75, 30), 1, new Point(23, 23));
             renderer.AddElement("farSilhouette2", new Vector2(246, 58), 1, new Point(23, 23));
-        }));
+        });
 
-        themes.Add("FrostfangKeep", new Theme("FrostfangKeep", "FrostfangKeep", "FrostfangKeepBG", (renderer) => {
+        themes["FrostfangKeep"].SetRenderer((renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("snow", Vector2.Zero, 0.06f);
-        }));
+        });
 
-        themes.Add("KingsCourt", new Theme("KingsCourt", "KingsCourt", "KingsCourtBG", (renderer) => {
+        themes["KingsCourt"].SetRenderer((renderer) => {
             renderer.AddElement("capitolBack");
             renderer.AddElement("capitolTowers", Vector2.Zero, 0.85f);
             renderer.AddElement("deepMist", Vector2.Zero, 0.2f);
             renderer.AddElement("snow", Vector2.Zero, 0.5f);
-        }));
+        });
 
-        themes.Add("SunkenCity", new Theme("SunkenCity", "SunkenCity", "SunkenCityBG", (renderer) => {
+        themes["SunkenCity"].SetRenderer((renderer) => {
             renderer.AddElement("oceanBack");
             renderer.AddElement("shine4", new Vector2(160, 50), 1, new Point(48, 48));
             renderer.AddElement("sunkenBack", Vector2.Zero, 1);
@@ -91,9 +136,9 @@ public static class Themes
             renderer.AddElement("shine4", new Vector2(160, 50), 1, new Point(48, 48));
             renderer.AddElement("oceanFilter", Vector2.Zero, 0.2f);
             renderer.AddElement("leak2", new Vector2(160, 110), 0.8f, new Point(32, 32));
-        }));
+        });
 
-        themes.Add("Moonstone", new Theme("Moonstone", "Moonstone", "MoonstoneBG", (renderer) => {
+        themes["Moonstone"].SetRenderer((renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("floatingRocks", new Vector2(10, 100));
             renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
@@ -101,9 +146,9 @@ public static class Themes
             renderer.AddElement("sea", new Vector2(0, 180), 0.04f);
             renderer.AddElement("sea", new Vector2(0, 185), 0.35f);
             renderer.AddElement("WaterSplash", new Vector2(0, WorldUtils.WorldHeight), 1, new Point((int)WorldUtils.WorldWidth, 100));
-        }));
+        });
 
-        themes.Add("TowerForge", new Theme("TowerForge", "TowerForge", "TowerForgeBG", (renderer) => {
+        themes["TowerForge"].SetRenderer((renderer) => {
             renderer.AddElement("coreBg2");
             renderer.AddElement("godHead", new Vector2(80, 75));
             renderer.AddElement("lavaFall1", new Vector2(70, 0), 0.9f);
@@ -115,38 +160,38 @@ public static class Themes
             renderer.AddElement("bgLava2", new Vector2(0, 195), 0.5f);
             renderer.AddElement("fastClouds", new Vector2(0, 30), 0.04f);
             renderer.AddElement("redSmokeClouds", new Vector2(0, 150), 0.3f);
-        }));
+        });
 
-        themes.Add("Ascension", new Theme("Ascension", "Ascension", "AscensionBG", (renderer) => {
+        themes["Ascension"].SetRenderer((renderer) => {
             renderer.AddElement("distantSky");
             renderer.AddElement("SkyClouds1");
             renderer.AddElement("SkyClouds2", new Vector2(0, 32));
             renderer.AddElement("SkyClouds3", new Vector2(0, 64));
             renderer.AddElement("SkyClouds4", new Vector2(0, 96));
             renderer.AddElement("SkyClouds5", new Vector2(0, 128));
-        }));
+        });
 
-        themes.Add("GauntletA", new Theme("GauntletA", "Gauntlet", "GauntletBG", (renderer) => {
+        themes["GauntletA"].SetRenderer((renderer) => {
             renderer.AddElement("antarticSky");
             renderer.AddElement("SkyClouds1");
             renderer.AddElement("SkyClouds2", new Vector2(0, 32));
             renderer.AddElement("SkyClouds3", new Vector2(0, 64));
             renderer.AddElement("SkyClouds4", new Vector2(0, 96));
             renderer.AddElement("SkyClouds5b", new Vector2(0, 128));
-        }));
+        });
 
-        themes.Add("GauntletB", new Theme("GauntletB", "Gauntlet", "GauntletBG", (renderer) => {
+        themes["GauntletB"].SetRenderer((renderer) => {
             renderer.AddElement("antarticSky");
             renderer.AddElement("SkyClouds1");
             renderer.AddElement("SkyClouds2", new Vector2(0, 32));
             renderer.AddElement("SkyClouds3", new Vector2(0, 64));
             renderer.AddElement("SkyClouds4", new Vector2(0, 96));
             renderer.AddElement("SkyClouds5b", new Vector2(0, 128));
-        }));
+        });
 
         if (saveState.DarkWorld)
         {
-            themes.Add("TheAmaranth", new Theme("TheAmaranth", "TheAmaranth", "TheAmaranthBG", (renderer) => {
+            themes["TheAmaranth"].SetRenderer((renderer) => {
                 renderer.AddElement("distantSky");
                 renderer.AddElement("thickMist", Vector2.Zero, 0.02f);
                 renderer.AddElement("snow", Vector2.Zero, 0.03f);
@@ -161,30 +206,30 @@ public static class Themes
                 renderer.AddElement("fastClouds", Vector2.Zero, 0.03f);
                 renderer.AddElement("cloudRain", Vector2.Zero, 0.04f);
                 renderer.AddElement("fastRain", Vector2.Zero, 0.05f);
-            }));
+            });
 
-            themes.Add("Dreadwood", new Theme("Dreadwood", "Dreadwood", "DreadwoodBG", (renderer) => {
+            themes["Dreadwood"].SetRenderer((renderer) => {
                 renderer.AddElement("dreadSky");
                 renderer.AddElement("dreadLeaves");
                 renderer.AddElement("dreadTrees");
-            }));
+            });
 
-            themes.Add("Darkfang", new Theme("Darkfang", "Darkfang", "DarkfangBG", (renderer) => {
+            themes["Darkfang"].SetRenderer((renderer) => {
                 renderer.AddElement("darkFangBack");
                 renderer.AddElement("snow", Vector2.Zero, 0.06f);
                 renderer.AddElement("thickMist", Vector2.Zero, 0.2f);
-            }));
+            });
 
-            themes.Add("Cataclysm", new Theme("Cataclysm", "Cataclysm", "CataclysmBG", (renderer) => {
+            themes["Cataclysm"].SetRenderer((renderer) => {
                 renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
-            }));
+            });
 
-            themes.Add("DarkGauntlet", new Theme("DarkGauntlet", "Cataclysm", "CataclysmBG", (renderer) => {
+            themes["DarkGauntlet"].SetRenderer((renderer) => {
                 renderer.AddElement("vortex0", new Vector2(-130, -160), 1);
-            }));
-        }
+            });
+       }
 
-        ThemeNames = themes.Values.Select(x => x.Name).ToArray();
+        ThemeNames = themes.Values.Select(x => x.ID).ToArray();
     }
 
     public static bool TryGetTheme(string name, out Theme theme) 

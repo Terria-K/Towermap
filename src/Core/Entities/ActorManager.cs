@@ -7,14 +7,12 @@ namespace Towermap;
 
 public delegate void ActorRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color);
 
-public class ActorManager 
+public static class ActorManager 
 {
-    public ulong TotalIDs = 0;
-    private Queue<ulong> unusedIds = new();
-    public Dictionary<string, Actor> Actors = new();
-    public Dictionary<string, List<Actor>> ActorTagged = new();
+    public static Dictionary<string, Actor> Actors = new();
+    public static Dictionary<string, List<Actor>> ActorTagged = new();
 
-    public void AddActor(ActorInfo info, string[] tags, Option<Point> textureSize = default, ActorRender onRender = null) 
+    public static void AddActor(ActorInfo info, string[] tags, Option<Point> textureSize = default, ActorRender onRender = null) 
     {
         var texture = Resource.Atlas[info.Texture];
         if (textureSize.TryGetValue(out Point size)) 
@@ -52,32 +50,12 @@ public class ActorManager
         }
     }
 
-    public Actor GetEntity(string currentSelected) 
+    public static Actor GetEntity(string currentSelected) 
     {
         if (Actors.TryGetValue(currentSelected, out Actor selected)) 
         {
             return selected;
         }
         return null;
-    }
-
-    public ulong GetID() 
-    {
-        if (unusedIds.TryDequeue(out ulong result)) 
-        {
-            return result;
-        }
-        return TotalIDs++;
-    }
-
-    public void RetriveID(ulong id) 
-    {
-        unusedIds.Enqueue(id);
-    }
-
-    public void ClearIDs() 
-    {
-        TotalIDs = 0;
-        unusedIds.Clear();
     }
 }

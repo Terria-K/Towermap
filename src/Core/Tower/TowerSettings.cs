@@ -7,14 +7,22 @@ using Riateu;
 
 namespace Towermap;
 
+public struct TowerData 
+{
+    public int ThemeID;
+    public int TreasureID;
+    public float ArrowRates;
+}
+
 public class TowerSettings : ImGuiElement
 {
     public Theme Theme => theme;
     private Theme theme;
     private string themeName = "";
-    private int currentTheme;
+    private TowerData towerData;
+    private Tower tower;
     private List<Wave>[] waves = new List<Wave>[2];
-    public Action<int> OnSave;
+    public Action<TowerData> OnSave;
 
     public TowerSettings() 
     {
@@ -76,12 +84,18 @@ public class TowerSettings : ImGuiElement
 
         return defaultValue;
     }
+
+    public void SetTower(Tower tower) 
+    {
+        this.tower = tower;
+        towerData.ArrowRates = tower.ArrowRates;
+    }
     
     public void SetTheme(Theme theme) 
     {
         this.theme = theme;
-        themeName = theme.Name;
-        currentTheme = Array.IndexOf(Themes.ThemeNames, themeName);
+        themeName = theme.ID;
+        towerData.ThemeID = Array.IndexOf(Themes.ThemeNames, themeName);
     }
 
     public override void DrawGui()
@@ -93,10 +107,44 @@ public class TowerSettings : ImGuiElement
             {
                 if (ImGui.BeginTabItem("Tower")) 
                 {
-                    ImGui.Combo("Theme", ref currentTheme, Themes.ThemeNames, Themes.ThemeNames.Length);
+                    ImGui.Combo("Theme", ref towerData.ThemeID, Themes.ThemeNames, Themes.ThemeNames.Length);
+                    if (ImGui.InputFloat("Arrow Rates", ref towerData.ArrowRates, 0.1f)) 
+                    {
+                        towerData.ArrowRates = Math.Clamp(towerData.ArrowRates, 0, 1);
+                    }
+
+                    ImGui.BeginTable("treasure_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders);
+                    List<string> toRemove = [];
+                    int i = 0;
+                    foreach (var treasure in tower.Treasures)
+                    {
+                        ImGui.Text(treasure);
+                        ImGui.SameLine();
+                        ImGui.PushID(treasure + "_rmbtn" + i);
+                        if (ImGui.Button("Remove"))
+                        {
+                            toRemove.Add(treasure);
+                        }
+                        ImGui.PopID();
+                        ImGui.TableNextColumn();
+                        i += 1;
+                    }
+                    foreach (var removing in toRemove)
+                    {
+                        tower.Treasures.Remove(removing);
+                    }
+                    ImGui.EndTable();
+                    ImGui.Combo("Treasure", ref towerData.TreasureID, Pickups.PickupNames, Pickups.PickupNames.Length);
+                    if (ImGui.Button("Add Treasure")) 
+                    {
+                        tower.Treasures.Add(Pickups.PickupNames[towerData.TreasureID]);
+                    }
+
                     if (ImGui.Button("Save")) 
                     {
-                        OnSave?.Invoke(currentTheme);
+                        tower.ArrowRates = towerData.ArrowRates;
+                        tower.Save();
+                        OnSave?.Invoke(towerData);
                     }
                     ImGui.EndTabItem();
                 }

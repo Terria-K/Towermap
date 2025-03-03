@@ -17,8 +17,6 @@ public class LevelSelection : ImGuiElement
     private int currentWidth;
     private string[] widths = ["320", "420"];
     private Tower tower;
-    private List<Level> levels = [];
-    public IReadOnlyList<Level> Levels => levels;
     public Action<Level> OnSelect;
     public Action OnCreated;
 
@@ -30,7 +28,7 @@ public class LevelSelection : ImGuiElement
 
     private void Refresh()
     {
-        levels.Clear();
+        tower.ClearAllLevels();
 
         string path = Path.GetDirectoryName(tower.TowerPath);
         var files = Directory.GetFiles(path);
@@ -41,7 +39,7 @@ public class LevelSelection : ImGuiElement
             {
                 continue;
             }
-            levels.Add(new Level(file));
+            tower.AddLevel(new Level(file));
         }
     }
 
@@ -107,6 +105,10 @@ public class LevelSelection : ImGuiElement
 
     public override void DrawGui()
     {
+        if (tower == null)
+        {
+            return;
+        }
         if (openNewLevel) 
         {
             ImGui.OpenPopup("New Level");
@@ -117,7 +119,7 @@ public class LevelSelection : ImGuiElement
         {
             ImGui.InputText("Level Name", ref levelName, 100);
             ImGui.Combo("Width", ref currentWidth, widths, 2);
-            bool condition = string.IsNullOrEmpty(levelName) || levels.Select(x => x.FileName == levelName + ".oel").FirstOrDefault();
+            bool condition = string.IsNullOrEmpty(levelName) || tower.Levels.Select(x => x.FileName == levelName + ".oel").FirstOrDefault();
             if (condition)
             {
                 ImGui.BeginDisabled();
@@ -144,7 +146,7 @@ public class LevelSelection : ImGuiElement
         ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
         ImGui.SetNextWindowPos(mainViewport.Pos +  new Vector2(0, 20));
         ImGui.Begin("Levels", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
-        foreach (var level in levels) 
+        foreach (var level in tower.Levels) 
         {
             string filename;
             if (level.Unsaved) 

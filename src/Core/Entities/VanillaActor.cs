@@ -12,7 +12,7 @@ namespace Towermap;
 
 public static class VanillaActor 
 {
-    public static void Init(ActorManager manager, SaveState saveState) 
+    public static void Init(SaveState saveState) 
     {
         var entitiesPath = Path.GetFullPath("Entities");
         Engine engine = new Engine((opt) => opt.AllowClr());
@@ -169,7 +169,7 @@ public static class VanillaActor
                 };
             }
 
-            manager.AddActor(
+            ActorManager.AddActor(
                 new ActorInfo(
                     name, 
                     texture, 

@@ -6,12 +6,10 @@ namespace Towermap;
 
 public class EntityMenu : ImGuiElement
 {
-    private ActorManager manager;
     private IntPtr imGuiTexture;
     public Action<Actor> OnSelectActor;
-    public EntityMenu(ActorManager manager, IntPtr imGuiTexture) 
+    public EntityMenu(IntPtr imGuiTexture) 
     {
-        this.manager = manager;
         this.imGuiTexture = imGuiTexture;
     }
 
@@ -29,7 +27,7 @@ public class EntityMenu : ImGuiElement
             if (ImGui.BeginTabItem("All"))
             {
                 ImGui.Columns(10, "col-All", false);
-                foreach (var (name, actor) in manager.Actors)
+                foreach (var (name, actor) in ActorManager.Actors)
                 {
                     if (ImGui.ImageButton(actor.Name, imGuiTexture, new Vector2(40, 40) * 1.5f, 
                         actor.Texture.UV.TopLeft, actor.Texture.UV.BottomRight)) 
@@ -46,7 +44,7 @@ public class EntityMenu : ImGuiElement
 
                 ImGui.EndTabItem();
             }
-            foreach (var actorTagged in manager.ActorTagged) 
+            foreach (var actorTagged in ActorManager.ActorTagged) 
             {
                 if (ImGui.BeginTabItem(actorTagged.Key))
                 {

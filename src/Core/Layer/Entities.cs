@@ -6,13 +6,11 @@ namespace Towermap;
 
 public class Entities : ImGuiElement
 {
-    private ActorManager manager;
     private IntPtr imGuiTexture;
     private string searchText = string.Empty;
     public Action<Actor> OnSelectActor;
-    public Entities(ActorManager manager, IntPtr imGuiTexture) 
+    public Entities(IntPtr imGuiTexture) 
     {
-        this.manager = manager;
         this.imGuiTexture = imGuiTexture;
     }
 
@@ -25,7 +23,7 @@ public class Entities : ImGuiElement
 
         ImGui.PushItemWidth(-1);
         ImGui.BeginListBox("##Entities", new Vector2(180, 200));
-        foreach (var (name, actor) in manager.Actors) 
+        foreach (var (name, actor) in ActorManager.Actors) 
         {
             if (string.IsNullOrEmpty(searchText) || name.ToLowerInvariant().Contains(searchText.ToLowerInvariant())) 
             {

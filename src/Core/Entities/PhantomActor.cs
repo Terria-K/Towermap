@@ -10,7 +10,6 @@ namespace Towermap;
 public class PhantomActor
 {
     private Actor actor;
-    private ActorManager manager;
     public Vector2 Position;
     public float PosX => Position.X;
     public float PosY => Position.Y;
@@ -24,10 +23,9 @@ public class PhantomActor
 
     public bool Active { get; set; }
 
-    public PhantomActor(Scene scene, ActorManager manager) 
+    public PhantomActor(Scene scene) 
     {
         Scene = scene;
-        this.manager = manager;
     }
 
     public void SetActor(Actor actor) 

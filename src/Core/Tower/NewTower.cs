@@ -40,7 +40,9 @@ public sealed class NewTower : ImGuiElement
             ImGui.Combo("Tower Mode", ref towerMode, modes, modes.Length);
             ImGui.Combo("Theme", ref currentTheme, Themes.ThemeNames, Themes.ThemeNames.Length);
 
-            if (string.IsNullOrEmpty(towerName) || string.IsNullOrEmpty(towerPath))
+            bool condition = string.IsNullOrEmpty(towerName) || string.IsNullOrEmpty(towerPath);
+
+            if (condition)
             {
                 ImGui.BeginDisabled();
             }
@@ -51,12 +53,11 @@ public sealed class NewTower : ImGuiElement
                 Enabled = false;
             }
 
-            if (string.IsNullOrEmpty(towerName) || string.IsNullOrEmpty(towerPath))
+            if (condition)
             {
                 ImGui.EndDisabled();
             }
             ImGui.EndPopup();
-
         }
     }
 }

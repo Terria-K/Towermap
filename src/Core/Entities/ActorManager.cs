@@ -14,14 +14,14 @@ public class ActorManager
     public Dictionary<string, Actor> Actors = new();
     public Dictionary<string, List<Actor>> ActorTagged = new();
 
-    public void AddActor(ActorInfo info, string[] tags, Point? textureSize = null, ActorRender onRender = null) 
+    public void AddActor(ActorInfo info, string[] tags, Option<Point> textureSize = default, ActorRender onRender = null) 
     {
         var texture = Resource.Atlas[info.Texture];
-        if (textureSize != null) 
+        if (textureSize.TryGetValue(out Point size)) 
         {
             texture = new TextureQuad(
                 Resource.TowerFallTexture, 
-                new Rectangle(texture.Source.X, texture.Source.Y, textureSize.Value.X, textureSize.Value.Y)
+                new Rectangle(texture.Source.X, texture.Source.Y, size.X, size.Y)
             );
         }
         var actor = new Actor() 

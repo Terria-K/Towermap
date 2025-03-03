@@ -78,7 +78,7 @@ public static class VanillaActor
                 hasNodes = false;
             }
 
-            Point? point = null;
+            Option<Point> point = default;
             var textureSize = jsObject.Get("textureSize");
             if (textureSize != JsValue.Undefined)
             {

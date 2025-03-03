@@ -14,6 +14,12 @@ public class PhantomActor
     public Vector2 Position;
     public float PosX => Position.X;
     public float PosY => Position.Y;
+    public int Width => actor.Width;
+    public int Height => actor.Height;
+    public float OriginX => actor.Origin.X;
+    public float OriginY => actor.Origin.Y;
+    public bool ResizeableX => actor.ResizeableX;
+    public bool ResizeableY => actor.ResizeableY;
     public Scene Scene;
 
     public bool Active { get; set; }

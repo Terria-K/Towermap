@@ -1,4 +1,5 @@
 using System;
+using Riateu.Graphics;
 
 namespace Towermap;
 
@@ -16,6 +17,11 @@ public static class WorldUtils
     public static int ToGrid(float num) 
     {
         return (int)Math.Floor(num / (5 * WorldSize));
+    }
+
+    public static bool InBounds(Point point)
+    {
+        return InBounds(point.X, point.Y);
     }
 
     public static bool InBounds(int gridX, int gridY)

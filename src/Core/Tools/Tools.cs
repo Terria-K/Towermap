@@ -8,20 +8,49 @@ namespace Towermap;
 
 public class Tools : ImGuiElement
 {
-    private class Tool(string name, Action onCallback, bool selectable, int section)
+    public enum ToolType
     {
-        public string Name = name;
-        public Action OnCallback = onCallback;
-        public int Section = section;
-        public bool Selectable = selectable;
+        Selectable,
+        FireAndForget,
+        Toggleable
+    }
+    private class Tool
+    {
+        public string Name;
+        public Action OnCallback;
+        public Action<bool> OnCallbackToggled;
+        public int Section;
+        public ToolType ToolType;
+        public bool Toggled;
+
+        public Tool(string name, Action onCallback, ToolType toolType, int section)
+        {
+            Name =name;
+            OnCallback = onCallback;
+            ToolType = toolType;
+            Section = section;
+        }
+
+        public Tool(string name, Action<bool> onCallback, ToolType toolType, int section)
+        {
+            Name = name;
+            OnCallbackToggled = onCallback;
+            ToolType = toolType;
+            Section = section;
+        }
     }
 
     private List<Tool> toolName = [];
     private Tool currentSelected;
 
-    public void AddTool(string tool, Action act, bool selectable, int section = 0) 
+    public void AddTool(string tool, Action act, ToolType toolType, int section = 0) 
     {
-        toolName.Add(new Tool(tool, act, selectable, section));
+        toolName.Add(new Tool(tool, act, toolType, section));
+    }
+
+    public void AddTool(string tool, Action<bool> act, ToolType toolType, int section = 0) 
+    {
+        toolName.Add(new Tool(tool, act, toolType, section));
     }
 
     public override void DrawGui()
@@ -40,18 +69,26 @@ public class Tools : ImGuiElement
                 ImGui.SetCursorPosX(x + 2);
                 section = tool.Section;
             }
-            bool cond = tool == currentSelected;
+            bool cond = tool == currentSelected || tool.Toggled;
             if (cond)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, new Color(255, 51, 204, 255).ABGR);
             }
             if (ImGui.Button(tool.Name, new Vector2(40, 40))) 
             {
-                if (tool.Selectable)
+                switch (tool.ToolType)
                 {
+                case ToolType.Selectable:
                     currentSelected = tool;
+                    goto default;
+                case ToolType.Toggleable:
+                    tool.Toggled = !tool.Toggled;
+                    tool.OnCallbackToggled(tool.Toggled);
+                    break;
+                default:
+                    tool.OnCallback();
+                    break;
                 }
-                tool.OnCallback();
             }
             if (cond)
             {

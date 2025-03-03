@@ -28,6 +28,13 @@ public enum Tool
     Node
 }
 
+[Flags]
+public enum ToolModifierFlags 
+{
+    None,
+    Symmetry
+}
+
 public class EditorScene : Scene
 {
     private ImGuiRenderer imGui;
@@ -68,6 +75,7 @@ public class EditorScene : Scene
     private HashSet<ScreenWrapError> wrapErrors = new HashSet<ScreenWrapError>();
 
     public Tool ToolSelected;
+    public ToolModifierFlags ToolModifier;
     public Layers CurrentLayer = Layers.Solids;
     public bool HasRemovedEntity;
 
@@ -140,12 +148,20 @@ public class EditorScene : Scene
 
         tools = new Tools();
 
-        tools.AddTool(FA6.Pen, () => ToolSelected = Tool.Pen, true);
-        tools.AddTool(FA6.UpDownLeftRight, () => ToolSelected = Tool.Rect, true);
-        tools.AddTool(FA6.CircleNodes, () => ToolSelected = Tool.Node, true);
+        tools.AddTool(FA6.Pen, () => ToolSelected = Tool.Pen, Tools.ToolType.Selectable);
+        tools.AddTool(FA6.UpDownLeftRight, () => ToolSelected = Tool.Rect, Tools.ToolType.Selectable);
+        tools.AddTool(FA6.CircleNodes, () => ToolSelected = Tool.Node, Tools.ToolType.Selectable);
 
-        tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry, false, 1);
-        tools.AddTool(FA6.UpDown, OnVerticalSymmetry, false, 1);
+        tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry, Tools.ToolType.FireAndForget, 1);
+        tools.AddTool(FA6.UpDown, OnVerticalSymmetry, Tools.ToolType.FireAndForget, 1);
+        tools.AddTool(FA6.PenRuler, (toggle) => {
+            if (toggle)
+            {
+                ToolModifier |= ToolModifierFlags.Symmetry;
+                return;
+            }
+            ToolModifier &= ~ToolModifierFlags.Symmetry;
+        }, Tools.ToolType.Toggleable, 2);
 
         entityMenu = new EntityMenu(actorManager, imGuiTexture);
         entityMenu.OnSelectActor = OnSelectActor;
@@ -879,21 +895,32 @@ public class EditorScene : Scene
                 {
                 case Layers.Entities:
                     {
-                        int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                        int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                        if (WorldUtils.InBounds(gridX, gridY) && actorSelected != null) 
+                        void Spawn(Vector2 position)
                         {
                             ulong id = actorManager.GetID();
                             var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, id);
                             actor.Scene = this;
-                            actor.PosX = PhantomActor.PosX;
-                            actor.PosY = PhantomActor.PosY;
+                            actor.PosX = position.X;
+                            actor.PosY = position.Y;
                             currentLevel.AddActor(actor);
                             if (actor != null) 
                             {
                                 Select(actor);
                             }
                             ToolSelected = Tool.Rect;
+                        }
+                        int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                        int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+                        if (WorldUtils.InBounds(gridX, gridY) && actorSelected != null) 
+                        {
+                            Spawn(PhantomActor.Position);
+                            if (ToolModifier == ToolModifierFlags.Symmetry)
+                            {
+                                var opposite = Opposite(PhantomActor.Position);
+                                opposite -= new Vector2(PhantomActor.Width, 0);
+                                opposite += new Vector2(PhantomActor.OriginX + PhantomActor.OriginX, 0);
+                                Spawn(opposite);
+                            }
                         }
 
                     }
@@ -960,20 +987,35 @@ public class EditorScene : Scene
 
         for (int dx = 0; dx < tileRect.Width / 10; dx += 1) 
         {
-            for (int dy = 0; dy < tileRect.Height / 10; dy += 1) 
+            for (int dy = 0; dy < tileRect.Height / 10; dy += 1)
             {
                 int gridX = WorldUtils.ToGrid(tileRect.StartX) + dx;
                 int gridY = WorldUtils.ToGrid(tileRect.StartY) + dy;
 
-                if (WorldUtils.InBounds(gridX, gridY)) 
+                if (!WorldUtils.InBounds(gridX, gridY))
                 {
-                    if (buttonID == LeftClicked) 
+                    continue;
+                }
+                if (buttonID == LeftClicked)
+                {
+                    PlaceGrid(gridX, gridY, true);
+                }
+                else if (buttonID == RightClicked)
+                {
+                    PlaceGrid(gridX, gridY, false);
+                }
+
+                if (ToolModifier == ToolModifierFlags.Symmetry)
+                {
+                    Point opposite = Opposite(gridX, gridY);
+                    
+                    if (buttonID == LeftClicked)
                     {
-                        PlaceGrid(gridX, gridY, true);
+                        PlaceGrid(opposite.X - 1, opposite.Y, true);
                     }
-                    else if (buttonID == RightClicked) 
+                    else if (buttonID == RightClicked)
                     {
-                        PlaceGrid(gridX, gridY, false);
+                        PlaceGrid(opposite.X - 1, opposite.Y, false);
                     }
                 }
             }
@@ -1026,6 +1068,18 @@ public class EditorScene : Scene
         }
     }
 
+    private Vector2 Opposite(Vector2 vec)
+    {
+        float halfWidth = WorldUtils.WorldWidth * 0.5f;
+        return new Vector2(halfWidth + (halfWidth - vec.X), vec.Y);
+    }
+
+    private Point Opposite(int gridX, int gridY)
+    {
+        int halfWidth = ((int)WorldUtils.WorldWidth / 2) / 10;
+        return new Point(halfWidth + (halfWidth - gridX), gridY);
+    }
+
     private void Place(int x, int y, bool placeTile) 
     {
         switch (CurrentLayer) 
@@ -1044,6 +1098,12 @@ public class EditorScene : Scene
                 if (WorldUtils.InBounds(gridX, gridY)) 
                 {
                     PlaceGrid(gridX, gridY, placeTile);
+
+                    if (ToolModifier == ToolModifierFlags.Symmetry)
+                    {
+                        Point opposite = Opposite(gridX, gridY);
+                        PlaceGrid(opposite.X - 1, opposite.Y, placeTile);
+                    }
                 }
             }
 

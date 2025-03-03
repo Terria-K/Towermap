@@ -66,6 +66,9 @@ public class ExportOption : ImGuiElement
             ImGui.InputFloat("Override Dark Opacity", ref darkOpacity);
             ImGui.Checkbox("Override Cold", ref cold);
 
+            ImGui.Text("Be warned that certain entities might not be published on the workshop page.");
+            ImGui.Text("Make sure that all entities does exists on the official TF editor.");
+
             bool condition = string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author);
 
             if (condition)

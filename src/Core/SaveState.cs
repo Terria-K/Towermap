@@ -7,7 +7,7 @@ namespace Towermap;
 public class SaveState 
 {
     public string TFPath { get; set; }
-    public List<string> RecentTowers { get; set; }
+    public HashSet<string> RecentTowers { get; set; }
 
     [JsonIgnore]
     public bool DarkWorld 
@@ -17,7 +17,7 @@ public class SaveState
 
     public SaveState()
     {
-        RecentTowers = new List<string>();
+        RecentTowers = new HashSet<string>();
     }
 
     public void AddToRecent(string towerPath)

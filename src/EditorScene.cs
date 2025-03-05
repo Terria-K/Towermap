@@ -287,7 +287,12 @@ public class EditorScene : Scene
                 currentLevel.Unsaved = false;
                 SetLevel(currentLevel);
             }
-        }, null, new Filter("Tower", "tower"));
+        }, null, new Property() 
+            {
+                Title = "Export as a Workshop Tower",
+                Filter = new Filter("Tower", "tower")
+            } 
+        );
     }
     private void OnLevelCreated()
     {
@@ -1186,7 +1191,12 @@ public class EditorScene : Scene
             saveState.AddToRecent(filepath);
             SaveIO.SaveJson<SaveState>("towersave.json", saveState, SaveStateContext.Default.SaveState);
             recentItems.Add(new MenuItem(filepath, () => OpenTowerFile(filepath)));
-        }, null, new Filter("Tower Xml File", "xml"));
+        }, null, new Property() 
+            {
+                Title = "Open a Tower",
+                Filter = new Filter("Tower Xml File", "xml")
+            } 
+        );
     }
 
     public void Save(bool specifyPath = false) 
@@ -1254,7 +1264,11 @@ public class EditorScene : Scene
             FileDialog.Save((filepath) => {
                 document.Save(filepath);
                 currentLevel.Unsaved = false;
-            }, null, new Filter("Tower Xml", "xml"));
+            }, null, new Property() 
+                {
+                    Filter = new Filter("Tower Xml", "xml")
+                } 
+            );
         }
         else 
         {
@@ -1262,6 +1276,10 @@ public class EditorScene : Scene
             currentLevel.Unsaved = false;
         }
 
+        if (tower.Type == Tower.TowerType.Quest)
+        {
+            towerSettings.SetAllGroupDirty();
+        }
     }
 
     public override void End() 

@@ -51,7 +51,7 @@ public class ExportOption : ImGuiElement
 
     public override void DrawGui()
     {
-        ImGui.SetNextWindowSize(new Vector2(520, 320));
+        ImGui.SetNextWindowSize(new Vector2(520, 320), ImGuiCond.Once);
         if (ImGui.BeginPopupModal("Export Option", ref enabled)) 
         {
             ImGui.InputText("Name", ref name, 100);

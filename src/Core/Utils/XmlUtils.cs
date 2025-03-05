@@ -19,7 +19,7 @@ public static class XmlUtils
         {
             return defaultValue;
         }
-        return attribute.Value;
+        return attribute.Value.Trim();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,7 +37,7 @@ public static class XmlUtils
             return defaultValue;
         }
 
-        return int.Parse(attribute.Value);
+        return int.Parse(attribute.Value.Trim());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -55,7 +55,7 @@ public static class XmlUtils
             return defaultValue;
         }
 
-        return long.Parse(attribute.Value);
+        return long.Parse(attribute.Value.Trim());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -73,7 +73,7 @@ public static class XmlUtils
             return defaultValue;
         }
 
-        return ulong.Parse(attribute.Value);
+        return ulong.Parse(attribute.Value.Trim());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,7 +91,7 @@ public static class XmlUtils
             return defaultValue;
         }
 
-        return float.Parse(attribute.Value);
+        return float.Parse(attribute.Value.Trim());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,6 +109,6 @@ public static class XmlUtils
             return defaultValue;
         }
 
-        return bool.Parse(attribute.Value);
+        return bool.Parse(attribute.Value.Trim());
     }
 }

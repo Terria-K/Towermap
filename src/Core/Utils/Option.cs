@@ -6,10 +6,17 @@ where T : unmanaged
     public T Value { get; private set; }
     public bool HasValue { get; private set; }
 
+
     public Option(T value)
     {
         Value = value;
         HasValue = true;
+    }
+
+
+    public static Option<T> None()
+    {
+        return new Option<T>();
     }
 
     public bool TryGetValue(out T value)

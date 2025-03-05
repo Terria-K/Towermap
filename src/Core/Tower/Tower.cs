@@ -32,6 +32,18 @@ public class Tower
         Theme = theme;
     }
 
+    private TowerType GuessType(XmlElement elm)
+    {
+        if (elm["treasure"] != null)
+        {
+            return TowerType.Versus;
+        }
+        if (elm["time"] != null)
+        {
+            return TowerType.DarkWorld;
+        }
+        return TowerType.Quest;
+    }
 
     public bool Load(string path)
     {
@@ -48,12 +60,17 @@ public class Tower
         {
             towerType = Enum.Parse<TowerType>(tower.Attr("mode"));
         }
+        else 
+        {
+            towerType = GuessType(tower);
+        }
+        Type = towerType;
 
         var treasure = tower["treasure"];
         if (treasure != null)
         {
             ArrowRates = treasure.AttrFloat("arrows", 0.2f);
-            var tr = treasure.InnerText.Split(",");
+            var tr = treasure.InnerText.Trim().Split(",");
             foreach (string t in tr)
             {
                 Treasures.Add(t);

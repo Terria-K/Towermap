@@ -1160,6 +1160,7 @@ public class EditorScene : Scene
         else 
         {
             levelSelection.SelectTower(tower);
+            towerSettings.SetTower(tower);
             openFallbackTheme = true;
         }
         var dataPath = Path.Combine(Path.GetDirectoryName(filepath), "data.xml");

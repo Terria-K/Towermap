@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Xml;
 using ImGuiNET;
@@ -46,9 +48,9 @@ public class TowerSettings : ImGuiElement
     {
         foreach (XmlElement wave in data.GetElementsByTagName("wave"))
         {
-            bool dark = AttrBool(wave, "dark");
-            bool scroll = AttrBool(wave, "scroll");
-            bool slow = AttrBool(wave, "slow");
+            bool dark = wave.AttrBool("dark");
+            bool scroll = wave.AttrBool("scroll");
+            bool slow = wave.AttrBool("slow");
             Wave w = new Wave() 
             {
                 IsDark = dark,
@@ -64,9 +66,47 @@ public class TowerSettings : ImGuiElement
                 }
                 else if (group.Name == "group")
                 {
+                    var delay = group.AttrInt("delay");
+                    var solo = group.AttrBool("solo");
+                    var coop = group.AttrBool("coop");
+
+                    var treasureList = new List<int>();
+                    if (group["treasure"] != null)
+                    {
+                        var treArr = group["treasure"].InnerText.Trim().Split(',');
+                        foreach (var tre in treArr)
+                        {
+                            treasureList.Add(Array.IndexOf(Pickups.PickupNames, tre.Trim()));
+                        }
+                    }
+
+                    var enemies = new List<string>();
+                    if (group["enemies"] != null)
+                    {
+                        enemies = group["enemies"].InnerText.Trim().Split(',').Select(x => x.Trim()).ToList();
+                    }
+
+                    var spawns = new List<Group.Spawn>();
+                    if (group["spawns"] != null)
+                    {
+                        foreach (var spawnName in group["spawns"].InnerText.Trim().Split(','))
+                        {
+                            spawns.Add(new Group.Spawn() 
+                            {
+                                Name = spawnName.Trim(),
+                                IsChecked = true
+                            });
+                        }
+                    }
+
                     w.Groups.Add(new Group() 
                     {
-
+                        TreasureIDs = treasureList,
+                        Delay = delay,
+                        Solo = solo,
+                        CoOp = coop,
+                        Spawns = spawns,
+                        Enemies = enemies
                     });
                 }
             }
@@ -75,14 +115,46 @@ public class TowerSettings : ImGuiElement
         }
     }
 
-    private bool AttrBool(XmlElement element, string name, bool defaultValue = false) 
+    public void SetAllGroupDirty()
     {
-        if (bool.TryParse(element.GetAttribute(name), out bool res))
+        foreach (var diffWave in waves)
         {
-            return res;
+            foreach (var wave in diffWave)
+            {
+                foreach (var group in wave.Groups)
+                {
+                    group.Dirty = true;
+                }
+            }
         }
+    }
 
-        return defaultValue;
+    private void RefreshSpawn(List<Group.Spawn> spawns)
+    {
+        var spawn = spawns.Where(x => x.IsChecked).Select(x => x.Name).ToHashSet();
+        var nameList = tower.Levels[0].Actors.Where(x => x.Data.Name == "Spawner")
+            .Select(x => x.CustomData["name"].ToString())
+            .ToList();
+        
+        spawns.Clear();
+        
+        foreach (var name in nameList)
+        {
+            if (spawn.Contains(name))
+            {
+                spawns.Add(new Group.Spawn() 
+                {
+                    Name = name,
+                    IsChecked = true 
+                });
+                continue;
+            }
+            spawns.Add(new Group.Spawn() 
+            {
+                Name = name,
+                IsChecked = false
+            });
+        }
     }
 
     public void SetTower(Tower tower) 
@@ -100,7 +172,7 @@ public class TowerSettings : ImGuiElement
 
     public override void DrawGui()
     {
-        ImGui.SetNextWindowSize(new Vector2(520, 520));
+        ImGui.SetNextWindowSize(new Vector2(520, 520), ImGuiCond.FirstUseEver);
         if (ImGui.BeginPopupModal("Theme Settings", ref enabled)) 
         {
             if (ImGui.BeginTabBar("Tabbar")) 
@@ -108,37 +180,49 @@ public class TowerSettings : ImGuiElement
                 if (ImGui.BeginTabItem("Tower")) 
                 {
                     ImGui.Combo("Theme", ref towerData.ThemeID, Themes.ThemeNames, Themes.ThemeNames.Length);
-                    if (ImGui.InputFloat("Arrow Rates", ref towerData.ArrowRates, 0.1f)) 
+
+                    switch (tower.Type)
                     {
-                        towerData.ArrowRates = Math.Clamp(towerData.ArrowRates, 0, 1);
+                    case Tower.TowerType.Quest:
+                        // Nothing on Quest
+                        break;
+                    case Tower.TowerType.Versus:
+                        if (ImGui.InputFloat("Arrow Rates", ref towerData.ArrowRates, 0.1f)) 
+                        {
+                            towerData.ArrowRates = Math.Clamp(towerData.ArrowRates, 0, 1);
+                        }
+
+                        ImGui.BeginTable("treasure_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders);
+                        List<string> toRemove = [];
+                        int i = 0;
+                        foreach (var treasure in tower.Treasures)
+                        {
+                            ImGui.Text(treasure);
+                            ImGui.SameLine();
+                            ImGui.PushID(treasure + "_rmbtn" + i);
+                            if (ImGui.Button("Remove"))
+                            {
+                                toRemove.Add(treasure);
+                            }
+                            ImGui.PopID();
+                            ImGui.TableNextColumn();
+                            i += 1;
+                        }
+
+                        foreach (var removing in toRemove)
+                        {
+                            tower.Treasures.Remove(removing);
+                        }
+
+                        ImGui.EndTable();
+                        ImGui.Combo("Treasure", ref towerData.TreasureID, Pickups.PickupNames, Pickups.PickupNames.Length);
+                        if (ImGui.Button("Add Treasure")) 
+                        {
+                            tower.Treasures.Add(Pickups.PickupNames[towerData.TreasureID]);
+                        }
+                        break;
                     }
 
-                    ImGui.BeginTable("treasure_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders);
-                    List<string> toRemove = [];
-                    int i = 0;
-                    foreach (var treasure in tower.Treasures)
-                    {
-                        ImGui.Text(treasure);
-                        ImGui.SameLine();
-                        ImGui.PushID(treasure + "_rmbtn" + i);
-                        if (ImGui.Button("Remove"))
-                        {
-                            toRemove.Add(treasure);
-                        }
-                        ImGui.PopID();
-                        ImGui.TableNextColumn();
-                        i += 1;
-                    }
-                    foreach (var removing in toRemove)
-                    {
-                        tower.Treasures.Remove(removing);
-                    }
-                    ImGui.EndTable();
-                    ImGui.Combo("Treasure", ref towerData.TreasureID, Pickups.PickupNames, Pickups.PickupNames.Length);
-                    if (ImGui.Button("Add Treasure")) 
-                    {
-                        tower.Treasures.Add(Pickups.PickupNames[towerData.TreasureID]);
-                    }
 
                     if (ImGui.Button("Save")) 
                     {
@@ -151,6 +235,14 @@ public class TowerSettings : ImGuiElement
 
                 if (ImGui.BeginTabItem("Data")) 
                 {
+                    if (!tower.Levels[0].LoadedIn)
+                    {
+                        ImGui.Text("You must load the first level to proceed.");
+                        ImGui.EndTabItem();
+                        ImGui.EndTabBar();
+                        ImGui.EndPopup();
+                        return;
+                    }
                     if (ImGui.BeginTabBar("DifficultyTab"))
                     {
                         for (int i = 0; i < waves.Length; i++)
@@ -166,9 +258,20 @@ public class TowerSettings : ImGuiElement
                                 }
 
                                 ImGui.Separator();
+                                if (waves[i].Count == 0)
+                                {
+                                    if (ImGui.Button("Copy From " + (i != 0 ? "Normal" : "Hardcore"))) 
+                                    {
+                                    }
+                                }
                                 if (ImGui.Button("Add Wave")) 
                                 {
                                     waves[i].Add(new Wave());
+                                }
+
+                                if (ImGui.Button("Save")) 
+                                {
+                                    SaveData();
                                 }
 
                                 ImGui.EndTabItem();
@@ -212,11 +315,86 @@ public class TowerSettings : ImGuiElement
                     }
                     else 
                     {
+                        if (ImGui.InputInt("Delay", ref group.Delay, 1)) 
+                        {
+                            group.Delay = Math.Max(0, group.Delay);
+                        }
+                        ImGui.Checkbox("Solo", ref group.Solo);
+                        ImGui.SameLine();
+                        ImGui.Checkbox("CoOp", ref group.CoOp);
+                        
                         ImGui.SeparatorText("Treasure");
-                        ImGui.Combo("Select Treasure", ref group.TreasureID, Pickups.PickupNames, Pickups.PickupNames.Length);
+                        for (int i = 0; i < group.TreasureIDs.Count; i++)
+                        {
+                            var treasureID = group.TreasureIDs[i];
+                            ImGui.PushID(i);
+                            if (ImGui.Combo("Select Treasure", ref treasureID, Pickups.PickupNamesWithNone, Pickups.PickupNamesWithNone.Length)) 
+                            {
+                                group.TreasureIDs[i] = treasureID;
+                            }
+                            ImGui.PopID();
+                        }
+                        if (ImGui.Button("Add Treasure"))
+                        {
+                            group.TreasureIDs.Add(20);
+                        }
                         ImGui.SeparatorText("Spawns");
-                        ImGui.Text("Tower must have a level name called 'level.oel'");
+                        if (tower.Levels.Count == 0)
+                        {
+                            ImGui.Text("Level must have at least 1 level for spawns");
+                        }
+                        else 
+                        {
+                            string currentSpawner = "";
+                            if (group.Dirty)
+                            {
+                                RefreshSpawn(group.Spawns);
+                                group.Dirty = false;
+                            }
+                            ImGui.Columns(4, "spawn_column", false);
+                            for (int i = 0; i < group.Spawns.Count; i++)
+                            {
+                                var spawn = group.Spawns[i];
+                                var name = spawn.Name;
+                                if (currentSpawner == name)
+                                {
+                                    ImGui.Text("Found duplicated portals.");
+                                }
+                                else 
+                                {
+                                    bool isChecked = spawn.IsChecked;
+                                    if (ImGui.Checkbox(spawn.Name, ref isChecked)) 
+                                    {
+                                        group.Spawns[i] = new Group.Spawn()
+                                        {
+                                            Name = spawn.Name,
+                                            IsChecked = isChecked
+                                        };
+                                    }
+                                    ImGui.NextColumn();
+                                    currentSpawner = spawn.Name;
+                                }
+                            }
+
+                            ImGui.Columns(1);
+                        }
+
                         ImGui.SeparatorText("Enemies");
+                        for (int i = 0; i < group.Enemies.Count; i++)
+                        {
+                            var enemy = group.Enemies[i];
+                            ImGui.PushID(i);
+                            if (ImGui.InputText("Enemy Name", ref enemy, 100))
+                            {
+                                group.Enemies[i] = enemy;
+                            }
+                            ImGui.PopID();
+                        }
+                        
+                        if (ImGui.Button("Add Enemies")) 
+                        {
+                            group.Enemies.Add("Slime");
+                        }
                     }
                     ImGui.TreePop();
                 }
@@ -237,6 +415,118 @@ public class TowerSettings : ImGuiElement
             ImGui.PopID();
         }
     }
+
+    public void SaveData()
+    {
+        XmlDocument document = new XmlDocument();
+        var data = document.CreateElement("data");
+        document.AppendChild(data);
+
+        int i = 0;
+        foreach (var wave in waves)
+        {
+            string diff = i == 0 ? "normal" : "hardcore";
+
+            var diffXml = document.CreateElement(diff);
+            data.AppendChild(diffXml);
+
+            foreach (var w in wave)
+            {
+                var waveXml = document.CreateElement("wave");
+                if (w.IsDark)
+                {
+                    waveXml.SetAttribute("dark", "true");
+                }
+                if (w.IsSlow)
+                {
+                    waveXml.SetAttribute("slow", "true");
+                }
+                if (w.IsScroll)
+                {
+                    waveXml.SetAttribute("scroll", "true");
+                }
+
+                foreach (var group in w.Groups)
+                {
+                    if (group.IsFloor)
+                    {
+                        var floorXml = document.CreateElement("floor");
+                        floorXml.InnerText = group.FloorNumber.ToString();
+                        waveXml.AppendChild(floorXml);    
+                        continue;
+                    }
+
+                    var groupXml = document.CreateElement("group");
+                    if (group.CoOp)
+                    {
+                        groupXml.SetAttribute("coop", "true");
+                    }
+                    if (group.Solo)
+                    {
+                        groupXml.SetAttribute("solo", "true");
+                    }
+                    if (group.Delay != 0)
+                    {
+                        groupXml.SetAttribute("delay", group.Delay.ToString());
+                    }
+                    var listStr = new List<string>();
+                    if (group.TreasureIDs.Count > 0)
+                    {
+                        var treasureXml = document.CreateElement("treasure");
+                        foreach (var treasure in group.TreasureIDs)
+                        {
+                            var name = Pickups.PickupNamesWithNone[treasure];
+                            if (name == "None")
+                            {
+                                continue;
+                            }
+                            listStr.Add(name);
+                        }
+
+                        treasureXml.InnerText = string.Join(',', listStr);
+                        groupXml.AppendChild(treasureXml);
+                    }
+
+                    listStr.Clear();
+                    if (group.Spawns.Count > 0)
+                    {
+                        var spawnsXml = document.CreateElement("spawns");
+                        foreach (var spawn in group.Spawns)
+                        {
+                            var name = spawn.Name;
+                            if (!spawn.IsChecked)
+                            {
+                                continue;
+                            }
+                            listStr.Add(name);
+                        }
+                        spawnsXml.InnerText = string.Join(',', listStr);
+                        groupXml.AppendChild(spawnsXml);
+                    }
+
+                    listStr.Clear();
+                    if (group.Enemies.Count > 0)
+                    {
+                        var enemiesXml = document.CreateElement("enemies");
+                        foreach (var spawn in group.Enemies)
+                        {
+                            var name = spawn;
+                            listStr.Add(name);
+                        }
+                        enemiesXml.InnerText = string.Join(',', listStr);
+                        groupXml.AppendChild(enemiesXml);
+                    }
+
+                    waveXml.AppendChild(groupXml);
+                }
+
+                diffXml.AppendChild(waveXml);
+            }
+            i += 1;
+        }
+
+        document.Save(Path.Combine(Path.GetDirectoryName(tower.TowerPath), "data.xml"));
+    }
 }
 
 public class Wave 
@@ -254,16 +544,21 @@ public class Group
     public bool IsFloor;
 
     // if not, then this one
-    public List<string> Spawns;
+    public List<Spawn> Spawns;
     public List<string> Enemies;
-    public int TreasureID;
+    public List<int> TreasureIDs = [];
+    public int Delay;
+    public bool Solo;
+    public bool CoOp;
 
+    // Some state outside of its data
+    public bool Dirty = true;
 
     public Group(bool isFloor = false) 
     {
         if (!isFloor) 
         {
-            Spawns = new List<string>();
+            Spawns = new List<Spawn>();
             Enemies = new List<string>();
         }
     }
@@ -272,5 +567,11 @@ public class Group
     {
         IsFloor = true;
         FloorNumber = floorNum;
+    }
+
+    public struct Spawn 
+    {
+        public string Name;
+        public bool IsChecked;
     }
 }

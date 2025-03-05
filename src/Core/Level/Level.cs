@@ -36,6 +36,7 @@ public class Level
     public Tiles SolidTiles;
     public int Width;
     public int Height;
+    public bool LoadedIn;
     public ulong TotalIDs = 0;
     private Queue<ulong> unusedIds = new();
 
@@ -107,6 +108,7 @@ public class Level
     
     public void LoadLevel(Theme theme)
     {
+        LoadedIn = true;
         Actors.Clear();
         
         XmlDocument document = new XmlDocument();

@@ -48,6 +48,30 @@ public static class Pickups
 		"Bomb"
     ];
 
+    public static string[] PickupNamesWithNone = [
+        "Arrows",
+        "BombArrows",
+        "SuperBombArrows",
+		"LaserArrows",
+		"BrambleArrows",
+		"DrillArrows",
+		"BoltArrows",
+		"FeatherArrows",
+		"TriggerArrows",
+		"PrismArrows",
+		"Shield",
+		"Wings",
+		"SpeedBoots",
+		"Mirror",
+		"TimeOrb",
+		"DarkOrb",
+		"LavaOrb",
+		"SpaceOrb",
+		"ChaosOrb",
+		"Bomb",
+		"None"
+    ];
+
     public record struct PickupData(string Name);
     
 }

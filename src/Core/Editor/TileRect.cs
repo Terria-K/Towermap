@@ -9,17 +9,14 @@ namespace Towermap;
 public class TileRect 
 {
     public enum Type { Place, Remove }
-    public int StartX;
-    public int StartY;
-    public int Width;
-    public int Height;
+    public Point StartPos;
+    public Rectangle ResultRect;
     public bool Started;
     public Type ButtonType;
 
     public void Start(int x, int y, Type buttonType) 
     {
-        StartX = x;
-        StartY = y;
+        StartPos = new Point(x, y);
         ButtonType = buttonType;
         Started = true;
     }
@@ -29,40 +26,12 @@ public class TileRect
         int rx = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
         int ry = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
 
-        int width = StartX - rx;
-        int height = StartY - ry;
+        int lx = Math.Min(StartPos.X, rx);
+        int ly = Math.Min(StartPos.Y, ry);
+        int lw = Math.Max(StartPos.X, rx);
+        int lh = Math.Max(StartPos.Y, ry);
 
-        if (width == 0)
-        {
-            Width = 10;
-        }
-        else 
-        {
-            Width = -width;
-        }
-
-        if (height == 0) 
-        {
-            Height = 10;
-        }
-        else 
-        {
-            Height = -height;
-        }
-    }
-
-    public void AdjustIfNeeded() 
-    {
-        if (Width < 0) 
-        {
-            StartX = StartX + Width;
-            Width = Math.Abs(Width);
-        }
-        if (Height < 0) 
-        {
-            StartY = StartY + Height;
-            Height = Math.Abs(Height);
-        }
+        ResultRect = new Rectangle(lx, ly, lw - lx + 10, lh - ly + 10);
     }
 
     public void Draw(Batch spriteBatch) 
@@ -78,6 +47,6 @@ public class TileRect
             _ => throw new InvalidOperationException()
         };
 
-        DrawUtils.Rect(spriteBatch, new Vector2(StartX, StartY), color, new Vector2(Width, Height), Vector2.Zero);
+        DrawUtils.Rect(spriteBatch, new Vector2(ResultRect.X, ResultRect.Y), color, new Vector2(ResultRect.Width, ResultRect.Height), Vector2.Zero);
     }
 }

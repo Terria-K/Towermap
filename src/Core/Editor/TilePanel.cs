@@ -17,6 +17,7 @@ public class TilePanel : ImGuiElement
     private TextureQuad texture;
     private bool holding;
     private Rectangle currentRect = new Rectangle(0, 0, 10, 10);
+    private Point startPos;
     private Vector2 framePos;
 
     public bool IsImageHovered;
@@ -64,25 +65,23 @@ public class TilePanel : ImGuiElement
 
         if (holding) 
         {
-            var width = currentRect.X - rx;
+            rx = Math.Max(0, rx);
+            ry = Math.Max(0, ry);
+            int lx = Math.Min(startPos.X, rx);
+            int ly = Math.Min(startPos.Y, ry);
+            int lw = Math.Max(startPos.X, rx);
+            int lh = Math.Max(startPos.Y, ry);
 
-            if (width < 0) 
+            currentRect = new Rectangle(lx, ly, lw - lx + 10, lh - ly + 10);
+
+            if (rx >= texture.Width)
             {
-                currentRect.Width = -width;
-            }
-            var height = currentRect.Y - ry ;
-            if (height < 0) 
-            {
-                currentRect.Height = -height;
+                currentRect.Width = texture.Width - currentRect.X;
             }
 
-            if (rx >= texture.Width) 
+            if (ry >= texture.Height)
             {
-                currentRect.Width = -(currentRect.X - texture.Width);
-            }
-            if (ry >= texture.Height) 
-            {
-                currentRect.Height = -(currentRect.Y - texture.Height);
+                currentRect.Height = texture.Height - currentRect.Y;
             }
         }
         if (IsImageHovered && (buttons & 0b0001) != 0 && !holding) 
@@ -90,6 +89,7 @@ public class TilePanel : ImGuiElement
             if (rx >= 0 && ry >= 0 && rx <= texture.Width - 10 && ry <= texture.Height - 10)
             {
                 currentRect = new Rectangle(rx, ry, 10, 10);
+                startPos = new Point(rx, ry);
                 holding = true;
             }
         }
@@ -117,8 +117,11 @@ public class TilePanel : ImGuiElement
         ImGui.Image(texturePtr, new Vector2(texture.Width, texture.Height) * 2, texture.UV.TopLeft, texture.UV.BottomRight);
         IsImageHovered = ImGui.IsItemHovered();
 
-        drawList.AddRect(new Vector2(framePos.X + currentRect.X * 2, framePos.Y + currentRect.Y * 2), 
-            new Vector2(framePos.X + (currentRect.X * 2 + currentRect.Width * 2), framePos.Y + (currentRect.Y * 2 + currentRect.Height * 2)), Color.Yellow.RGBA);
+        drawList.AddRect(
+            new Vector2(framePos.X + currentRect.X * 2, framePos.Y + currentRect.Y * 2), 
+            new Vector2(framePos.X + (currentRect.X * 2 + currentRect.Width * 2), 
+            framePos.Y + (currentRect.Y * 2 + currentRect.Height * 2)), 
+            Color.Yellow.RGBA);
         ImGui.End();
         ImGui.PopStyleVar();
     }

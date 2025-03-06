@@ -830,16 +830,20 @@ public class EditorScene : Scene
         const int LeftClicked = 0;
         const int RightClicked = 1;
         tileRect.Started = false;
-        tileRect.AdjustIfNeeded();
 
         CommitHistory();
 
-        for (int dx = 0; dx < tileRect.Width / 10; dx += 1) 
+        var x = tileRect.ResultRect.X;
+        var y = tileRect.ResultRect.Y;
+        var width = tileRect.ResultRect.Width;
+        var height = tileRect.ResultRect.Height;
+
+        for (int dx = 0; dx < width / 10; dx += 1) 
         {
-            for (int dy = 0; dy < tileRect.Height / 10; dy += 1)
+            for (int dy = 0; dy < height / 10; dy += 1)
             {
-                int gridX = WorldUtils.ToGrid(tileRect.StartX) + dx;
-                int gridY = WorldUtils.ToGrid(tileRect.StartY) + dy;
+                int gridX = WorldUtils.ToGrid(x) + dx;
+                int gridY = WorldUtils.ToGrid(y) + dy;
 
                 if (!WorldUtils.InBounds(gridX, gridY))
                 {
@@ -869,9 +873,6 @@ public class EditorScene : Scene
                 }
             }
         }
-
-        tileRect.Width = 0;
-        tileRect.Height = 0;
     }
 
     private void PlaceGrid(int gridX, int gridY, bool placeTile) 

@@ -92,13 +92,12 @@ public class TowerSettings : ImGuiElement
                         var count = enemiesText.Count(splitters) + 1;
 
                         var list = new List<string>(count);
-                        Span<Range> ranges = stackalloc Range[count];
 
-                        var splitted = enemiesText.Split(ranges, splitters);
-                        for (int i = 0; i < ranges.Length; i++)
+                        var splitted = enemiesText.Split(splitters);
+                        foreach (var range in splitted)
                         {
-                            var trimmed = enemiesText[ranges[i]];
-                            list.Add(new string(trimmed.Trim()));
+                            var trimmed = enemiesText[range];
+                            list.Add(new string(trimmed.Trim()));                           
                         }
                         enemies = list;
                     }

@@ -166,26 +166,4 @@ public class Autotiler
         }
         return null;
     }
-
-    private static int[] SplitElementToInt(XmlElement element, string child) 
-    {
-        var elm = element[child];
-        if (elm == null) 
-        {
-            return null;
-        }
-        return SplitStringCSVToInt(elm.InnerText);
-    }
-
-    private static int[] SplitStringCSVToInt(string innerText) 
-    {
-        var split = innerText.Split(","); 
-        int[] nums = new int[split.Length];
-        for (int i = 0; i < split.Length; i++) 
-        {
-            var sp = split[i];
-            nums[i] = int.Parse(sp.Trim());
-        }
-        return nums;
-    }
 }

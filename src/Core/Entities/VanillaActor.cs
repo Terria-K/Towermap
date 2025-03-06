@@ -125,7 +125,7 @@ public static class VanillaActor
                         renderer = PlayerRender;
                         break;
                     case "TileRender3x1":
-                        renderer = TileRender1x3;
+                        renderer = TileRender3x1;
                         break;
                     case "TileRender3x3":
                         renderer = TileRender3x3;
@@ -156,6 +156,9 @@ public static class VanillaActor
                         break;
                     case "SensorBlockRender":
                         renderer = SensorBlockRender;
+                        break;
+                    case "ChaliceRender":
+                        renderer = ChaliceRender;
                         break;
                 }
             }
@@ -199,7 +202,7 @@ public static class VanillaActor
                 Width = 20,
                 Height = 20
             });
-            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), Color.White);
+            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), color);
         }
         else if (size.Y <= 20)
         {
@@ -208,7 +211,7 @@ public static class VanillaActor
                 Width = 20,
                 Height = 20
             });
-            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), Color.White);
+            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), color);
         }
         else 
         {
@@ -217,7 +220,7 @@ public static class VanillaActor
                 Width = 20,
                 Height = 20
             });
-            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), Color.White);
+            spriteBatch.Draw(usingFace, new Vector2(position.X + (size.X / 2f) - 10, position.Y + (size.Y / 2f) - 10), color);
         }
     }
 
@@ -269,7 +272,7 @@ public static class VanillaActor
                 spriteBatch.Draw(
                     Resource.Atlas["sensorGem"], 
                     gemPos,
-                    Color.White,
+                    color,
                     Vector2.One,
                     Vector2.UnitX * (-num / 2f + num * (float)i)
                 );
@@ -283,7 +286,7 @@ public static class VanillaActor
                 spriteBatch.Draw(
                     Resource.Atlas["sensorGem"], 
                     gemPos,
-                    Color.White,
+                    color,
                     Vector2.One,
                     Vector2.UnitX * (-num + num * (float)i)
                 );
@@ -301,7 +304,7 @@ public static class VanillaActor
 
         for (int i = 0; i < length - 1; i++)
         {
-            spriteBatch.Draw(Resource.Atlas["spikeBallChain"], new Vector2(position.X - 4, position.Y + (i * 10) + 4), Color.White);
+            spriteBatch.Draw(Resource.Atlas["spikeBallChain"], new Vector2(position.X - 4, position.Y + (i * 10) + 4), color);
         }
     }
 
@@ -332,7 +335,7 @@ public static class VanillaActor
 
         for (int i = 0; i < length; i++)
         {
-            spriteBatch.Draw(Resource.Atlas["spikeBallChain"], new Vector2(position.X - 4, position.Y + (i * 10) + 4), Color.White);
+            spriteBatch.Draw(Resource.Atlas["spikeBallChain"], new Vector2(position.X - 4, position.Y + (i * 10) + 4), color);
         }
     }
 
@@ -719,7 +722,7 @@ public static class VanillaActor
         }
     }
 
-    private static void TileRender1x3(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color) 
+    private static void TileRender3x1(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color) 
     {
         var mid = new TextureQuad(Resource.TowerFallTexture, actor.Texture.Source with {
             X = actor.Texture.Source.X + 10
@@ -744,5 +747,12 @@ public static class VanillaActor
                 }
             }
         }
+    }
+
+    private static void ChaliceRender(LevelActor level, Actor actor, Vector2 position, Vector2 size, Batch spriteBatch, Color color)
+    {
+        TileRender3x1(level, actor, position, size, spriteBatch, color);
+
+        spriteBatch.Draw(Resource.Atlas["chalice"], new Vector2((position.X + size.X / 2f) - 10, position.Y - 40f), color);
     }
 }

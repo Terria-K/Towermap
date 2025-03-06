@@ -66,7 +66,7 @@ public sealed class TilesetData
 
     private static int[] SplitStringCSVToInt(ReadOnlySpan<char> innerText) 
     {
-        ReadOnlySpan<char> splitters = [','];
+        char splitters = ',';
         var count = innerText.Count(splitters) + 1;
 
         var split = innerText.Split(splitters); 

@@ -71,29 +71,48 @@ public class TowerSettings : ImGuiElement
                     var coop = group.AttrBool("coop");
 
                     var treasureList = new List<int>();
-                    if (group["treasure"] != null)
+                    if (group.TryGetElement("treasure", out XmlElement treasureXml))
                     {
-                        var treArr = group["treasure"].InnerText.Trim().Split(',');
-                        foreach (var tre in treArr)
+                        ReadOnlySpan<char> treasureText = treasureXml.InnerText.AsSpan().Trim();
+                        var splitted = treasureText.Split(',');
+
+                        foreach (var range in splitted)
                         {
-                            treasureList.Add(Array.IndexOf(Pickups.PickupNames, tre.Trim()));
+                            var trimmed = treasureText[range].Trim();
+                            treasureList.Add(Array.IndexOf(Pickups.PickupNames, new string(trimmed)));
                         }
                     }
 
                     var enemies = new List<string>();
-                    if (group["enemies"] != null)
+                    if (group.TryGetElement("enemies", out XmlElement enemiesXml))
                     {
-                        enemies = group["enemies"].InnerText.Trim().Split(',').Select(x => x.Trim()).ToList();
+                        ReadOnlySpan<char> enemiesText = enemiesXml.InnerText.AsSpan().Trim();
+                        char splitters = ',';
+
+                        var count = enemiesText.Count(splitters) + 1;
+
+                        var list = new List<string>(count);
+                        Span<Range> ranges = stackalloc Range[count];
+
+                        var splitted = enemiesText.Split(ranges, splitters);
+                        for (int i = 0; i < ranges.Length; i++)
+                        {
+                            var trimmed = enemiesText[ranges[i]];
+                            list.Add(new string(trimmed.Trim()));
+                        }
+                        enemies = list;
                     }
 
                     var spawns = new List<Group.Spawn>();
-                    if (group["spawns"] != null)
+                    if (group.TryGetElement("spawns", out XmlElement spawnsXml))
                     {
-                        foreach (var spawnName in group["spawns"].InnerText.Trim().Split(','))
+                        var spawnsText = spawnsXml.InnerText.AsSpan().Trim();
+                        var splitted = spawnsText.Split(',');
+                        foreach (var range in splitted)
                         {
-                            spawns.Add(new Group.Spawn() 
+                            spawns.Add(new Group.Spawn()
                             {
-                                Name = spawnName.Trim(),
+                                Name = new string(spawnsText[range].Trim()),
                                 IsChecked = true
                             });
                         }

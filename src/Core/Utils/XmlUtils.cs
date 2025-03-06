@@ -111,4 +111,10 @@ public static class XmlUtils
 
         return bool.Parse(attribute.Value.Trim());
     }
+
+    public static bool TryGetElement(this XmlElement xmlElement, string name, out XmlElement child)
+    {
+        child = xmlElement[name];
+        return child != null;
+    }
 }

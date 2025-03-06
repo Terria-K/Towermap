@@ -9,6 +9,7 @@ using Riateu.Graphics;
 using Riateu.ImGuiRend;
 using Riateu.Inputs;
 using System.Runtime.InteropServices;
+using Riateu.IO;
 
 namespace Towermap;
 
@@ -280,12 +281,7 @@ public class EditorScene : Scene
                 currentLevel.Unsaved = false;
                 SetLevel(currentLevel);
             }
-        }, null, new Property() 
-            {
-                Title = "Export as a Workshop Tower",
-                Filter = new Filter("Tower", "tower")
-            } 
-        );
+        }, null, new Property("Export as a Workshop Tower", null, new DialogFilter("Tower", "tower")));
     }
     private void OnLevelCreated()
     {
@@ -1184,12 +1180,7 @@ public class EditorScene : Scene
             saveState.AddToRecent(filepath);
             SaveIO.SaveJson<SaveState>("towersave.json", saveState, SaveStateContext.Default.SaveState);
             recentItems.Add(new MenuItem(filepath, () => OpenTowerFile(filepath)));
-        }, null, new Property() 
-            {
-                Title = "Open a Tower",
-                Filter = new Filter("Tower Xml File", "xml")
-            } 
-        );
+        }, null, new Property("Open a Tower", null, new DialogFilter("Tower Xml File", "xml")));
     }
 
     public void Save(bool specifyPath = false) 
@@ -1259,7 +1250,7 @@ public class EditorScene : Scene
                 currentLevel.Unsaved = false;
             }, null, new Property() 
                 {
-                    Filter = new Filter("Tower Xml", "xml")
+                    Filter = new DialogFilter("Tower Xml", "xml")
                 } 
             );
         }

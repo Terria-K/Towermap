@@ -162,14 +162,7 @@ public class EditorScene : Scene
 
         tools.AddTool(FA6.LeftRight, OnHorizontalSymmetry, Tools.ToolType.FireAndForget, 1);
         tools.AddTool(FA6.UpDown, OnVerticalSymmetry, Tools.ToolType.FireAndForget, 1);
-        tools.AddTool(FA6.PenRuler, (toggle) => {
-            if (toggle)
-            {
-                ToolModifier |= ToolModifierFlags.Symmetry;
-                return;
-            }
-            ToolModifier &= ~ToolModifierFlags.Symmetry;
-        }, Tools.ToolType.Toggleable, 2);
+        tools.AddTool(FA6.PenRuler, (toggle) => ToolModifier ^= ToolModifierFlags.Symmetry, Tools.ToolType.Toggleable, 2);
 
         entityMenu = new EntityMenu(imGuiTexture);
         entityMenu.OnSelectActor = OnSelectActor;

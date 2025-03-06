@@ -9,7 +9,7 @@ namespace Towermap;
 
 public class Level 
 {
-    public List<LevelActor> Actors { get; private set; }
+    public List<LevelActor> Actors { get; set; }
     public string Path { get; private set; }
     public string FileName { get; private set; }
     public bool Unsaved { get; set; }
@@ -61,15 +61,21 @@ public class Level
         Actors.Remove(actor);
     }
 
-    public void PushCommit(History.Commit commit, Layers layer) 
+    public void PushCommit(History.Commit commit, Layers layer, bool shouldClearRedo = false) 
     {
         Unsaved = true;
-        history.PushCommit(commit, layer);
+        history.PushCommit(commit, layer, false, shouldClearRedo);
     }
 
-    public bool PopCommit(out History.Commit commit) 
+    public void PushRedoCommit(History.Commit commit, Layers layer) 
     {
-        if (history.PopCommit(out commit)) 
+        Unsaved = true;
+        history.PushCommit(commit, layer, true, false);
+    }
+
+    public bool PopCommit(out History.Commit commit, bool redo) 
+    {
+        if (history.PopCommit(out commit, redo)) 
         {
             Unsaved = true;
             return true;

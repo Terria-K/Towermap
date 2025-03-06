@@ -28,6 +28,7 @@ public class LevelActor : Entity
     private bool isHeld;
     private Vector2 lastHold;
     private bool isHovering;
+    private Vector2 lastPos;
     
 
     public LevelActor(Texture texture, Actor actor, ulong id) 
@@ -58,11 +59,15 @@ public class LevelActor : Entity
 
     public void AddNode(Vector2 position) 
     {
+        var scene = Scene as EditorScene;
+        scene.CommitHistory();
         Nodes.Add(position);
     }
 
     public void RemoveNode(Vector2 position) 
     {
+        var scene = Scene as EditorScene;
+        scene.CommitHistory();
         Nodes.Remove(position);
     }
 
@@ -129,6 +134,10 @@ public class LevelActor : Entity
             if (Input.Mouse.LeftButton.Released) 
             {
                 isHeld = false;
+                var tempPos = Position;
+                Position = lastPos;
+                scene.CommitHistory();
+                Position = tempPos;
                 // Possible negative numbers should be resolved
                 if (Transform.PosX < 0)
                 {
@@ -151,18 +160,22 @@ public class LevelActor : Entity
         {
             if (Input.Keyboard.IsPressed(KeyCode.Left)) 
             {
+                scene.CommitHistory();
                 PosX = MathUtils.Wrap(PosX - 5, 0, WorldUtils.WorldWidth);
             }
             else if (Input.Keyboard.IsPressed(KeyCode.Right)) 
             {
+                scene.CommitHistory();
                 PosX = MathUtils.Wrap(PosX + 5, 0, WorldUtils.WorldWidth);
             }
             else if (Input.Keyboard.IsPressed(KeyCode.Up)) 
             {
+                scene.CommitHistory();
                 PosY = MathUtils.Wrap(PosY - 5, 0, WorldUtils.WorldHeight);
             }
             else if (Input.Keyboard.IsPressed(KeyCode.Down)) 
             {
+                scene.CommitHistory();
                 PosY = MathUtils.Wrap(PosY + 5, 0, WorldUtils.WorldHeight);
             }
         }
@@ -185,6 +198,7 @@ public class LevelActor : Entity
                 {
                     scene.SelectLevelActor(this);
                     isHeld = true;
+                    lastPos = Position;
                     lastHold = new Vector2(
                         (Transform.PosX - Data.Origin.X) - ((x - WorldUtils.WorldX) * 0.5f) + Data.Origin.X,
                         (Transform.PosY - Data.Origin.Y) - ((y - WorldUtils.WorldY) * 0.5f) + Data.Origin.Y
@@ -333,5 +347,19 @@ public class LevelActor : Entity
             }
         }
         base.Draw(spriteBatch);
+    }
+
+    public LevelActor Clone()
+    {
+        return new LevelActor(texture, Data, ID) 
+        {
+            CustomData = CustomData,
+            Nodes = Nodes == null ? null : new List<Vector2>(Nodes),
+            Width = Width,
+            Height = Height,
+            Selected = Selected,
+            Scene = Scene,
+            Position = Position
+        };
     }
 }

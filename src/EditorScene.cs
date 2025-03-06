@@ -501,6 +501,7 @@ public class EditorScene : Scene
 
     public void RemoveActor(LevelActor actor) 
     {
+        CommitHistory();
         actorToRemove = actor;
     }
 
@@ -586,16 +587,30 @@ public class EditorScene : Scene
         }
     }
 
-    public void CommitHistory() 
+    public void CommitHistory(bool shouldClearRedo = true) 
     {
         var historyCommit = CurrentLayer switch {
             Layers.Solids => new History.Commit { Solids = currentLevel.Solids.Bits },
             Layers.BG => new History.Commit { BGs = currentLevel.BGs.Bits },
             Layers.BGTiles => new History.Commit { BGTiles = currentLevel.BGTiles.Ids },
             Layers.SolidTiles => new History.Commit { SolidTiles = currentLevel.SolidTiles.Ids },
+            Layers.Entities => new History.Commit { Actors = currentLevel.Actors, CurrentSelectedActor = currentSelected },
             _ => throw new InvalidOperationException()
         };
-        currentLevel.PushCommit(historyCommit, CurrentLayer);
+
+        currentLevel.PushCommit(historyCommit, CurrentLayer, shouldClearRedo);
+    }
+
+    public void PullHistory() 
+    {
+        currentLevel.PushRedoCommit(new History.Commit {
+            Solids = currentLevel.Solids.Bits,
+            BGs = currentLevel.BGs.Bits,
+            BGTiles = currentLevel.BGTiles.Ids,
+            SolidTiles = currentLevel.SolidTiles.Ids,
+            Actors = currentLevel.Actors,
+            CurrentSelectedActor = currentSelected
+        }, CurrentLayer);
     }
 
     public override void Process(double delta)
@@ -678,8 +693,17 @@ public class EditorScene : Scene
 
             if (!isDrawing && Input.Keyboard.IsPressed(KeyCode.Z)) 
             {
-                if (currentLevel.PopCommit(out var res))
+                bool isRedo = Input.Keyboard.IsHeld(KeyCode.LeftShift);
+                if (currentLevel.PopCommit(out var res, isRedo))
                 {
+                    if (!isRedo)
+                    {
+                        PullHistory();
+                    }
+                    else
+                    {
+                        CommitHistory(false);
+                    }
                     switch (res.Layer) 
                     {
                     case Layers.Solids:
@@ -699,6 +723,11 @@ public class EditorScene : Scene
                     case Layers.SolidTiles:
                         currentLevel.SolidTiles.Clear();
                         currentLevel.SolidTiles.SetTiles(res.SolidTiles);
+                        break;
+                    case Layers.Entities:
+                        currentLevel.Actors.Clear();
+                        currentLevel.Actors = res.Actors;
+                        currentSelected = res.CurrentSelectedActor;
                         break;
                     }
                 }
@@ -746,6 +775,7 @@ public class EditorScene : Scene
                     {
                         void Spawn(Vector2 position)
                         {
+                            CommitHistory();
                             ulong id = currentLevel.GetID();
                             var actor = new LevelActor(Resource.TowerFallTexture, actorSelected, id);
                             actor.Scene = this;

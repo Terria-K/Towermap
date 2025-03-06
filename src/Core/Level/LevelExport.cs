@@ -104,7 +104,7 @@ public class ExportOption : ImGuiElement
 
 public static class LevelExport
 {
-    public static void TowerExport(Tower tower, string path, ExportOverride exportOverride)
+    public static void TowerExport(Tower tower, string path, in ExportOverride exportOverride)
     {
         // get the treasure mask
         Span<byte> treasureMask = stackalloc byte[21];

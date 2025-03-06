@@ -17,6 +17,7 @@ public class TileRect
     public void Start(int x, int y, Type buttonType) 
     {
         StartPos = new Point(x, y);
+        ResultRect = Rectangle.Zero;
         ButtonType = buttonType;
         Started = true;
     }

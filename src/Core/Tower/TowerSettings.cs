@@ -197,6 +197,14 @@ public class TowerSettings : ImGuiElement
             {
                 if (ImGui.BeginTabItem("Tower")) 
                 {
+                    if (tower == null)
+                    {
+                        ImGui.Text("No tower were loaded yet.");
+                        ImGui.EndTabItem();
+                        ImGui.EndTabBar();
+                        ImGui.EndPopup();
+                        return;
+                    }
                     ImGui.Combo("Theme", ref towerData.ThemeID, Themes.ThemeNames, Themes.ThemeNames.Length);
 
                     switch (tower.Type)

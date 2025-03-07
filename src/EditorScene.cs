@@ -10,6 +10,7 @@ using Riateu.ImGuiRend;
 using Riateu.Inputs;
 using System.Runtime.InteropServices;
 using Riateu.IO;
+using SDL3;
 
 namespace Towermap;
 
@@ -85,7 +86,7 @@ public class EditorScene : Scene
     private BackdropRenderer backdropRenderer;
 
     private EntityMenu entityMenu;
-
+    private bool showGrid = true;
     private bool openFallbackTheme = false;
     private int fallbackSelected = 0;
     private SaveState saveState;
@@ -129,7 +130,9 @@ public class EditorScene : Scene
             .Add(new MenuSlot("Settings")
                 .Add(new MenuItem("Theme", OnOpenTheme))
                 .Add(new MenuItem("Editor")))
-            .Add(new MenuSlot("View"));
+            .Add(new MenuSlot("View")
+                .Add(new MenuItem("Toggle Grid", showGrid, toggle => showGrid = toggle))
+            );
 
         levelSelection = new LevelSelection();
         levelSelection.OnSelect = OnLevelSelected;
@@ -650,8 +653,16 @@ public class EditorScene : Scene
             UpdateSelected();
         }
 
+        var io = ImGui.GetIO();
 
-        if (isDrawing && Input.Mouse.AnyPressedButton.IsUp) 
+        bool leftMouseDown = io.MouseDown[0];
+        bool leftMouseUp = !leftMouseDown;
+        bool rightMouseDown = io.MouseDown[2];
+        bool rightMouseUp = !rightMouseDown;
+        bool leftMouseReleased = io.MouseReleased[0];
+        bool rightMouseReleased = io.MouseReleased[2];
+
+        if (isDrawing && (leftMouseUp && rightMouseUp)) 
         {
             isDrawing = false;
         }
@@ -742,17 +753,17 @@ public class EditorScene : Scene
             tileRect.Update(x, y);
         }
 
-        if (Input.Mouse.LeftButton.Released && tileRect.Started) 
+        if (leftMouseReleased && tileRect.Started) 
         {
             TileMouseReleased(0);
         }
 
-        if (Input.Mouse.RightButton.Released && tileRect.Started) 
+        if (rightMouseReleased && tileRect.Started) 
         {
             TileMouseReleased(1);
         }
 
-        if (ImGui.GetIO().WantCaptureMouse) 
+        if (io.WantCaptureMouse) 
         {
             return;
         }
@@ -823,7 +834,7 @@ public class EditorScene : Scene
 
         if (!tileRect.Started) 
         {
-            if (Input.Mouse.LeftButton.IsDown) 
+            if (leftMouseDown) 
             {
                 if (ToolSelected == Tool.Pen)
                 {
@@ -839,7 +850,7 @@ public class EditorScene : Scene
                     }
                 }
             }
-            else if (Input.Mouse.RightButton.IsDown) 
+            else if (rightMouseDown) 
             {
                 if (Input.Keyboard.IsHeld(KeyCode.LeftShift)) 
                 {
@@ -1085,7 +1096,6 @@ public class EditorScene : Scene
 
             levelBatch.Begin(Resource.TowerFallTexture, DrawSampler.PointClamp);
 
-            DrawGrid();
             if (currentLevel != null) 
             {
                 if (visibility[1])
@@ -1126,8 +1136,15 @@ public class EditorScene : Scene
                     }
                 }
             }
+
             tileRect.Draw(levelBatch);
             PhantomActor.Draw(levelBatch);
+
+            if (showGrid)
+            {
+                DrawGrid();
+            }
+
             levelBatch.End();
 
             levelBatch.Flush(commandBuffer);
@@ -1196,6 +1213,7 @@ public class EditorScene : Scene
             towerSettings.SetData(document["data"]);
         }
 
+        currentLevel = null;
         SetLevel(null);
     }
 

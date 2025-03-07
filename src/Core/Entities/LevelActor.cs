@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Riateu;
 using Riateu.Graphics;
 using Riateu.Inputs;
+using ImGuiNET;
 
 namespace Towermap;
 
@@ -134,6 +135,10 @@ public class LevelActor : Entity
             if (Input.Mouse.LeftButton.Released) 
             {
                 isHeld = false;
+                if (Position == lastPos)
+                {
+                    return;
+                }
                 var tempPos = Position;
                 Position = lastPos;
                 scene.CommitHistory();
@@ -156,7 +161,7 @@ public class LevelActor : Entity
             return;
         }
 
-        if (Selected) 
+        if (Selected && !ImGui.GetIO().WantTextInput) 
         {
             if (Input.Keyboard.IsPressed(KeyCode.Left)) 
             {

@@ -40,17 +40,17 @@ public class Tools : ImGuiElement
         }
     }
 
-    private List<Tool> toolName = [];
+    private List<Tool> tools = [];
     private Tool currentSelected;
 
     public void AddTool(string tool, Action act, ToolType toolType, int section = 0) 
     {
-        toolName.Add(new Tool(tool, act, toolType, section));
+        tools.Add(new Tool(tool, act, toolType, section));
     }
 
     public void AddTool(string tool, Action<bool> act, ToolType toolType, int section = 0) 
     {
-        toolName.Add(new Tool(tool, act, toolType, section));
+        tools.Add(new Tool(tool, act, toolType, section));
     }
 
     public override void DrawGui()
@@ -61,7 +61,7 @@ public class Tools : ImGuiElement
         ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(155, 20));
         ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.AlwaysAutoResize);
         int section = 0;
-        foreach (var tool in toolName) 
+        foreach (var tool in tools) 
         {
             if (tool.Section != section)
             {

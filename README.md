@@ -24,3 +24,4 @@ dependencies and build its native library.
 + [SDL3](https://www.libsdl.org) - Rendering backend, File dialog handling, etc.
 + [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.
 + [Jint](https://github.com/sebastienros/jint) - For extensible entity definition using JavaScript.
++ [ImGui.NET](https://github.com/ImGuiNET/ImGui.NET) - A bindings for [ImGui](https://github.com/ocornut/imgui) that is used for User Interface.

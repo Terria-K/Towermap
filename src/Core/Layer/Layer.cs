@@ -23,9 +23,9 @@ public class LayersPanel : ImGuiElement
     public override void DrawGui()
     {
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        var size = new Vector2(158, 0.0f);
         ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0, 0.5f));
         ImGui.Begin("Layers", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
+        var size = Vector2.UnitX * (ImGui.GetWindowSize().X - 42f);
 
         for (int i = 0; i < layers.Length; i++) 
         {

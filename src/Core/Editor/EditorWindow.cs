@@ -11,6 +11,15 @@ public class EditorWindow
 {
     private RenderTarget levelTarget;
     private nint textureTarget;
+    public string Title 
+    {
+        get 
+        {
+            return string.IsNullOrEmpty(title) ? "No Level" : title;
+        }
+        set => title = value;
+    }
+    private string title;
 
     public bool IsItemHovered;
 
@@ -18,7 +27,6 @@ public class EditorWindow
     {
         this.levelTarget = levelTarget;
         textureTarget = renderer.BindTexture(levelTarget);
-
     }
 
     public void DrawGui(Action children)
@@ -28,7 +36,7 @@ public class EditorWindow
                     new Rectangle(0, 0, (int)WorldUtils.WorldWidth, (int)WorldUtils.WorldHeight));
         
         ImGui.PushStyleVar(ImGuiStyleVar.WindowMinSize, new Vector2(WorldUtils.WorldWidth, WorldUtils.WorldHeight) * 2);
-        ImGui.Begin("Editor Viewport", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+        ImGui.Begin(Title + "###Editor Viewport", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         Vector2 windowPos = GetCenteredViewportCenter(new Vector2(WorldUtils.WorldWidth, WorldUtils.WorldHeight) * 2);
         Vector2 screenPos = GetCenteredScreenCenter(new Vector2(WorldUtils.WorldWidth, WorldUtils.WorldHeight) * 2);

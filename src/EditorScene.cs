@@ -490,6 +490,7 @@ public class EditorScene : Scene
         level.LoadLevel(tower.Theme);
         level.SetActorScene(this);
         currentLevel = level;
+        editorWindow.Title = level.FileName;
 
 #if !DEBUG
         }

@@ -1146,7 +1146,7 @@ public class EditorScene : Scene
             uint dock3 = DockNative.igDockBuilderSplitNode(id, ImGuiDir.Left, 0.5f, out _, out id);
 
             DockNative.igDockBuilderDockWindow("Levels", dock1);
-            DockNative.igDockBuilderDockWindow("Editor Viewport", dock3);
+            DockNative.igDockBuilderDockWindow("###Editor Viewport", dock3);
             DockNative.igDockBuilderDockWindow("Layers", dock2);
 
             DockNative.igDockBuilderFinish(id);

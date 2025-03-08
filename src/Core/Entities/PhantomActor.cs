@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using ImGuiNET;
 using Riateu;
 using Riateu.Graphics;
 using Riateu.Inputs;
@@ -37,8 +38,9 @@ public class PhantomActor
     {
         if (actor == null || (Scene as EditorScene).ToolSelected != Tool.Pen || !Active)
             return;
-        int x = Input.Mouse.X;
-        int y = Input.Mouse.Y;
+        var io = ImGui.GetIO();
+        int x = (int)io.MousePos.X;
+        int y = (int)io.MousePos.Y;
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         Position.X = gridX;

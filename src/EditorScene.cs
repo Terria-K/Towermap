@@ -52,6 +52,7 @@ public class EditorScene : Scene
     private EntityData entityData;
     private TowerSettings towerSettings;
     private NewTower newTower;
+    private EditorWindow editorWindow;
 #endregion
     private Autotiler SolidAutotiler;
     private Autotiler BgAutotiler;
@@ -179,6 +180,8 @@ public class EditorScene : Scene
         exportOption = new ExportOption();
         exportOption.OnExport = OnExport;
         exportOption.Enabled = false;
+
+        editorWindow = new EditorWindow(renderer, target);
     }
 
     public override void Begin()
@@ -745,8 +748,8 @@ public class EditorScene : Scene
             }
         }
 
-        int x = Input.Mouse.X;
-        int y = Input.Mouse.Y;
+        int x = (int)io.MousePos.X;
+        int y = (int)io.MousePos.Y;
 
         if (tileRect.Started) 
         {
@@ -763,7 +766,7 @@ public class EditorScene : Scene
             TileMouseReleased(1);
         }
 
-        if (io.WantCaptureMouse) 
+        if (!editorWindow.IsItemHovered) 
         {
             return;
         }
@@ -1027,6 +1030,7 @@ public class EditorScene : Scene
 #if DEBUG
         ImGui.ShowDemoWindow();
 #endif
+        SetupDockspace();
 
         if (towerSettings.Enabled) 
         {
@@ -1083,6 +1087,68 @@ public class EditorScene : Scene
             break;
         }
         entityMenu.UpdateGui();
+        editorWindow.DrawGui();
+        ImGui.End();
+    }
+
+    private void SetupDockspace()
+    {
+        var windowFlags = 
+            ImGuiWindowFlags.MenuBar
+            | ImGuiWindowFlags.NoDocking;
+        
+        var mainViewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
+        ImGui.SetNextWindowPos(mainViewport.Pos, ImGuiCond.Always);
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(1280, 640));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f);
+        windowFlags |= ImGuiWindowFlags.NoTitleBar 
+            | ImGuiWindowFlags.NoCollapse 
+            | ImGuiWindowFlags.NoResize
+            | ImGuiWindowFlags.NoMove
+            | ImGuiWindowFlags.NoBringToFrontOnFocus
+            | ImGuiWindowFlags.NoNavFocus;
+
+        bool dockSpaceTrue = true;
+        ImGui.Begin("Dockspace", ref dockSpaceTrue, windowFlags); 
+        ImGui.PopStyleVar(2);
+
+        // Dockspace
+        ImGuiIOPtr ioPtr = ImGui.GetIO();
+
+        bool needRebuild = false;
+
+        if ((ioPtr.ConfigFlags & ImGuiConfigFlags.DockingEnable) != 0) 
+        {
+            var dockspaceID = ImGui.GetID("MyDockSpace");
+            needRebuild = DockNative.igDockBuilderGetNode(dockspaceID) == IntPtr.Zero;
+            ImGui.DockSpace(dockspaceID, System.Numerics.Vector2.Zero);
+        }
+
+        if (needRebuild)
+        {
+            Vector2 workCenter = ImGui.GetMainViewport().GetWorkCenter();
+            uint id = ImGui.GetID("MyDockSpace");
+            DockNative.igDockBuilderRemoveNode(id);
+            DockNative.igDockBuilderAddNode(id);
+
+            Vector2 size = new Vector2(1280, 640);
+            Vector2 nodePos = new Vector2(workCenter.X - size.X * 0.5f, workCenter.Y - size.Y * 0.5f);
+
+            DockNative.igDockBuilderSetNodeSize(id, size);
+            DockNative.igDockBuilderSetNodePos(id, nodePos);
+
+            uint dock1 = DockNative.igDockBuilderSplitNode(id, ImGuiDir.Left, 0.15f, out _, out id);
+            uint dock2 = DockNative.igDockBuilderSplitNode(id, ImGuiDir.Right, 0.2f, out _, out id);
+            uint dock3 = DockNative.igDockBuilderSplitNode(id, ImGuiDir.Left, 0.5f, out _, out id);
+
+            DockNative.igDockBuilderDockWindow("Levels", dock1);
+            DockNative.igDockBuilderDockWindow("Editor Viewport", dock3);
+            DockNative.igDockBuilderDockWindow("Layers", dock2);
+
+            DockNative.igDockBuilderFinish(id);
+        }
     }
 
     public override void Render(CommandBuffer commandBuffer, RenderTarget swapchain)
@@ -1156,22 +1222,8 @@ public class EditorScene : Scene
         }
         
         {
-            batch.Begin(target, DrawSampler.PointClamp);
-            batch.Draw(
-                new TextureQuad(
-                    new Point(420, 240),
-                    new Rectangle(0, 0, (int)WorldUtils.WorldWidth, (int)WorldUtils.WorldHeight)), 
-                new Vector2(WorldUtils.WorldX, WorldUtils.WorldY), 
-                Color.White, 
-                new Vector2(2)
-            );
-            batch.End();
-
-            batch.Flush(commandBuffer);
-
             var renderPass = commandBuffer.BeginRenderPass(new ColorTargetInfo(swapchain, Color.Black, true));
             renderPass.BindGraphicsPipeline(GameContext.BatchMaterial.ShaderPipeline);
-            batch.Render(renderPass);
             imGui.Render(commandBuffer, renderPass);
             commandBuffer.EndRenderPass(renderPass);
         }

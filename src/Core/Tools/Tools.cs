@@ -56,10 +56,9 @@ public class Tools : ImGuiElement
     public override void DrawGui()
     {
         var mainViewport = ImGui.GetMainViewport();
-        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(155, 20));
-        ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.AlwaysAutoResize);
+        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(155, 20), ImGuiCond.Once);
+        ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize);
         int section = 0;
         foreach (var tool in tools) 
         {

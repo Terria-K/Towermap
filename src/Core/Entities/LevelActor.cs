@@ -106,8 +106,11 @@ public class LevelActor : Entity
             return;
         }
 
-        int x = Input.Mouse.X;
-        int y = Input.Mouse.Y;
+        var io = ImGui.GetIO();
+
+        int x = (int)io.MousePos.X;
+        int y = (int)io.MousePos.Y;
+
         int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
         int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
 

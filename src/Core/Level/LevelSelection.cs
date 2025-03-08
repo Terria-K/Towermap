@@ -105,10 +105,6 @@ public class LevelSelection : ImGuiElement
 
     public override void DrawGui()
     {
-        if (tower == null)
-        {
-            return;
-        }
         if (openNewLevel) 
         {
             ImGui.OpenPopup("New Level");
@@ -141,11 +137,15 @@ public class LevelSelection : ImGuiElement
         }
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.SetNextWindowSize(new Vector2(150, 640), ImGuiCond.Always);
-        var mainViewport = ImGui.GetMainViewport();
-        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
-        ImGui.SetNextWindowPos(mainViewport.Pos +  new Vector2(0, 20));
-        ImGui.Begin("Levels", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
+        ImGui.Begin("Levels", ImGuiWindowFlags.NoCollapse);
+
+        if (tower == null)
+        {
+            ImGui.End();
+            ImGui.PopStyleVar();
+            return;
+        }
+
         foreach (var level in tower.Levels) 
         {
             string filename;

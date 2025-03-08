@@ -55,10 +55,7 @@ public class Tools : ImGuiElement
 
     public override void DrawGui()
     {
-        var mainViewport = ImGui.GetMainViewport();
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(155, 20), ImGuiCond.Once);
-        ImGui.Begin("Tools", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize);
+        ImGui.BeginChild("Tools");
         int section = 0;
         foreach (var tool in tools) 
         {
@@ -95,7 +92,6 @@ public class Tools : ImGuiElement
             }
             ImGui.SameLine();
         }
-        ImGui.End();
-        ImGui.PopStyleVar();
+        ImGui.EndChild();
     }
 }

@@ -1075,7 +1075,6 @@ public class EditorScene : Scene
         
         menuBar.UpdateGui();
         levelSelection.UpdateGui();
-        tools.UpdateGui();
         layers.UpdateGui();
         switch (CurrentLayer) 
         {
@@ -1087,7 +1086,9 @@ public class EditorScene : Scene
             break;
         }
         entityMenu.UpdateGui();
-        editorWindow.DrawGui();
+        editorWindow.DrawGui(() => {
+            tools.UpdateGui();
+        });
         ImGui.End();
     }
 

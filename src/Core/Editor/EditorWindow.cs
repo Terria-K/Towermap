@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using ImGuiNET;
 using Riateu;
@@ -20,7 +21,7 @@ public class EditorWindow
 
     }
 
-    public void DrawGui()
+    public void DrawGui(Action children)
     {
         var quad = new TextureQuad(
                     new Point(420, 240),
@@ -31,6 +32,8 @@ public class EditorWindow
 
         Vector2 windowPos = GetCenteredViewportCenter(new Vector2(WorldUtils.WorldWidth, WorldUtils.WorldHeight) * 2);
         Vector2 screenPos = GetCenteredScreenCenter(new Vector2(WorldUtils.WorldWidth, WorldUtils.WorldHeight) * 2);
+
+        children();
 
         ImGui.SetCursorPos(windowPos);
 

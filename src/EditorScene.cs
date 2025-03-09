@@ -725,11 +725,13 @@ public class EditorScene : Scene
                         currentLevel.Solids.Clear();
                         currentLevel.Solids.Bits = res.Solids.Clone();
                         currentLevel.Solids.UpdateTiles(SolidAutotiler);
+                        VerifySolids();
                         break;
                     case Layers.BG:
                         currentLevel.BGs.Clear();
                         currentLevel.BGs.Bits = res.BGs.Clone();
                         currentLevel.BGs.UpdateTiles(BgAutotiler, currentLevel.Solids.Bits);
+                        VerifySolids();
                         break;
                     case Layers.BGTiles:
                         currentLevel.BGTiles.Clear();

@@ -55,7 +55,6 @@ public class Tools : ImGuiElement
 
     public override void DrawGui()
     {
-        ImGui.BeginChild("Tools");
         int section = 0;
         foreach (var tool in tools) 
         {
@@ -92,6 +91,5 @@ public class Tools : ImGuiElement
             }
             ImGui.SameLine();
         }
-        ImGui.EndChild();
     }
 }

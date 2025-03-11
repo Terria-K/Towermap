@@ -6,9 +6,9 @@ using Riateu.Graphics;
 namespace Towermap;
 
 
-public class TileRect 
+public sealed class TileRect 
 {
-    public enum Type { Place, Remove }
+    public enum Type { Place, Remove, Move }
     public Point StartPos;
     public Rectangle ResultRect;
     public bool Started;
@@ -45,6 +45,7 @@ public class TileRect
         Color color = ButtonType switch {
             Type.Place => Color.Green * 0.5f,
             Type.Remove => new Color(1f, 0f, 0f, 0.5f),
+            Type.Move => Color.Yellow * 0.5f,
             _ => throw new InvalidOperationException()
         };
 

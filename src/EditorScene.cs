@@ -72,11 +72,21 @@ public class EditorScene : Scene
     private List<LevelActor> listSelected = [];
     private Level currentLevel;
     private TileRect tileRect;
+    private TileGridMover tileGridMover;
     private bool hasSelection;
     private bool[] visibility = [true, true, true, true, true];
     private HashSet<ScreenWrapError> wrapErrors = new HashSet<ScreenWrapError>();
+    private Tool toolSelected;
 
-    public Tool ToolSelected;
+    public Tool ToolSelected 
+    {
+        get => toolSelected;
+        set 
+        {
+            tileGridMover.Reset();
+            toolSelected = value;
+        }
+    }
     public ToolModifierFlags ToolModifier;
     public Layers CurrentLayer = Layers.Solids;
     public bool HasRemovedEntity;
@@ -103,6 +113,7 @@ public class EditorScene : Scene
         batch = new Batch(game.GraphicsDevice, 1280, 640);
         PhantomActor = new PhantomActor(this);
         tileRect = new TileRect();
+        tileGridMover = new TileGridMover();
         VanillaActor.Init(saveState);
         imGui = renderer;
         imGuiTexture = imGui.BindTexture(Resource.TowerFallTexture);
@@ -756,17 +767,55 @@ public class EditorScene : Scene
 
         if (tileRect.Started) 
         {
-            tileRect.Update(x, y);
+            if (leftMouseUp && rightMouseUp)
+            {
+                TileMouseReleased();
+            }
+            else 
+            {
+                tileRect.Update(x, y);
+            }
         }
 
-        if (leftMouseReleased && tileRect.Started) 
+        if (tileGridMover.Started)
         {
-            TileMouseReleased(0);
-        }
+            if (leftMouseUp && rightMouseUp)
+            {
+                tileGridMover.Started = false;
+                var rect = tileGridMover.CalculateResult();
+                Span<bool> data = stackalloc bool[(rect.Width /10) * (rect.Height / 10)];
 
-        if (rightMouseReleased && tileRect.Started) 
-        {
-            TileMouseReleased(1);
+                var rectangle = tileRect.ResultRect;
+                for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
+                {
+                    for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
+                    {
+                        int gx = WorldUtils.ToGrid(rectangle.X) + dx;
+                        int gy = WorldUtils.ToGrid(rectangle.Y) + dy;
+
+                        GridTiles gridTiles = CurrentLayer switch {
+                            Layers.Solids => currentLevel.Solids,
+                            Layers.BG => currentLevel.BGs,
+                            _ => throw new NotImplementedException()
+                        };
+
+
+                        data[dx * (rectangle.Height / 10) + dy] = gridTiles.Bits[gx, gy];
+                    }
+                }
+
+                CommitHistory();
+
+                PlaceBatch(tileRect.ResultRect, false);
+                PlaceBatch(data, rect);
+
+                tileRect.ResultRect = rect;
+                tileGridMover.SetRect(rect);
+            }
+            else 
+            {
+                tileGridMover.Update(x, y);
+            }
         }
 
         if (!editorWindow.IsItemHovered) 
@@ -778,6 +827,22 @@ public class EditorScene : Scene
         if (!visibility[(int)CurrentLayer]) 
         {
             return;
+        }
+
+        int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+        int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+
+
+        int worldPosX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+        int worldPosY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+
+        bool tileGridHovered = tileGridMover.IsHovered(worldPosX, worldPosY);
+
+        if (tileGridHovered && leftMouseDown)
+        {
+            int posX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+            int posY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+            tileGridMover.Start(new Vector2(posX, posY));
         }
 
         PhantomActor.Update(delta);
@@ -805,8 +870,7 @@ public class EditorScene : Scene
                             }
                             ToolSelected = Tool.Rect;
                         }
-                        int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                        int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
+
                         if (WorldUtils.InBounds(gridX, gridY) && actorSelected != null) 
                         {
                             Spawn(PhantomActor.Position);
@@ -825,13 +889,9 @@ public class EditorScene : Scene
             }
             else if (ToolSelected == Tool.Node && currentSelected != null && currentSelected.Data.HasNodes) 
             {
-                int gridX = (int)Math.Floor((x - WorldUtils.WorldX) / (WorldUtils.TileSize * WorldUtils.WorldSize));
-                int gridY = (int)Math.Floor((y - WorldUtils.WorldY) / (WorldUtils.TileSize * WorldUtils.WorldSize));
                 if (WorldUtils.InBounds(gridX, gridY)) 
                 {
-                    int posX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
-                    int posY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
-                    Vector2 position = new Vector2(posX, posY);
+                    Vector2 position = new Vector2(worldPosX, worldPosY);
                     currentSelected.AddNode(position);
                     currentLevel.Unsaved = true;
                 }
@@ -855,6 +915,13 @@ public class EditorScene : Scene
                         Place(x, y, true);
                     }
                 }
+                else if (ToolSelected == Tool.Rect && CurrentLayer != Layers.Entities && !tileGridMover.Started)
+                {
+                    int posX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+                    int posY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+                    
+                    tileRect.Start(posX, posY, TileRect.Type.Move);
+                }
             }
             else if (rightMouseDown) 
             {
@@ -872,22 +939,44 @@ public class EditorScene : Scene
         }
     }
 
-    private void TileMouseReleased(int buttonID) 
+    private void TileMouseReleased() 
     {
-        const int LeftClicked = 0;
-        const int RightClicked = 1;
         tileRect.Started = false;
 
-        CommitHistory();
+
+        TileRect.Type type = tileRect.ButtonType;
+
+        if (type != TileRect.Type.Move)
+        {
+            CommitHistory();
+        }
 
         var x = tileRect.ResultRect.X;
         var y = tileRect.ResultRect.Y;
         var width = tileRect.ResultRect.Width;
         var height = tileRect.ResultRect.Height;
 
-        for (int dx = 0; dx < width / 10; dx += 1) 
+        switch (type)
         {
-            for (int dy = 0; dy < height / 10; dy += 1)
+        case TileRect.Type.Place:
+            PlaceBatch(tileRect.ResultRect, true);
+            break;
+        case TileRect.Type.Remove:
+            PlaceBatch(tileRect.ResultRect, false);
+            break;
+        case TileRect.Type.Move:
+            tileGridMover.SetRect(tileRect.ResultRect);
+            break;
+        }
+    }
+
+    private void PlaceBatch(Span<bool> grids, Rectangle rectangle)
+    {
+        int x = rectangle.X;
+        int y = rectangle.Y;
+        for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
+        {
+            for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
             {
                 int gridX = WorldUtils.ToGrid(x) + dx;
                 int gridY = WorldUtils.ToGrid(y) + dy;
@@ -896,27 +985,34 @@ public class EditorScene : Scene
                 {
                     continue;
                 }
-                if (buttonID == LeftClicked)
+
+                PlaceGrid(gridX, gridY, grids[dx * (rectangle.Height / 10) + dy]);
+            }
+        }
+    }
+
+    private void PlaceBatch(Rectangle rectangle, bool placeTile)
+    {
+        int x = rectangle.X;
+        int y = rectangle.Y;
+        for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
+        {
+            for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
+            {
+                int gridX = WorldUtils.ToGrid(x) + dx;
+                int gridY = WorldUtils.ToGrid(y) + dy;
+
+                if (!WorldUtils.InBounds(gridX, gridY))
                 {
-                    PlaceGrid(gridX, gridY, true);
+                    continue;
                 }
-                else if (buttonID == RightClicked)
-                {
-                    PlaceGrid(gridX, gridY, false);
-                }
+
+                PlaceGrid(gridX, gridY, placeTile);
 
                 if (ToolModifier == ToolModifierFlags.Symmetry)
                 {
                     Point opposite = Opposite(gridX, gridY);
-                    
-                    if (buttonID == LeftClicked)
-                    {
-                        PlaceGrid(opposite.X - 1, opposite.Y, true);
-                    }
-                    else if (buttonID == RightClicked)
-                    {
-                        PlaceGrid(opposite.X - 1, opposite.Y, false);
-                    }
+                    PlaceGrid(opposite.X - 1, opposite.Y, placeTile);
                 }
             }
         }
@@ -1208,6 +1304,7 @@ public class EditorScene : Scene
             }
 
             tileRect.Draw(levelBatch);
+            tileGridMover.Draw(levelBatch, currentLevel, CurrentLayer);
             PhantomActor.Draw(levelBatch);
 
             if (showGrid)

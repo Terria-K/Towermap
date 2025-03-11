@@ -14,6 +14,7 @@ public class GridTiles : Entity
     private Tilemap tilemap;
     private Spritesheet sheet;
     public Array2D<bool> Bits;
+    public Tilemap Tiles => tilemap;
 
     public GridTiles(Texture texture, Spritesheet sheet, int gridWidth, int gridHeight) 
     {

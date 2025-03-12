@@ -876,7 +876,7 @@ public class EditorScene : Scene
                             Spawn(PhantomActor.Position);
                             if (ToolModifier == ToolModifierFlags.Symmetry)
                             {
-                                var opposite = Opposite(PhantomActor.Position);
+                                var opposite = WorldUtils.Opposite(PhantomActor.Position);
                                 opposite -= new Vector2(PhantomActor.Width, 0);
                                 opposite += new Vector2(PhantomActor.OriginX + PhantomActor.OriginX, 0);
                                 Spawn(opposite);
@@ -1011,7 +1011,7 @@ public class EditorScene : Scene
 
                 if (ToolModifier == ToolModifierFlags.Symmetry)
                 {
-                    Point opposite = Opposite(gridX, gridY);
+                    Point opposite = WorldUtils.Opposite(gridX, gridY);
                     PlaceGrid(opposite.X - 1, opposite.Y, placeTile);
                 }
             }
@@ -1061,18 +1061,6 @@ public class EditorScene : Scene
         }
     }
 
-    private Vector2 Opposite(Vector2 vec)
-    {
-        float halfWidth = WorldUtils.WorldWidth * 0.5f;
-        return new Vector2(halfWidth + (halfWidth - vec.X), vec.Y);
-    }
-
-    private Point Opposite(int gridX, int gridY)
-    {
-        int halfWidth = ((int)WorldUtils.WorldWidth / 2) / 10;
-        return new Point(halfWidth + (halfWidth - gridX), gridY);
-    }
-
     private void Place(int x, int y, bool placeTile) 
     {
         switch (CurrentLayer) 
@@ -1094,7 +1082,7 @@ public class EditorScene : Scene
 
                     if (ToolModifier == ToolModifierFlags.Symmetry)
                     {
-                        Point opposite = Opposite(gridX, gridY);
+                        Point opposite = WorldUtils.Opposite(gridX, gridY);
                         PlaceGrid(opposite.X - 1, opposite.Y, placeTile);
                     }
                 }

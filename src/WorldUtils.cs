@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -13,6 +14,18 @@ public static class WorldUtils
     public const double WorldSize = 2;
 
     public const int TileSize = 10;
+
+    public static Vector2 Opposite(Vector2 vec)
+    {
+        float halfWidth = WorldWidth * 0.5f;
+        return new Vector2(halfWidth + (halfWidth - vec.X), vec.Y);
+    }
+
+    public static Point Opposite(int gridX, int gridY)
+    {
+        int halfWidth = ((int)WorldWidth / 2) / 10;
+        return new Point(halfWidth + (halfWidth - gridX), gridY);
+    }
 
     public static int ToGrid(float num) 
     {

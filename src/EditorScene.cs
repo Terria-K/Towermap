@@ -783,31 +783,62 @@ public class EditorScene : Scene
             {
                 tileGridMover.Started = false;
                 var rect = tileGridMover.CalculateResult();
-                Span<bool> data = stackalloc bool[(rect.Width /10) * (rect.Height / 10)];
 
-                var rectangle = tileRect.ResultRect;
-                for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
+                if (CurrentLayer is Layers.Solids or Layers.BG)
                 {
-                    for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
+                    Span<bool> data = stackalloc bool[(rect.Width /10) * (rect.Height / 10)];
+
+                    var rectangle = tileRect.ResultRect;
+                    for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
                     {
-                        int gx = WorldUtils.ToGrid(rectangle.X) + dx;
-                        int gy = WorldUtils.ToGrid(rectangle.Y) + dy;
+                        for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
+                        {
+                            int gx = WorldUtils.ToGrid(rectangle.X) + dx;
+                            int gy = WorldUtils.ToGrid(rectangle.Y) + dy;
 
-                        GridTiles gridTiles = CurrentLayer switch {
-                            Layers.Solids => currentLevel.Solids,
-                            Layers.BG => currentLevel.BGs,
-                            _ => throw new NotImplementedException()
-                        };
+                            GridTiles gridTiles = CurrentLayer switch {
+                                Layers.Solids => currentLevel.Solids,
+                                Layers.BG => currentLevel.BGs,
+                                _ => throw new NotImplementedException()
+                            };
 
 
-                        data[dx * (rectangle.Height / 10) + dy] = gridTiles.Bits[gx, gy];
+                            data[dx * (rectangle.Height / 10) + dy] = gridTiles.Bits[gx, gy];
+                        }
                     }
+
+                    CommitHistory();
+
+                    PlaceGridBatch(tileRect.ResultRect, false);
+                    PlaceGridBatch(data, rect);
+                }
+                else if (CurrentLayer is Layers.SolidTiles or Layers.BGTiles)
+                {
+                    Span<int> data = stackalloc int[(rect.Width /10) * (rect.Height / 10)];
+
+                    Tiles tiles = CurrentLayer switch {
+                        Layers.SolidTiles => currentLevel.SolidTiles,
+                        Layers.BGTiles => currentLevel.BGTiles,
+                        _ => throw new NotImplementedException()
+                    };
+
+                    var rectangle = tileRect.ResultRect;
+                    for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
+                    {
+                        for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
+                        {
+                            int gx = WorldUtils.ToGrid(rectangle.X) + dx;
+                            int gy = WorldUtils.ToGrid(rectangle.Y) + dy;
+
+                            data[dx * (rectangle.Height / 10) + dy] = tiles.Ids[gx, gy];
+                        }
+                    }
+
+                    CommitHistory();
+                    PlaceDecorBatch(data, tileRect.ResultRect, tiles, false);
+                    PlaceDecorBatch(data, rect, tiles, true);
                 }
 
-                CommitHistory();
-
-                PlaceBatch(tileRect.ResultRect, false);
-                PlaceBatch(data, rect);
 
                 tileRect.ResultRect = rect;
                 tileGridMover.SetRect(rect);
@@ -959,10 +990,10 @@ public class EditorScene : Scene
         switch (type)
         {
         case TileRect.Type.Place:
-            PlaceBatch(tileRect.ResultRect, true);
+            PlaceGridBatch(tileRect.ResultRect, true);
             break;
         case TileRect.Type.Remove:
-            PlaceBatch(tileRect.ResultRect, false);
+            PlaceGridBatch(tileRect.ResultRect, false);
             break;
         case TileRect.Type.Move:
             tileGridMover.SetRect(tileRect.ResultRect);
@@ -970,7 +1001,30 @@ public class EditorScene : Scene
         }
     }
 
-    private void PlaceBatch(Span<bool> grids, Rectangle rectangle)
+    private void PlaceDecorBatch(Span<int> grids, Rectangle rectangle, Tiles tiles, bool placeTile)
+    {
+        int x = rectangle.X;
+        int y = rectangle.Y;
+        for (int dx = 0; dx < rectangle.Width / 10; dx += 1) 
+        {
+            for (int dy = 0; dy < rectangle.Height / 10; dy += 1)
+            {
+                int gridX = WorldUtils.ToGrid(x) + dx;
+                int gridY = WorldUtils.ToGrid(y) + dy;
+
+                if (!WorldUtils.InBounds(gridX, gridY))
+                {
+                    continue;
+                }
+
+                int tile = placeTile ? grids[dx * (rectangle.Height / 10) + dy] : -1;
+                tiles.SetTile(gridX, gridY, tile);
+                isDrawing = true;
+            }
+        }
+    }
+
+    private void PlaceGridBatch(Span<bool> grids, Rectangle rectangle)
     {
         int x = rectangle.X;
         int y = rectangle.Y;
@@ -991,7 +1045,7 @@ public class EditorScene : Scene
         }
     }
 
-    private void PlaceBatch(Rectangle rectangle, bool placeTile)
+    private void PlaceGridBatch(Rectangle rectangle, bool placeTile)
     {
         int x = rectangle.X;
         int y = rectangle.Y;

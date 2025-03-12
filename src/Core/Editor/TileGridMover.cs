@@ -75,17 +75,35 @@ public sealed class TileGridMover
                     int gx = WorldUtils.ToGrid(gridRectangle.X) + dx;
                     int gy = WorldUtils.ToGrid(gridRectangle.Y) + dy;
 
-                    GridTiles gridTiles = currentLayer switch 
+                    if (currentLayer is Layers.Solids or Layers.BG)
                     {
-                        Layers.Solids => level.Solids,
-                        Layers.BG => level.BGs,
-                        _ => throw new NotImplementedException()
-                    };
+                        GridTiles gridTiles = currentLayer switch 
+                        {
+                            Layers.Solids => level.Solids,
+                            Layers.BG => level.BGs,
+                            _ => throw new NotImplementedException()
+                        };
 
-                    var quad = gridTiles.Tiles.GetTile(new Point(gx, gy));
-                    if (quad.HasValue)
+                        var quad = gridTiles.Tiles.GetTile(new Point(gx, gy));
+                        if (quad.HasValue)
+                        {
+                            levelBatch.Draw(quad.Value, new Vector2(px * 10, py * 10), Color.White);
+                        }
+                    }
+                    else if (currentLayer is Layers.SolidTiles or Layers.BGTiles)
                     {
-                        levelBatch.Draw(quad.Value, new Vector2(px * 10, py * 10), Color.White);
+                        Tiles tiles = currentLayer switch 
+                        {
+                            Layers.SolidTiles => level.SolidTiles,
+                            Layers.BGTiles => level.BGTiles,
+                            _ => throw new NotImplementedException()
+                        };
+
+                        var quad = tiles.Tilemap.GetTile(new Point(gx, gy));
+                        if (quad.HasValue)
+                        {
+                            levelBatch.Draw(quad.Value, new Vector2(px * 10, py * 10), Color.White);
+                        }
                     }
                 }
             }

@@ -16,6 +16,8 @@ public class Tiles : Entity
     private Array2D<TextureQuad?> tiles;
     public Array2D<int> Ids;
 
+    public Tilemap Tilemap => tilemap;
+
     public Tiles(Texture texture, Spritesheet spritesheet, int gridWidth, int gridHeight) 
     {
         this.spritesheet = spritesheet;

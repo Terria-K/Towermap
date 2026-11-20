@@ -1,77 +1,81 @@
 using System;
-using System.Numerics;
-using ImGuiNET;
+using System.Collections.Generic;
+using Cosmiria;
 
 namespace Towermap;
 
-public class EntityMenu : ImGuiElement
+public struct EntityMenu() : IComponent
 {
-    private IntPtr imGuiTexture;
-    public Action<Actor> OnSelectActor;
-    public EntityMenu(IntPtr imGuiTexture) 
+    private static readonly Style Grid = default(Style).FlexRow().FlexWrap().Gap(6);
+    private static readonly Style Cell = default(Style).FlexCol().ItemsCenter().Gap(4).W(96).Padding(6).Rounded(Styles.Radius).Bg(Styles.Raised).Border(1, Styles.Line);
+    private static readonly Style CellHover = default(Style).Bg(Styles.Hover);
+    private static readonly Style CellName = default(Style).TextSizeOf(12).TextCenter().MaxW(Length.Full);
+
+    public BindableValue<bool> Open;
+    public Callback<Actor> OnSelect;
+
+    private readonly BindableValue<int> tab = new(0);
+
+    public Node Render(UIStack ui, EventStack ev)
     {
-        this.imGuiTexture = imGuiTexture;
-    }
-
-    public override void DrawGui()
-    {
-        var mainViewport = ImGui.GetMainViewport();
-        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
-
-        ImGui.SetNextWindowSize(new Vector2(1280 - 50, 620 - 50), ImGuiCond.Always);
-        ImGui.SetNextWindowPos(mainViewport.Pos + new Vector2(25, 25));
-        ImGui.Begin("Entity Menu", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.Modal);
-
-        if (ImGui.BeginTabBar("TagTab"))
+        var modal = ui.Modal(Open, "Entities", style: default(Style).W(Length.Percent(90)).H(Length.Percent(90)));
+        if (!modal.IsOpen)
         {
-            if (ImGui.BeginTabItem("All"))
-            {
-                ImGui.Columns(10, "col-All", false);
-                foreach (var (name, actor) in ActorManager.Actors)
-                {
-                    if (ImGui.ImageButton(actor.Name, imGuiTexture, new Vector2(40, 40) * 1.5f, 
-                        actor.Texture.UV.TopLeft, actor.Texture.UV.BottomRight)) 
-                    {
-                        OnSelectActor?.Invoke(actor);
-                        Enabled = false;
-                    }
-
-                    ImGui.Text(name);
-
-                    ImGui.NextColumn();
-                }
-                ImGui.Columns(1);
-
-                ImGui.EndTabItem();
-            }
-            foreach (var actorTagged in ActorManager.ActorTagged) 
-            {
-                if (ImGui.BeginTabItem(actorTagged.Key))
-                {
-                    ImGui.Columns(10, "col-" + actorTagged.Key, false);
-                    foreach (var actor in actorTagged.Value)
-                    {
-                        if (ImGui.ImageButton(actor.Name, imGuiTexture, new Vector2(40, 40) * 1.5f, 
-                            actor.Texture.UV.TopLeft, actor.Texture.UV.BottomRight)) 
-                        {
-                            OnSelectActor?.Invoke(actor);
-                            Enabled = false;
-                        }
-
-                        ImGui.Text(actor.Name);
-
-                        ImGui.NextColumn();
-                    }
-                    ImGui.Columns(1);
-
-                    ImGui.EndTabItem();
-                }
-
-            }
-            ImGui.EndTabBar();
+            return modal;
         }
 
+        var tabs = ui.Tabs(tab, default(Style).Grow().MinH(0));
+        tabs.Tab(0, "All");
+        int index = 1;
+        foreach (var tag in ActorManager.ActorTagged.Keys)
+        {
+            tabs.Tab(index++, tag);
+        }
 
-        ImGui.End();
+        Node grid = ui.View(Grid);
+        if (tab.Value == 0)
+        {
+            foreach (var actor in ActorManager.Actors.Values)
+            {
+                grid.Child(Item(ui, ev, actor));
+            }
+        }
+        else
+        {
+            foreach (var actor in TaggedActors(tab.Value - 1))
+            {
+                grid.Child(Item(ui, ev, actor));
+            }
+        }
+
+        tabs.Panel.Styled(default(Style).Grow().MinH(0).OverflowScroll()).Child(grid);
+        modal.Body.Styled(default(Style).Grow()).Child(tabs);
+        return modal;
+    }
+
+    private static List<Actor> TaggedActors(int index)
+    {
+        foreach (var list in ActorManager.ActorTagged.Values)
+        {
+            if (index-- == 0)
+            {
+                return list;
+            }
+        }
+        return [];
+    }
+
+    private static Node Item(UIStack ui, EventStack ev, Actor actor) =>
+        ui.View(Cell).Hover(CellHover).Tooltip(actor.Name)
+            .OnClick(ev.Listener(static (ref EntityMenu m, Actor a) => m.Select(a), actor))
+            .Child([
+                ui.AtlasImage(actor.Texture, ImageFit.Contain, default(Style).Size(56)),
+                ui.Text(actor.Name).Styled(CellName)
+            ]);
+
+    private void Select(Actor actor)
+    {
+        OnSelect.Invoke(actor);
+        Open.Value = false;
     }
 }

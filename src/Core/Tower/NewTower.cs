@@ -1,64 +1,79 @@
 using System;
-using System.Numerics;
-using ImGuiNET;
+using Cosmiria;
 using Riateu.IO;
 
 namespace Towermap;
 
-public sealed class NewTower : ImGuiElement
+public struct CreateNewTowerCallback
 {
-    private string towerName = "";
-    private string towerPath = "";
-    private int towerMode;
-    private int currentTheme;
+    public string TowerName;
+    public string TowerPath;
+    public int TowerMode;
+    public int TowerTheme;
+}
+
+public struct CreateNewTower() : IComponent
+{
+    public BindableValue<bool> Open = new(false);
+    private readonly TextBuffer towerName = new();
+    private readonly TextBuffer towerPath = new();
+    private readonly BindableValue<int> towerMode = new(0);
+    private readonly BindableValue<int> theme = new(0);
     private string[] modes;
+    private TowermapGame game;
 
-    public Action<string, string, int, int> OnCreateTower;
+    public Callback<CreateNewTowerCallback> OnCreateTower;
 
-    public NewTower(SaveState saveState) 
+    public static CreateNewTower Create(
+        TowermapGame game, 
+        SaveState saveState, 
+        BindableValue<bool> open
+    )
     {
-        if (saveState.DarkWorld)
-        {
-            modes = ["Versus", "Quest", "DarkWorld"];
-        }
-        else 
-        {
-            modes = ["Versus", "Quest"];
-        }
+        return new CreateNewTower { 
+            game = game,
+            modes = saveState.DarkWorld ? ["Versus", "Quest", "DarkWorld"] : ["Versus", "Quest"],
+            Open = open
+        };
     }
 
-    public override void DrawGui()
+    public Node Render(UIStack ui, EventStack ev)
     {
-        ImGui.SetNextWindowSize(new Vector2(520, 320));
-        if (ImGui.BeginPopupModal("New Tower", ref enabled)) 
+        var modal = ui.Modal(Open, "New Tower", style: default(Style).W(520));
+        if (!modal.IsOpen)
         {
-            ImGui.InputText("Tower Name", ref towerName, 100);
-            ImGui.InputText("Tower Path", ref towerPath, 200);
-            if (ImGui.Button("Browse")) 
-            {
-                FileDialog.OpenFolder((filepath) => towerPath = filepath, null);
-            }
-            ImGui.Combo("Tower Mode", ref towerMode, modes, modes.Length);
-            ImGui.Combo("Theme", ref currentTheme, Themes.ThemeNames, Themes.ThemeNames.Length);
-
-            bool condition = string.IsNullOrEmpty(towerName) || string.IsNullOrEmpty(towerPath);
-
-            if (condition)
-            {
-                ImGui.BeginDisabled();
-            }
-
-            if (ImGui.Button("Create"))
-            {
-                OnCreateTower?.Invoke(towerName, towerPath, towerMode, currentTheme);
-                Enabled = false;
-            }
-
-            if (condition)
-            {
-                ImGui.EndDisabled();
-            }
-            ImGui.EndPopup();
+            return modal;
         }
+
+        bool canCreate = towerName.Length > 0 && towerPath.Length > 0;
+        modal.Body.Child([
+            ui.Labeled("Tower Name", ui.TextInput(towerName, null, Styles.Field)),
+            ui.Labeled("Tower Path", ui.View(Styles.Row.Grow()).Child([
+                ui.TextInput(towerPath, null, Styles.Field),
+                ui.Button("Browse").OnClick(ev.Listener(static (ref CreateNewTower t) => t.Browse()))
+            ])),
+            ui.Labeled("Tower Mode", ui.ComboBox(towerMode, modes)),
+            ui.Labeled("Theme", ui.ComboBox(theme, Themes.ThemeNames)),
+            ui.Button("Create").OnClick(ev.Listener(static (ref CreateNewTower t) => t.Create())).Disabled(!canCreate),
+        ]);
+        return modal;
+    }
+
+    private void Browse()
+    {
+        var s = this;
+        FileDialog.OpenFolder(path => s.game.UI.Post(() => { s.towerPath.Set(path); s.game.UI.Notify(); }), null);
+    }
+
+    private void Create()
+    {
+        OnCreateTower.Invoke(new CreateNewTowerCallback
+        {
+            TowerName = towerName.ToString(),
+            TowerPath = towerPath.ToString(),
+            TowerMode = towerMode.Value,
+            TowerTheme = theme.Value
+        });
+        Open.Value = false;
     }
 }

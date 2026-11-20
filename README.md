@@ -16,12 +16,13 @@ single person.
 
 ## Contributing
 If you want to contribute in this project, make sure you have TowerFall and bring your own assets for now.
-Clone [Riateu](https://github.com/Terria-K/Riateu) project and put it next to the project folder, you also need some of its
-dependencies and build its native library.
+The project builds against [Cosmiria](Cosmiria) and the [Riateu](https://github.com/Terria-K/Riateu) copy inside it
+(`Cosmiria/Riateu`), so you need the .NET 11 SDK and Riateu's native library built.
 
 
 ## Dependencies:
 + [SDL3](https://www.libsdl.org) - Rendering backend, File dialog handling, etc.
 + [Riateu](https://github.com/Terria-K/Riateu) - A primary engine for this app.
 + [Jint](https://github.com/sebastienros/jint) - For extensible entity definition using JavaScript.
-+ [ImGui.NET](https://github.com/ImGuiNET/ImGui.NET) - A bindings for [ImGui](https://github.com/ocornut/imgui) that is used for User Interface.
++ [Cosmiria](Cosmiria) - A GPU UI framework for Riateu that is used for User Interface.
++ [Carlito](https://fonts.google.com/carlito) and [Font Awesome](https://fontawesome.com) - Fonts for text and icons.

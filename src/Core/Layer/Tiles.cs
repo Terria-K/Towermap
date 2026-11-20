@@ -1,4 +1,3 @@
-using System.Xml;
 using System.Text;
 using Riateu;
 using Riateu.Components;
@@ -79,7 +78,6 @@ public class Tiles : Entity
         ReadOnlySpan<char> splitter = "\n";
         if (csv.Contains("\r\n", StringComparison.InvariantCulture))
         {
-            // yeah, I hate this
             splitter = "\r\n";
         }
 

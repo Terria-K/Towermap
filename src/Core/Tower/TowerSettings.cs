@@ -2,49 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Xml;
-using ImGuiNET;
-using Riateu;
+using Cosmiria;
 
 namespace Towermap;
 
 public struct TowerData 
 {
     public int ThemeID;
-    public int TreasureID;
     public float ArrowRates;
 }
 
-public class TowerSettings : ImGuiElement
+public sealed class QuestData
 {
-    public Theme Theme => theme;
-    private Theme theme;
-    private string themeName = "";
-    private TowerData towerData;
-    private Tower tower;
-    private List<Wave>[] waves = new List<Wave>[2];
-    public Action<TowerData> OnSave;
+    public readonly List<Wave>[] Waves = [[], []];
 
-    public TowerSettings() 
+    public void Load(XmlElement data) 
     {
-        Enabled = false;
-        waves = [
-            new List<Wave>(),
-            new List<Wave>()
-        ];
+        Waves[0].Clear();
+        Waves[1].Clear();
+
+        LoadWaves(Waves[0], data["normal"]);
+        LoadWaves(Waves[1], data["hardcore"]);
     }
 
-    public void SetData(XmlElement data) 
-    {
-        waves[0].Clear();
-        waves[1].Clear();
-
-        SetWaveData(waves[0], data["normal"]);
-        SetWaveData(waves[1], data["hardcore"]);
-    }
-
-    public void SetWaveData(List<Wave> waves, XmlElement data) 
+    private static void LoadWaves(List<Wave> waves, XmlElement data) 
     {
         foreach (XmlElement wave in data.GetElementsByTagName("wave"))
         {
@@ -70,7 +52,7 @@ public class TowerSettings : ImGuiElement
                     var solo = group.AttrBool("solo");
                     var coop = group.AttrBool("coop");
 
-                    var treasureList = new List<int>();
+                    var treasureList = new List<BindableValue<int>>();
                     if (group.TryGetElement("treasure", out XmlElement treasureXml))
                     {
                         ReadOnlySpan<char> treasureText = treasureXml.InnerText.AsSpan().Trim();
@@ -79,27 +61,18 @@ public class TowerSettings : ImGuiElement
                         foreach (var range in splitted)
                         {
                             var trimmed = treasureText[range].Trim();
-                            treasureList.Add(Array.IndexOf(Pickups.PickupNames, new string(trimmed)));
+                            treasureList.Add(new(Array.IndexOf(Pickups.PickupNames, new string(trimmed))));
                         }
                     }
 
-                    var enemies = new List<string>();
+                    var enemies = new List<TextBuffer>();
                     if (group.TryGetElement("enemies", out XmlElement enemiesXml))
                     {
                         ReadOnlySpan<char> enemiesText = enemiesXml.InnerText.AsSpan().Trim();
-                        char splitters = ',';
-
-                        var count = enemiesText.Count(splitters) + 1;
-
-                        var list = new List<string>(count);
-
-                        var splitted = enemiesText.Split(splitters);
-                        foreach (var range in splitted)
+                        foreach (var range in enemiesText.Split(','))
                         {
-                            var trimmed = enemiesText[range];
-                            list.Add(new string(trimmed.Trim()));                           
+                            enemies.Add(new TextBuffer(new string(enemiesText[range].Trim())));
                         }
-                        enemies = list;
                     }
 
                     var spawns = new List<Group.Spawn>();
@@ -120,7 +93,7 @@ public class TowerSettings : ImGuiElement
                     w.Groups.Add(new Group() 
                     {
                         TreasureIDs = treasureList,
-                        Delay = delay,
+                        Delay = new(delay, 1, 0, integer: true),
                         Solo = solo,
                         CoOp = coop,
                         Spawns = spawns,
@@ -135,7 +108,7 @@ public class TowerSettings : ImGuiElement
 
     public void SetAllGroupDirty()
     {
-        foreach (var diffWave in waves)
+        foreach (var diffWave in Waves)
         {
             foreach (var wave in diffWave)
             {
@@ -147,7 +120,7 @@ public class TowerSettings : ImGuiElement
         }
     }
 
-    private void RefreshSpawn(List<Group.Spawn> spawns)
+    public static void RefreshSpawn(Tower tower, List<Group.Spawn> spawns)
     {
         var spawn = spawns.Where(x => x.IsChecked).Select(x => x.Name).ToHashSet();
         var nameList = tower.Levels[0].Actors.Where(x => x.Data.Name == "Spawner")
@@ -175,281 +148,14 @@ public class TowerSettings : ImGuiElement
         }
     }
 
-    public void SetTower(Tower tower) 
-    {
-        this.tower = tower;
-        towerData.ArrowRates = tower.ArrowRates;
-    }
-    
-    public void SetTheme(Theme theme) 
-    {
-        this.theme = theme;
-        themeName = theme.ID;
-        towerData.ThemeID = Array.IndexOf(Themes.ThemeNames, themeName);
-    }
-
-    public override void DrawGui()
-    {
-        ImGui.SetNextWindowSize(new Vector2(520, 520), ImGuiCond.FirstUseEver);
-        if (ImGui.BeginPopupModal("Theme Settings", ref enabled)) 
-        {
-            if (ImGui.BeginTabBar("Tabbar")) 
-            {
-                if (ImGui.BeginTabItem("Tower")) 
-                {
-                    if (tower == null)
-                    {
-                        ImGui.Text("No tower were loaded yet.");
-                        ImGui.EndTabItem();
-                        ImGui.EndTabBar();
-                        ImGui.EndPopup();
-                        return;
-                    }
-                    ImGui.Combo("Theme", ref towerData.ThemeID, Themes.ThemeNames, Themes.ThemeNames.Length);
-
-                    switch (tower.Type)
-                    {
-                    case Tower.TowerType.Quest:
-                        // Nothing on Quest
-                        break;
-                    case Tower.TowerType.Versus:
-                        if (ImGui.InputFloat("Arrow Rates", ref towerData.ArrowRates, 0.1f)) 
-                        {
-                            towerData.ArrowRates = Math.Clamp(towerData.ArrowRates, 0, 1);
-                        }
-
-                        ImGui.BeginTable("treasure_table", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders);
-                        List<string> toRemove = [];
-                        int i = 0;
-                        foreach (var treasure in tower.Treasures)
-                        {
-                            ImGui.Text(treasure);
-                            ImGui.SameLine();
-                            ImGui.PushID(treasure + "_rmbtn" + i);
-                            if (ImGui.Button("Remove"))
-                            {
-                                toRemove.Add(treasure);
-                            }
-                            ImGui.PopID();
-                            ImGui.TableNextColumn();
-                            i += 1;
-                        }
-
-                        foreach (var removing in toRemove)
-                        {
-                            tower.Treasures.Remove(removing);
-                        }
-
-                        ImGui.EndTable();
-                        ImGui.Combo("Treasure", ref towerData.TreasureID, Pickups.PickupNames, Pickups.PickupNames.Length);
-                        if (ImGui.Button("Add Treasure")) 
-                        {
-                            tower.Treasures.Add(Pickups.PickupNames[towerData.TreasureID]);
-                        }
-                        break;
-                    }
-
-
-                    if (ImGui.Button("Save")) 
-                    {
-                        tower.ArrowRates = towerData.ArrowRates;
-                        tower.Save();
-                        OnSave?.Invoke(towerData);
-                    }
-                    ImGui.EndTabItem();
-                }
-
-                if (ImGui.BeginTabItem("Data")) 
-                {
-                    if (!tower.Levels[0].LoadedIn)
-                    {
-                        ImGui.Text("You must load the first level to proceed.");
-                        ImGui.EndTabItem();
-                        ImGui.EndTabBar();
-                        ImGui.EndPopup();
-                        return;
-                    }
-                    if (ImGui.BeginTabBar("DifficultyTab"))
-                    {
-                        for (int i = 0; i < waves.Length; i++)
-                        {
-                            if (ImGui.BeginTabItem(i == 0 ? "Normal" : "Hardcore"))
-                            {
-                                int waveNum = 1;
-                                foreach (var wave in waves[i]) 
-                                {
-                                    RenderWave(wave, waveNum);
-
-                                    waveNum += 1;
-                                }
-
-                                ImGui.Separator();
-                                if (waves[i].Count == 0)
-                                {
-                                    if (ImGui.Button("Copy From " + (i != 0 ? "Normal" : "Hardcore"))) 
-                                    {
-                                    }
-                                }
-                                if (ImGui.Button("Add Wave")) 
-                                {
-                                    waves[i].Add(new Wave());
-                                }
-
-                                if (ImGui.Button("Save")) 
-                                {
-                                    SaveData();
-                                }
-
-                                ImGui.EndTabItem();
-                            }
-                        }
-
-                        ImGui.EndTabBar();
-                    }
-
-                    ImGui.EndTabItem();
-                }
-                ImGui.EndTabBar();
-            }
-
-            ImGui.EndPopup();
-        }
-    }
-
-    private void RenderWave(Wave wave, int waveNum) 
-    {
-        if (ImGui.CollapsingHeader($"Wave {waveNum}"))
-        {
-            ImGui.PushID(waveNum);
-            ImGui.Checkbox("Dark", ref wave.IsDark);
-            ImGui.SameLine();
-            ImGui.Checkbox("Slow", ref wave.IsSlow);
-            ImGui.SameLine();
-            ImGui.Checkbox("Scroll", ref wave.IsScroll);
-            ImGui.PopID();
-
-            int groupNum = 1;
-            foreach (var group in wave.Groups) 
-            {
-                ImGui.PushID($"Wave{waveNum}-Group{groupNum}");
-                if (ImGui.TreeNode($"Group {groupNum}")) 
-                {
-                    ImGui.Checkbox("Floor", ref group.IsFloor);
-                    if (group.IsFloor)
-                    {
-                        ImGui.InputInt("Floor Number", ref group.FloorNumber);
-                    }
-                    else 
-                    {
-                        if (ImGui.InputInt("Delay", ref group.Delay, 1)) 
-                        {
-                            group.Delay = Math.Max(0, group.Delay);
-                        }
-                        ImGui.Checkbox("Solo", ref group.Solo);
-                        ImGui.SameLine();
-                        ImGui.Checkbox("CoOp", ref group.CoOp);
-                        
-                        ImGui.SeparatorText("Treasure");
-                        for (int i = 0; i < group.TreasureIDs.Count; i++)
-                        {
-                            var treasureID = group.TreasureIDs[i];
-                            ImGui.PushID(i);
-                            if (ImGui.Combo("Select Treasure", ref treasureID, Pickups.PickupNamesWithNone, Pickups.PickupNamesWithNone.Length)) 
-                            {
-                                group.TreasureIDs[i] = treasureID;
-                            }
-                            ImGui.PopID();
-                        }
-                        if (ImGui.Button("Add Treasure"))
-                        {
-                            group.TreasureIDs.Add(20);
-                        }
-                        ImGui.SeparatorText("Spawns");
-                        if (tower.Levels.Count == 0)
-                        {
-                            ImGui.Text("Level must have at least 1 level for spawns");
-                        }
-                        else 
-                        {
-                            string currentSpawner = "";
-                            if (group.Dirty)
-                            {
-                                RefreshSpawn(group.Spawns);
-                                group.Dirty = false;
-                            }
-                            ImGui.Columns(4, "spawn_column", false);
-                            for (int i = 0; i < group.Spawns.Count; i++)
-                            {
-                                var spawn = group.Spawns[i];
-                                var name = spawn.Name;
-                                if (currentSpawner == name)
-                                {
-                                    ImGui.Text("Found duplicated portals.");
-                                }
-                                else 
-                                {
-                                    bool isChecked = spawn.IsChecked;
-                                    if (ImGui.Checkbox(spawn.Name, ref isChecked)) 
-                                    {
-                                        group.Spawns[i] = new Group.Spawn()
-                                        {
-                                            Name = spawn.Name,
-                                            IsChecked = isChecked
-                                        };
-                                    }
-                                    ImGui.NextColumn();
-                                    currentSpawner = spawn.Name;
-                                }
-                            }
-
-                            ImGui.Columns(1);
-                        }
-
-                        ImGui.SeparatorText("Enemies");
-                        for (int i = 0; i < group.Enemies.Count; i++)
-                        {
-                            var enemy = group.Enemies[i];
-                            ImGui.PushID(i);
-                            if (ImGui.InputText("Enemy Name", ref enemy, 100))
-                            {
-                                group.Enemies[i] = enemy;
-                            }
-                            ImGui.PopID();
-                        }
-                        
-                        if (ImGui.Button("Add Enemies")) 
-                        {
-                            group.Enemies.Add("Slime");
-                        }
-                    }
-                    ImGui.TreePop();
-                }
-
-
-                ImGui.PopID();
-                groupNum += 1;
-            }
-            ImGui.PushID(waveNum);
-
-            ImGui.Spacing();
-            ImGui.Spacing();
-
-            if (ImGui.Button("Add Group")) 
-            {
-                wave.Groups.Add(new Group());
-            }
-            ImGui.PopID();
-        }
-    }
-
-    public void SaveData()
+    public void Save(string towerPath)
     {
         XmlDocument document = new XmlDocument();
         var data = document.CreateElement("data");
         document.AppendChild(data);
 
         int i = 0;
-        foreach (var wave in waves)
+        foreach (var wave in Waves)
         {
             string diff = i == 0 ? "normal" : "hardcore";
 
@@ -477,7 +183,7 @@ public class TowerSettings : ImGuiElement
                     if (group.IsFloor)
                     {
                         var floorXml = document.CreateElement("floor");
-                        floorXml.InnerText = group.FloorNumber.ToString();
+                        floorXml.InnerText = group.FloorNumber.IntValue.ToString();
                         waveXml.AppendChild(floorXml);    
                         continue;
                     }
@@ -491,9 +197,9 @@ public class TowerSettings : ImGuiElement
                     {
                         groupXml.SetAttribute("solo", "true");
                     }
-                    if (group.Delay != 0)
+                    if (group.Delay.IntValue != 0)
                     {
-                        groupXml.SetAttribute("delay", group.Delay.ToString());
+                        groupXml.SetAttribute("delay", group.Delay.IntValue.ToString());
                     }
                     var listStr = new List<string>();
                     if (group.TreasureIDs.Count > 0)
@@ -501,7 +207,7 @@ public class TowerSettings : ImGuiElement
                         var treasureXml = document.CreateElement("treasure");
                         foreach (var treasure in group.TreasureIDs)
                         {
-                            var name = Pickups.PickupNamesWithNone[treasure];
+                            var name = Pickups.PickupNamesWithNone[treasure.Value];
                             if (name == "None")
                             {
                                 continue;
@@ -534,10 +240,9 @@ public class TowerSettings : ImGuiElement
                     if (group.Enemies.Count > 0)
                     {
                         var enemiesXml = document.CreateElement("enemies");
-                        foreach (var spawn in group.Enemies)
+                        foreach (var enemy in group.Enemies)
                         {
-                            var name = spawn;
-                            listStr.Add(name);
+                            listStr.Add(enemy.ToString());
                         }
                         enemiesXml.InnerText = string.Join(',', listStr);
                         groupXml.AppendChild(enemiesXml);
@@ -551,7 +256,202 @@ public class TowerSettings : ImGuiElement
             i += 1;
         }
 
-        document.Save(Path.Combine(Path.GetDirectoryName(tower.TowerPath), "data.xml"));
+        document.Save(Path.Combine(Path.GetDirectoryName(towerPath), "data.xml"));
+    }
+}
+
+public struct TowerSettingsDialog() : IComponent
+{
+    public BindableValue<bool> Open;
+    public Tower Tower;
+    public QuestData Quest;
+    public Callback<TowerData> OnSave;
+    public Callback OnSaveQuest;
+
+    private readonly BindableValue<int> tab = new(0);
+    private readonly BindableValue<int> difficulty = new(0);
+    private readonly BindableValue<int> themeId = new(0);
+    private readonly BindableValue<int> treasureId = new(0);
+    private readonly NumberBuffer arrowRates = new(0, 0.1, 0, 1);
+
+    public Node Render(UIStack ui, EventStack ev)
+    {
+        ui.Effect(ev.Listener(static (ref TowerSettingsDialog d) => d.Reset()), Open.Value);
+        var modal = ui.Modal(Open, "Tower Settings", style: default(Style).W(620));
+        if (!modal.IsOpen)
+        {
+            return modal;
+        }
+
+        if (Tower == null)
+        {
+            modal.Body.Child(ui.Text("No tower were loaded yet."));
+            return modal;
+        }
+
+        var tabs = ui.Tabs(tab, default(Style).Grow());
+        tabs.Tab(0, "Tower");
+        tabs.Tab(1, "Data");
+        tabs.Panel.Child(tab.Value == 0 ? TowerTab(ui, ev) : DataTab(ui, ev));
+        modal.Body.Child(tabs);
+        return modal;
+    }
+
+    private void Reset()
+    {
+        if (!Open.Value || Tower?.Theme == null)
+        {
+            return;
+        }
+        themeId.Value = Array.IndexOf(Themes.ThemeNames, Tower.Theme.ID);
+        arrowRates.Value = Tower.ArrowRates;
+    }
+
+    private Node TowerTab(UIStack ui, EventStack ev)
+    {
+        Node panel = ui.View(Styles.Column).Child(ui.Labeled("Theme", ui.ComboBox(themeId, Themes.ThemeNames)));
+
+        if (Tower.Type == Tower.TowerType.Versus)
+        {
+            Node treasures = ui.View(Styles.Panel.FlexRow().FlexWrap());
+            for (int i = 0; i < Tower.Treasures.Count; i++)
+            {
+                treasures.Child(ui.View(Styles.Row.Px(6).Py(2).Rounded(Styles.Radius).Bg(Styles.Raised)).Child([
+                    Tower.Treasures[i],
+                    ui.Button(null, Styles.Small).Child(ui.Icon(FA6.Xmark))
+                        .OnClick(ev.Listener(static (ref TowerSettingsDialog d, int i) => d.Tower.Treasures.RemoveAt(i), i))
+                ]));
+            }
+
+            panel.Child([
+                ui.Labeled("Arrow Rates", ui.NumberInput(arrowRates, Styles.Field)),
+                ui.Separator("Treasures"),
+                treasures,
+                ui.View(Styles.Row).Child([
+                    ui.ComboBox(treasureId, Pickups.PickupNames),
+                    ui.Button("Add Treasure").OnClick(ev.Listener(static (ref TowerSettingsDialog d) =>
+                        d.Tower.Treasures.Add(Pickups.PickupNames[d.treasureId.Value])))
+                ]),
+            ]);
+        }
+
+        return panel.Child(ui.Button("Save").Styled(default(Style).SelfStart())
+            .OnClick(ev.Listener(static (ref TowerSettingsDialog d) =>
+                d.OnSave.Invoke(new TowerData { ThemeID = d.themeId.Value, ArrowRates = d.arrowRates.FloatValue }))));
+    }
+
+    private Node DataTab(UIStack ui, EventStack ev)
+    {
+        if (Tower.Levels.Count == 0 || !Tower.Levels[0].LoadedIn)
+        {
+            return ui.Text("You must load the first level to proceed.");
+        }
+
+        var tabs = ui.Tabs(difficulty);
+        tabs.Tab(0, "Normal");
+        tabs.Tab(1, "Hardcore");
+
+        var list = Quest.Waves[difficulty.Value];
+        for (int i = 0; i < list.Count; i++)
+        {
+            tabs.Panel.Child(RenderWave(ui, ev, Tower, list[i], i + 1));
+        }
+
+        tabs.Panel.Child(ui.View(Styles.Row).Child([
+            ui.Button("Add Wave").OnClick(ev.Listener(static (ref TowerSettingsDialog d) => d.Quest.Waves[d.difficulty.Value].Add(new Wave()))),
+            ui.Button("Save").OnClick(ev.Listener(static (ref TowerSettingsDialog d) => d.OnSaveQuest.Invoke())),
+        ]));
+        return tabs;
+    }
+
+    private static Node RenderWave(UIStack ui, EventStack ev, Tower tower, Wave wave, int waveNum) 
+    {
+        var section = ui.Collapsible($"Wave {waveNum}", ui.OwnKeyed(wave, false), Styles.Panel);
+        if (!section.IsOpen)
+        {
+            return section;
+        }
+
+        section.Body.Child(ui.View(Styles.Row.Gap(12)).Child([
+            ui.Checkbox(wave.IsDark, "Dark").OnClick(ev.Listener(static (ref TowerSettingsDialog _, Wave w) => w.IsDark = !w.IsDark, wave)),
+            ui.Checkbox(wave.IsSlow, "Slow").OnClick(ev.Listener(static (ref TowerSettingsDialog _, Wave w) => w.IsSlow = !w.IsSlow, wave)),
+            ui.Checkbox(wave.IsScroll, "Scroll").OnClick(ev.Listener(static (ref TowerSettingsDialog _, Wave w) => w.IsScroll = !w.IsScroll, wave)),
+        ]));
+
+        for (int i = 0; i < wave.Groups.Count; i++)
+        {
+            section.Body.Child(RenderGroup(ui, ev, tower, wave.Groups[i], i + 1));
+        }
+
+        section.Body.Child(ui.Button("Add Group").Styled(default(Style).SelfStart())
+            .OnClick(ev.Listener(static (ref TowerSettingsDialog _, Wave w) => w.Groups.Add(new Group()), wave)));
+        return section;
+    }
+
+    private static Node RenderGroup(UIStack ui, EventStack ev, Tower tower, Group group, int groupNum)
+    {
+        var section = ui.Collapsible($"Group {groupNum}", ui.OwnKeyed(group, false));
+        if (!section.IsOpen)
+        {
+            return section;
+        }
+
+        Node body = section.Body;
+        body.Child(ui.Checkbox(group.IsFloor, "Floor")
+            .OnClick(ev.Listener(static (ref TowerSettingsDialog _, Group g) => g.IsFloor = !g.IsFloor, group)));
+        if (group.IsFloor)
+        {
+            body.Child(ui.Labeled("Floor Number", ui.NumberInput(group.FloorNumber, Styles.Field)));
+            return section;
+        }
+
+        body.Child([
+            ui.Labeled("Delay", ui.NumberInput(group.Delay, Styles.Field)),
+            ui.View(Styles.Row.Gap(12)).Child([
+                ui.Checkbox(group.Solo, "Solo").OnClick(ev.Listener(static (ref TowerSettingsDialog _, Group g) => g.Solo = !g.Solo, group)),
+                ui.Checkbox(group.CoOp, "CoOp").OnClick(ev.Listener(static (ref TowerSettingsDialog _, Group g) => g.CoOp = !g.CoOp, group)),
+            ]),
+            ui.Separator("Treasure"),
+        ]);
+
+        foreach (var treasure in group.TreasureIDs)
+        {
+            body.Child(ui.ComboBox(treasure, Pickups.PickupNamesWithNone));
+        }
+        body.Child(ui.Button("Add Treasure").Styled(default(Style).SelfStart())
+            .OnClick(ev.Listener(static (ref TowerSettingsDialog _, Group g) =>
+                g.TreasureIDs.Add(new(Array.IndexOf(Pickups.PickupNamesWithNone, "None"))), group)));
+
+        body.Child(ui.Separator("Spawns"));
+        if (group.Dirty)
+        {
+            QuestData.RefreshSpawn(tower, group.Spawns);
+            group.Dirty = false;
+        }
+        Node spawns = ui.View(Styles.Row.FlexWrap());
+        string previous = "";
+        for (int i = 0; i < group.Spawns.Count; i++)
+        {
+            var spawn = group.Spawns[i];
+            if (previous == spawn.Name)
+            {
+                spawns.Child(ui.Text("Found duplicated portals.").Styled(Styles.Muted));
+                continue;
+            }
+            previous = spawn.Name;
+            spawns.Child(ui.Checkbox(spawn.IsChecked, spawn.Name).Styled(default(Style).W(120))
+                .OnClick(ev.Listener(static (ref TowerSettingsDialog _, (Group g, int i) a) => a.g.ToggleSpawn(a.i), (group, i))));
+        }
+        body.Child(spawns);
+
+        body.Child(ui.Separator("Enemies"));
+        foreach (var enemy in group.Enemies)
+        {
+            body.Child(ui.TextInput(enemy, "Enemy Name", Styles.Field.W(Length.Full)));
+        }
+        body.Child(ui.Button("Add Enemies").Styled(default(Style).SelfStart())
+            .OnClick(ev.Listener(static (ref TowerSettingsDialog _, Group g) => g.Enemies.Add(new TextBuffer("Slime")), group)));
+        return section;
     }
 }
 
@@ -565,34 +465,30 @@ public class Wave
 
 public class Group 
 {
-    // if the group is floor, this will be used
-    public int FloorNumber;
+    public NumberBuffer FloorNumber = new(0, 1, integer: true);
     public bool IsFloor;
 
-    // if not, then this one
-    public List<Spawn> Spawns;
-    public List<string> Enemies;
-    public List<int> TreasureIDs = [];
-    public int Delay;
+    public List<Spawn> Spawns = [];
+    public List<TextBuffer> Enemies = [];
+    public List<BindableValue<int>> TreasureIDs = [];
+    public NumberBuffer Delay = new(0, 1, 0, integer: true);
     public bool Solo;
     public bool CoOp;
 
-    // Some state outside of its data
     public bool Dirty = true;
 
-    public Group(bool isFloor = false) 
-    {
-        if (!isFloor) 
-        {
-            Spawns = new List<Spawn>();
-            Enemies = new List<string>();
-        }
-    }
+    public Group() {}
 
     public Group(int floorNum) 
     {
         IsFloor = true;
-        FloorNumber = floorNum;
+        FloorNumber.Value = floorNum;
+    }
+
+    public void ToggleSpawn(int index)
+    {
+        var spawn = Spawns[index];
+        Spawns[index] = new Spawn { Name = spawn.Name, IsChecked = !spawn.IsChecked };
     }
 
     public struct Spawn 

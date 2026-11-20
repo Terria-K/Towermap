@@ -1,52 +1,37 @@
-using System;
-using System.Numerics;
-using ImGuiNET;
+using Cosmiria;
 
 namespace Towermap;
 
-public class LayersPanel : ImGuiElement
+public struct LayerList : IComponent
 {
-    public Action<string> OnLayerSelect;
-    public Action<int, bool> ShowOrHide;
-    private string[] layers = [
-        FA6.BorderAll + " Solids",
-        FA6.BorderNone + " BG",
-        FA6.Person + " Entities",
-        FA6.SquareFull + " SolidTiles",
-        FA6.SquareMinus + " BGTiles"
+    private static readonly (Layers Layer, string Icon, string Name)[] layers = [
+        (Layers.Solids, FA6.BorderAll, "Solids"),
+        (Layers.BG, FA6.BorderNone, "BG"),
+        (Layers.Entities, FA6.Person, "Entities"),
+        (Layers.SolidTiles, FA6.SquareFull, "SolidTiles"),
+        (Layers.BGTiles, FA6.SquareMinus, "BGTiles")
     ];
 
-    private bool[] visibility = [
-        true, true, true, true, true
-    ];
+    public Layers Current;
+    public bool[] Visibility;
+    public Callback<Layers> OnSelect;
+    public Callback<Layers> OnToggleVisibility;
 
-    public override void DrawGui()
+    public Node Render(UIStack ui, EventStack ev)
     {
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 2);
-        ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, new Vector2(0, 0.5f));
-        ImGui.Begin("Layers", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse);
-        var size = Vector2.UnitX * (ImGui.GetWindowSize().X - 42f);
-
-        for (int i = 0; i < layers.Length; i++) 
+        Node list = ui.View(Styles.Column.Gap(2));
+        foreach (var (layer, icon, name) in layers)
         {
-            var span = layers[i];
-
-            if (ImGui.Button(span, size)) 
-            {
-                OnLayerSelect?.Invoke(span);
-            }
-            ImGui.SameLine();
-            ImGui.PushID(i);
-            if (ImGui.Button(visibility[i] ? FA6.Eye : FA6.EyeSlash)) 
-            {
-                ShowOrHide?.Invoke(i, visibility[i] = !visibility[i]);
-            }
-            ImGui.PopID();
+            list.Child(ui.View(Styles.Row).Child([
+                ui.Selectable(layer == Current)
+                    .OnClick(ev.Listener(static (ref LayerList l, Layers layer) => l.OnSelect.Invoke(layer), layer))
+                    .Styled(default(Style).Grow())
+                    .Child([ui.Icon(icon), name]),
+                ui.Button(null, Styles.Small)
+                    .Child(ui.Icon(Visibility[(int)layer] ? FA6.Eye : FA6.EyeSlash))
+                    .OnClick(ev.Listener(static (ref LayerList l, Layers layer) => l.OnToggleVisibility.Invoke(layer), layer)),
+            ]));
         }
-
-        ImGui.PopStyleVar();
-        UpdateChildrens();
-        ImGui.End();
-        ImGui.PopStyleVar();
+        return list;
     }
 }

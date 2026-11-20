@@ -3,7 +3,7 @@ using Towermap.TowerFall;
 
 namespace Towermap;
 
-public static class Resource 
+public static class Resource
 {
     public static Texture TowerFallTexture;
     public static Texture BGAtlasTexture;
@@ -11,4 +11,6 @@ public static class Resource
     public static TowerFallAtlas BGAtlas;
     public static TextureQuad Pixel;
     public static TilesetData TilesetData;
+    public static SpriteFont Font;
+    public static SpriteFont IconFont;
 }

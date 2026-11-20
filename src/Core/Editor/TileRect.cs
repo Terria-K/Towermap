@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using Riateu;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -24,8 +23,8 @@ public sealed class TileRect
 
     public void Update(int x, int y) 
     {
-        int rx = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
-        int ry = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize)) / 10.0f) * 10.0f);
+        int rx = WorldUtils.Snap(WorldUtils.ToWorldX(x), 10);
+        int ry = WorldUtils.Snap(WorldUtils.ToWorldY(y), 10);
 
         int lx = Math.Min(StartPos.X, rx);
         int ly = Math.Min(StartPos.Y, ry);

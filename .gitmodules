@@ -1,0 +1,3 @@
+[submodule "Cosmiria"]
+	path = Cosmiria
+	url = git@github.com:TeuriaGames/Cosmiria.git

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Xml;
 
 namespace Towermap;
@@ -17,14 +18,76 @@ public class Tower
     public IReadOnlyList<Level> Levels => levels;
 
 
-    public void AddLevel(Level level)
-    {
-        levels.Add(level);
-    }
-
-    public void ClearAllLevels()
+    public void RefreshLevels()
     {
         levels.Clear();
+
+        string path = Path.GetDirectoryName(TowerPath);
+        var files = Directory.GetFiles(path);
+        Array.Sort(files);
+        foreach (var file in files)
+        {
+            if (!file.EndsWith(".json") && !file.EndsWith(".oel"))
+            {
+                continue;
+            }
+            levels.Add(new Level(file));
+        }
+    }
+
+    public void CreateLevel(string name, int width)
+    {
+        int w = width / 10;
+        int h = (int)WorldUtils.WorldHeight / 10;
+        string emptyDefault;
+        using (ValueStringBuilder builder = new ValueStringBuilder(stackalloc char[w * h + h]))
+        {
+            for (int y = 0; y < h; y++) 
+            {
+                for (int x = 0; x < w; x += 2) 
+                {
+                    builder.Append('0');
+                    builder.Append('0');
+                }
+
+                if (y != h - 1)
+                {
+                    builder.AppendLine();
+                }
+            }
+            emptyDefault = builder.ToString();
+        }
+
+        XmlDocument document = new XmlDocument();
+        var level = document.CreateElement("level");
+        document.AppendChild(level);
+
+        level.SetAttribute("width", width.ToString());
+        level.SetAttribute("height", "240");
+
+        var Solids = document.CreateElement("Solids");
+        Solids.SetAttribute("exportMode", "Bitstring");
+        Solids.InnerText = emptyDefault;
+        level.AppendChild(Solids);
+
+        var BG = document.CreateElement("BG");
+        BG.SetAttribute("exportMode", "Bitstring");
+        BG.InnerText = emptyDefault;
+        level.AppendChild(BG);
+
+        var SolidTiles = document.CreateElement("SolidTiles");
+        SolidTiles.SetAttribute("exportMode", "TrimmedCSV");
+        level.AppendChild(SolidTiles);
+
+        var BGTiles = document.CreateElement("BGTiles");
+        BGTiles.SetAttribute("exportMode", "TrimmedCSV");
+        level.AppendChild(BGTiles);
+
+        var Entities = document.CreateElement("Entities");
+        level.AppendChild(Entities);
+
+        document.Save(Path.Combine(Path.GetDirectoryName(TowerPath), $"{name}.oel"));
+        RefreshLevels();
     }
 
     public void SetTheme(Theme theme) 

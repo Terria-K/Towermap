@@ -1,44 +1,37 @@
 using System;
-using System.Numerics;
-using ImGuiNET;
+using Cosmiria;
 
 namespace Towermap;
 
-public class Entities : ImGuiElement
+public struct EntityList() : IComponent
 {
-    private IntPtr imGuiTexture;
-    private string searchText = string.Empty;
-    public Action<Actor> OnSelectActor;
-    public Entities(IntPtr imGuiTexture) 
+    public Actor Selected;
+    public Callback<Actor> OnSelect;
+
+    private readonly TextBuffer search = new();
+
+    public Node Render(UIStack ui, EventStack ev)
     {
-        this.imGuiTexture = imGuiTexture;
-    }
-
-    public override void DrawGui()
-    {
-        ImGui.BeginChild("Entities");
-        ImGui.SeparatorText("Entities");
-
-        ImGui.InputText("Search", ref searchText, 50);
-
-        ImGui.PushItemWidth(-1);
-        ImGui.BeginListBox("##Entities", new Vector2(180, 200));
-        foreach (var (name, actor) in ActorManager.Actors) 
+        Node list = ui.View(Styles.Panel.H(220).OverflowScroll());
+        string filter = search.ToString();
+        foreach (var (name, actor) in ActorManager.Actors)
         {
-            if (string.IsNullOrEmpty(searchText) || name.ToLowerInvariant().Contains(searchText.ToLowerInvariant())) 
+            if (filter.Length > 0 && !name.Contains(filter, StringComparison.OrdinalIgnoreCase))
             {
-                if (ImGui.ImageButton(name, imGuiTexture, new Vector2(20, 20) * 1.5f, 
-                    actor.Texture.UV.TopLeft, actor.Texture.UV.BottomRight)) 
-                {
-                    OnSelectActor?.Invoke(actor);
-                }
-                ImGui.SameLine();
-                ImGui.Text(name);
+                continue;
             }
+            list.Child(ui.Selectable(actor == Selected)
+                .OnClick(ev.Listener(static (ref EntityList l, Actor a) => l.OnSelect.Invoke(a), actor))
+                .Child([
+                    ui.AtlasImage(actor.Texture, ImageFit.Contain, default(Style).Size(24).Shrink(0)),
+                    name
+                ]));
         }
-        ImGui.EndListBox();
-        ImGui.PopItemWidth();
 
-        ImGui.EndChild();    
+        return ui.View(Styles.Column).Child([
+            ui.Separator("Entities"),
+            ui.TextInput(search, "Search", Styles.Field.W(Length.Full)),
+            list
+        ]);
     }
 }

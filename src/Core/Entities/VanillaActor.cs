@@ -5,7 +5,6 @@ using System.IO;
 using System.Numerics;
 using Jint;
 using Jint.Native;
-using Riateu;
 using Riateu.Graphics;
 
 namespace Towermap;
@@ -167,7 +166,6 @@ public static class VanillaActor
                 var funcInstance = onRender.AsFunctionInstance();
                 renderer = (level, actor, position, size, spriteBatch, color) => {
                     funcInstance.Call(jsObject, new Jint.Native.JsValue[] {
-                        // level, actor, position, size, spriteBatch, color
                     });
                 };
             }

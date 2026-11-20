@@ -53,7 +53,6 @@ public ref struct ValueStringBuilder : IDisposable
             Grow(newSize);
         }
 
-        // copy the string to the buffer within the bufferPosition
         str.CopyTo(buffer[bufferPosition..]);
         bufferPosition += str.Length;
     }

@@ -1,143 +1,134 @@
+using System;
 using System.Collections.Generic;
-using ImGuiNET;
+using Cosmiria;
 
 namespace Towermap;
 
-public class EntityData : ImGuiElement
+public readonly record struct ActorChange(LevelActor Actor, ActorState Before, string MergeKey);
+
+public struct EntityInspector() : IComponent
 {
-    private string entityName = string.Empty;
-    private LevelActor levelActor;
-    private int actorNewWidth;
-    private int actorNewHeight;
-    private int[] actorNewPos = new int[2];
-    private string id = string.Empty;
-    private List<LevelActor> conflicts;
-    private EditorScene editor;
+    public LevelActor Actor;
+    public Callback<ActorChange> OnChange;
 
-    public EntityData(EditorScene editor) 
+    private readonly NumberBuffer posX = new(integer: true);
+    private readonly NumberBuffer posY = new(integer: true);
+    private readonly NumberBuffer width = new(10, 10, 10, integer: true);
+    private readonly NumberBuffer height = new(10, 10, 10, integer: true);
+    private readonly Dictionary<string, object> fields = [];
+
+    public static EntityInspector For(LevelActor actor)
     {
-        this.editor = editor;
+        var inspector = new EntityInspector { Actor = actor };
+        foreach (var (key, value) in actor.CustomData)
+        {
+            inspector.fields[key] = value switch
+            {
+                int i => new NumberBuffer(i, integer: true),
+                float f => new NumberBuffer(f, 0),
+                string s => new TextBuffer(s),
+                _ => null
+            };
+        }
+        return inspector;
     }
 
-    public void ConflictSelection(List<LevelActor> multiple) 
+    public Node Render(UIStack ui, EventStack ev)
     {
-        conflicts = multiple;
+        Sync();
+        EventHandle apply = ev.Listener(static (ref EntityInspector i) => i.ApplyTransform());
+
+        Node panel = ui.View(Styles.Column).Child([
+            ui.Separator(Actor.Data.Name),
+            ui.Labeled("ID", ui.Text($"{Actor.ID}")),
+            ui.Labeled("X", ui.NumberInput(posX, Styles.Field).OnChange(apply)),
+            ui.Labeled("Y", ui.NumberInput(posY, Styles.Field).OnChange(apply)),
+            Actor.Data.ResizeableX ? ui.Labeled("Width", ui.NumberInput(width, Styles.Field).OnChange(apply)) : Node.None,
+            Actor.Data.ResizeableY ? ui.Labeled("Height", ui.NumberInput(height, Styles.Field).OnChange(apply)) : Node.None,
+        ]);
+
+        foreach (var (key, field) in fields)
+        {
+            EventHandle change = ev.Listener(static (ref EntityInspector i, string k) => i.ApplyField(k), key);
+            panel.Child(field switch
+            {
+                NumberBuffer number => ui.Labeled(key, ui.NumberInput(number, Styles.Field).OnChange(change)),
+                TextBuffer text => ui.Labeled(key, ui.TextInput(text, null, Styles.Field).OnChange(change)),
+                _ when Actor.CustomData[key] is bool on => ui.Checkbox(on, key).OnClick(change),
+                _ => Node.None
+            });
+        }
+        return panel;
     }
 
-    public void SelectActor(LevelActor levelActor)
+    private readonly void Sync()
     {
-        this.levelActor = levelActor;
-        entityName = this.levelActor.Data.Name;
-        actorNewPos[0] = (int)this.levelActor.PosX;
-        actorNewPos[1] = (int)this.levelActor.PosY;
-        if (levelActor.Data.ResizeableX) 
+        posX.Value = Actor.PosX;
+        posY.Value = Actor.PosY;
+        width.Value = Actor.Width;
+        height.Value = Actor.Height;
+        foreach (var (key, field) in fields)
         {
-            actorNewWidth = this.levelActor.Width;
+            switch (field, Actor.CustomData[key])
+            {
+            case (NumberBuffer number, int i):
+                number.Value = i;
+                break;
+            case (NumberBuffer number, float f):
+                number.Value = f;
+                break;
+            case (TextBuffer text, string s) when !text.Text.SequenceEqual(s):
+                text.Set(s);
+                break;
+            }
         }
-
-        if (levelActor.Data.ResizeableY) 
-        {
-            actorNewHeight = this.levelActor.Height;
-        }
-        id = levelActor.ID.ToString();
     }
 
-    public override void DrawGui()
+    private void ApplyTransform()
     {
-        ImGui.BeginChild("Entities");
-        if (conflicts?.Count > 1) 
+        var before = ActorState.Of(Actor);
+        Actor.Transform.PosX = posX.IntValue;
+        Actor.Transform.PosY = posY.IntValue;
+        if (Actor.Data.ResizeableX)
         {
-            ImGui.SeparatorText("Multiple Entities (" + conflicts.Count + ")");
-            bool selected = false;
-            foreach (var actor in conflicts) 
-            {
-                if (ImGui.Selectable(actor.ID + " " + actor.Data.Name)) 
-                {
-                    editor.Select(actor);
-                    selected = true;
-                }
-            }
-            if (selected)
-            {
-                conflicts.Clear();
-            }
+            Actor.Width = width.IntValue;
         }
-        else if (levelActor != null && levelActor.Scene != null) 
+        if (Actor.Data.ResizeableY)
         {
-            ImGui.SeparatorText(entityName);
-            ImGui.LabelText("ID", id);
-            if (ImGui.InputInt2("Position", ref actorNewPos[0])) 
-            {
-                levelActor.Transform.PosX = actorNewPos[0];
-                levelActor.Transform.PosY = actorNewPos[1];
-            }
-            if (levelActor.Data.ResizeableX) 
-            {
-                if (ImGui.InputInt("Width", ref actorNewWidth, 10, 10)) 
-                {
-                    if (actorNewWidth <= 0) 
-                    {
-                        actorNewWidth = 10;
-                    }
-                    levelActor.Width = actorNewWidth;
-                }
-            }
-            if (levelActor.Data.ResizeableY) 
-            {
-                if (ImGui.InputInt("Height", ref actorNewHeight, 10, 10)) 
-                {
-                    if (actorNewHeight <= 0) 
-                    {
-                        actorNewHeight = 10;
-                    }
-                    levelActor.Height = actorNewHeight;
-                }
-            }
-
-            foreach (var (key, value) in levelActor.CustomData) 
-            {
-                if (value is bool val) 
-                {
-                    if (ImGui.Checkbox(key, ref val)) 
-                    {
-                        levelActor.CustomData[key] = val;
-                    }
-                    continue;
-                }
-                if (value is int i) 
-                {
-                    if (ImGui.InputInt(key, ref i)) 
-                    {
-                        levelActor.CustomData[key] = i;
-                    }
-                    continue;
-                }
-                if (value is float f) 
-                {
-                    if (ImGui.InputFloat(key, ref f)) 
-                    {
-                        levelActor.CustomData[key] = f;
-                    }
-                    continue;
-                }
-                if (value is string str) 
-                {
-                    if (ImGui.InputText(key, ref str, 50)) 
-                    {
-                        levelActor.CustomData[key] = str;
-                    }
-                    continue;
-                }
-            }
+            Actor.Height = height.IntValue;
         }
+        OnChange.Invoke(new ActorChange(Actor, before, "transform"));
+    }
 
-        ImGui.EndChild();
-
-        // Update the UI State
-        if (levelActor != null) 
+    private void ApplyField(string key)
+    {
+        var before = ActorState.Of(Actor);
+        var data = Actor.CustomData;
+        data[key] = (data[key], fields[key]) switch
         {
-            actorNewPos[0] = (int)this.levelActor.PosX;
-            actorNewPos[1] = (int)this.levelActor.PosY;
+            (bool on, _) => !on,
+            (int, NumberBuffer number) => number.IntValue,
+            (float, NumberBuffer number) => number.FloatValue,
+            (string, TextBuffer text) => text.ToString(),
+            (var value, _) => value
+        };
+        OnChange.Invoke(new ActorChange(Actor, before, data[key] is bool ? null : key));
+    }
+}
+
+public struct ConflictList : IComponent
+{
+    public List<LevelActor> Actors;
+    public Callback<LevelActor> OnPick;
+
+    public Node Render(UIStack ui, EventStack ev)
+    {
+        Node list = ui.View(Styles.Column.Gap(2)).Child(ui.Separator($"Multiple Entities ({Actors.Count})"));
+        foreach (var actor in Actors)
+        {
+            list.Child(ui.Selectable(false, $"{actor.ID} {actor.Data.Name}")
+                .OnClick(ev.Listener(static (ref ConflictList c, LevelActor a) => c.OnPick.Invoke(a), actor)));
         }
+        return list;
     }
 }

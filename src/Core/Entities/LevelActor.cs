@@ -1,10 +1,8 @@
-using System;
 using System.Numerics;
 using System.Collections.Generic;
 using Riateu;
 using Riateu.Graphics;
 using Riateu.Inputs;
-using ImGuiNET;
 
 namespace Towermap;
 
@@ -22,21 +20,19 @@ public class LevelActor : Entity
     public bool Selected;
 
     public TextureQuad TextureQuad;
-    private Texture texture;
     private Transform rectTransform;
     private float transparency;
     private Rectangle rect;
     private bool isHeld;
     private Vector2 lastHold;
     private bool isHovering;
-    private Vector2 lastPos;
+    private ActorState dragStart;
     
 
     public LevelActor(Texture texture, Actor actor, ulong id) 
     {
         Depth = -3;
         this.Data = actor;
-        this.texture = texture;
         rectTransform = new Transform();
         AddTransform(rectTransform);
         rectTransform.Scale = new Vector2(20, 20);
@@ -60,16 +56,16 @@ public class LevelActor : Entity
 
     public void AddNode(Vector2 position) 
     {
-        var scene = Scene as EditorScene;
-        scene.CommitHistory();
+        var before = ActorState.Of(this);
         Nodes.Add(position);
+        (Scene as EditorScene).RecordActor(this, before);
     }
 
     public void RemoveNode(Vector2 position) 
     {
-        var scene = Scene as EditorScene;
-        scene.CommitHistory();
+        var before = ActorState.Of(this);
         Nodes.Remove(position);
+        (Scene as EditorScene).RecordActor(this, before);
     }
 
     public LevelActorInfo Save() 
@@ -106,13 +102,15 @@ public class LevelActor : Entity
             return;
         }
 
-        var io = ImGui.GetIO();
+        float worldX = WorldUtils.ToWorldX(Input.Mouse.X);
+        float worldY = WorldUtils.ToWorldY(Input.Mouse.Y);
+        int gridX = WorldUtils.Snap(worldX, 5);
+        int gridY = WorldUtils.Snap(worldY, 5);
 
-        int x = (int)io.MousePos.X;
-        int y = (int)io.MousePos.Y;
-
-        int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
-        int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+        if (scene.IsResizing)
+        {
+            return;
+        }
 
         if (scene.ToolSelected == Tool.Node && Selected) 
         {
@@ -138,15 +136,6 @@ public class LevelActor : Entity
             if (Input.Mouse.LeftButton.Released) 
             {
                 isHeld = false;
-                if (Position == lastPos)
-                {
-                    return;
-                }
-                var tempPos = Position;
-                Position = lastPos;
-                scene.CommitHistory();
-                Position = tempPos;
-                // Possible negative numbers should be resolved
                 if (Transform.PosX < 0)
                 {
                     Transform.PosX = Transform.PosX + WorldUtils.WorldWidth;
@@ -155,36 +144,33 @@ public class LevelActor : Entity
                 {
                     Transform.PosY = Transform.PosY + WorldUtils.WorldHeight;
                 }
+                if (Position != dragStart.Position)
+                {
+                    scene.RecordActor(this, dragStart);
+                }
                 return;
             }
-            int snapX = (int)(Math.Floor((((x - WorldUtils.WorldX) / WorldUtils.WorldSize) + lastHold.X) / 5.0f) * 5.0f);
-            int snapY = (int)(Math.Floor((((y - WorldUtils.WorldY) / WorldUtils.WorldSize) + lastHold.Y) / 5.0f) * 5.0f);
-            Transform.PosX = snapX % WorldUtils.WorldWidth;
-            Transform.PosY = snapY % WorldUtils.WorldHeight;
+            Transform.PosX = WorldUtils.Snap(worldX + lastHold.X, 5) % WorldUtils.WorldWidth;
+            Transform.PosY = WorldUtils.Snap(worldY + lastHold.Y, 5) % WorldUtils.WorldHeight;
             return;
         }
 
-        if (Selected && !ImGui.GetIO().WantTextInput) 
+        if (Selected && !scene.UI.HasTextFocus) 
         {
-            if (Input.Keyboard.IsPressed(KeyCode.Left)) 
+            Vector2 nudge = Input.Keyboard switch
             {
-                scene.CommitHistory();
-                PosX = MathUtils.Wrap(PosX - 5, 0, WorldUtils.WorldWidth);
-            }
-            else if (Input.Keyboard.IsPressed(KeyCode.Right)) 
+                var k when k.IsPressed(KeyCode.Left) => new Vector2(-5, 0),
+                var k when k.IsPressed(KeyCode.Right) => new Vector2(5, 0),
+                var k when k.IsPressed(KeyCode.Up) => new Vector2(0, -5),
+                var k when k.IsPressed(KeyCode.Down) => new Vector2(0, 5),
+                _ => Vector2.Zero
+            };
+            if (nudge != Vector2.Zero)
             {
-                scene.CommitHistory();
-                PosX = MathUtils.Wrap(PosX + 5, 0, WorldUtils.WorldWidth);
-            }
-            else if (Input.Keyboard.IsPressed(KeyCode.Up)) 
-            {
-                scene.CommitHistory();
-                PosY = MathUtils.Wrap(PosY - 5, 0, WorldUtils.WorldHeight);
-            }
-            else if (Input.Keyboard.IsPressed(KeyCode.Down)) 
-            {
-                scene.CommitHistory();
-                PosY = MathUtils.Wrap(PosY + 5, 0, WorldUtils.WorldHeight);
+                var before = ActorState.Of(this);
+                PosX = MathUtils.Wrap(PosX + nudge.X, 0, WorldUtils.WorldWidth);
+                PosY = MathUtils.Wrap(PosY + nudge.Y, 0, WorldUtils.WorldHeight);
+                scene.RecordActor(this, before);
             }
         }
 
@@ -206,11 +192,8 @@ public class LevelActor : Entity
                 {
                     scene.SelectLevelActor(this);
                     isHeld = true;
-                    lastPos = Position;
-                    lastHold = new Vector2(
-                        (Transform.PosX - Data.Origin.X) - ((x - WorldUtils.WorldX) * 0.5f) + Data.Origin.X,
-                        (Transform.PosY - Data.Origin.Y) - ((y - WorldUtils.WorldY) * 0.5f) + Data.Origin.Y
-                    );
+                    dragStart = ActorState.Of(this);
+                    lastHold = new Vector2(Transform.PosX - worldX, Transform.PosY - worldY);
                 }
 
                 isHovering = true;
@@ -229,7 +212,6 @@ public class LevelActor : Entity
 
     public override void Draw(Batch spriteBatch)
     {
-        // Render the Entity
         Color color = Color.Yellow * transparency;
         if (Selected) 
         {
@@ -296,20 +278,15 @@ public class LevelActor : Entity
             }
         }
 
-        // Render the Nodes
         var scene = Scene as EditorScene;
         if (Data.HasNodes) 
         {
-            // Render the potential node to be place
             var opacity = scene.ToolSelected != Tool.Node ? 0.3f : 1f;
             if (scene.ToolSelected == Tool.Node && Selected)
             {
-                int x = Input.Mouse.X;
-                int y = Input.Mouse.Y;
-                int gridX = (int)(Math.Floor(((x - WorldUtils.WorldX) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
-                int gridY = (int)(Math.Floor(((y - WorldUtils.WorldY) / WorldUtils.WorldSize) / 5.0f) * 5.0f);
+                int gridX = WorldUtils.Snap(WorldUtils.ToWorldX(Input.Mouse.X), 5);
+                int gridY = WorldUtils.Snap(WorldUtils.ToWorldY(Input.Mouse.Y), 5);
 
-                
                 var start = Nodes.Count > 0 ? Nodes[^1] : Position;
                 var end = new Vector2(gridX, gridY);
 
@@ -320,7 +297,6 @@ public class LevelActor : Entity
             }
 
 
-            // Render all the nodes
             for (int i = 0; i < Nodes.Count; i++) 
             {
                 if (i == 0) 
@@ -355,19 +331,5 @@ public class LevelActor : Entity
             }
         }
         base.Draw(spriteBatch);
-    }
-
-    public LevelActor Clone()
-    {
-        return new LevelActor(texture, Data, ID) 
-        {
-            CustomData = CustomData,
-            Nodes = Nodes == null ? null : new List<Vector2>(Nodes),
-            Width = Width,
-            Height = Height,
-            Selected = Selected,
-            Scene = Scene,
-            Position = Position
-        };
     }
 }

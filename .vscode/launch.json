@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/bin/Debug/net9.0/Towermap.dll",
+            "program": "${workspaceFolder}/src/bin/Debug/net11.0/Towermap.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src",
             "console": "internalConsole",

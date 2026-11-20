@@ -1,9 +1,8 @@
 using System;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Xml;
-using ImGuiNET;
+using Cosmiria;
 
 namespace Towermap;
 
@@ -20,85 +19,82 @@ public struct ExportOverride
     public float DarkOpacity;
     public bool Cold;
 }
-public class ExportOption : ImGuiElement
+public struct ExportDialog() : IComponent
 {
-    private string name = "";
-    private string author = "";
-    private string tileset;
-    private string bgtileset;
-    private string background;
-    private string music;
-    private string lanterns;
-    private string world;
-    private float darkOpacity;
-    private bool cold;
-    private Tower tower;
-    public  Action<ExportOverride> OnExport;
-    public ExportOption() {}
+    public BindableValue<bool> Open;
+    public Theme Theme;
+    public Callback<ExportOverride> OnExport;
 
-    public void SetTower(Tower tower)
+    private readonly TextBuffer name = new();
+    private readonly TextBuffer author = new();
+    private readonly TextBuffer tileset = new();
+    private readonly TextBuffer bgtileset = new();
+    private readonly TextBuffer background = new();
+    private readonly TextBuffer music = new();
+    private readonly TextBuffer lanterns = new();
+    private readonly TextBuffer world = new();
+    private readonly NumberBuffer darkOpacity = new(0, 0.1, 0, 1);
+    private bool cold;
+
+    public Node Render(UIStack ui, EventStack ev)
     {
-        this.tower = tower;
-        tileset = tower.Theme.Tileset;
-        bgtileset = tower.Theme.BGTileset;
-        background = tower.Theme.Background;
-        music = tower.Theme.Music;
-        lanterns = tower.Theme.Lanterns;
-        world = tower.Theme.World ?? "Normal";
-        darkOpacity = tower.Theme.DarknessOpacity;
-        cold = tower.Theme.Cold;
+        ui.Effect(ev.Listener(static (ref ExportDialog d) => d.Reset()), Open.Value);
+        var modal = ui.Modal(Open, "Export Option", style: default(Style).W(560));
+        if (!modal.IsOpen)
+        {
+            return modal;
+        }
+
+        modal.Body.Child([
+            ui.Labeled("Name", ui.TextInput(name, null, Styles.Field)),
+            ui.Labeled("Author", ui.TextInput(author, null, Styles.Field)),
+            ui.Labeled("Tileset", ui.TextInput(tileset, null, Styles.Field)),
+            ui.Labeled("BG Tileset", ui.TextInput(bgtileset, null, Styles.Field)),
+            ui.Labeled("Background", ui.TextInput(background, null, Styles.Field)),
+            ui.Labeled("Music", ui.TextInput(music, null, Styles.Field)),
+            ui.Labeled("Lanterns", ui.TextInput(lanterns, null, Styles.Field)),
+            ui.Labeled("World", ui.TextInput(world, null, Styles.Field)),
+            ui.Labeled("Dark Opacity", ui.NumberInput(darkOpacity, Styles.Field)),
+            ui.Checkbox(cold, "Cold").OnClick(ev.Listener(static (ref ExportDialog d) => d.cold = !d.cold)),
+            ui.Text("Be warned that certain entities might not be published on the workshop page. Make sure that all entities exist in the official TF editor.")
+                .Styled(Styles.Muted),
+            ui.Button("Export").OnClick(ev.Listener(static (ref ExportDialog d) => d.Export()))
+                .Disabled(name.Length == 0 || author.Length == 0),
+        ]);
+        return modal;
     }
 
-    public override void DrawGui()
+    private void Reset()
     {
-        ImGui.SetNextWindowSize(new Vector2(520, 320), ImGuiCond.Once);
-        if (ImGui.BeginPopupModal("Export Option", ref enabled)) 
+        if (!Open.Value || Theme == null)
         {
-            ImGui.InputText("Name", ref name, 100);
-            ImGui.InputText("Author", ref author, 100);
-
-            ImGui.InputText("Override Tileset", ref tileset, 100);
-            ImGui.InputText("Override BG Tileset", ref bgtileset, 100);
-            ImGui.InputText("Override Background", ref background, 100);
-            ImGui.InputText("Override Music", ref music, 100);
-            ImGui.InputText("Override Lanterns", ref lanterns, 100);
-            ImGui.InputText("Override World", ref world, 100);
-            ImGui.InputFloat("Override Dark Opacity", ref darkOpacity);
-            ImGui.Checkbox("Override Cold", ref cold);
-
-            ImGui.Text("Be warned that certain entities might not be published on the workshop page.");
-            ImGui.Text("Make sure that all entities does exists on the official TF editor.");
-
-            bool condition = string.IsNullOrEmpty(name) || string.IsNullOrEmpty(author);
-
-            if (condition)
-            {
-                ImGui.BeginDisabled();
-            }
-
-            if (ImGui.Button("Export"))
-            {
-                OnExport?.Invoke(new ExportOverride {
-                    Name = name,
-                    Author = author,
-                    Tileset = tileset,
-                    BGTileset = bgtileset,
-                    Background = background,
-                    Music = music,
-                    Lanterns = lanterns,
-                    World = world,
-                    DarkOpacity = darkOpacity,
-                    Cold = cold
-                });
-                Enabled = false;
-            }
-
-            if (condition)
-            {
-                ImGui.EndDisabled();
-            }
-            ImGui.EndPopup();
+            return;
         }
+        tileset.Set(Theme.Tileset);
+        bgtileset.Set(Theme.BGTileset);
+        background.Set(Theme.Background);
+        music.Set(Theme.Music);
+        lanterns.Set(Theme.Lanterns);
+        world.Set(Theme.World ?? "Normal");
+        darkOpacity.Value = Theme.DarknessOpacity;
+        cold = Theme.Cold;
+    }
+
+    private void Export()
+    {
+        OnExport.Invoke(new ExportOverride {
+            Name = name.ToString(),
+            Author = author.ToString(),
+            Tileset = tileset.ToString(),
+            BGTileset = bgtileset.ToString(),
+            Background = background.ToString(),
+            Music = music.ToString(),
+            Lanterns = lanterns.ToString(),
+            World = world.ToString(),
+            DarkOpacity = darkOpacity.FloatValue,
+            Cold = cold
+        });
+        Open.Value = false;
     }
 }
 
@@ -106,7 +102,6 @@ public static class LevelExport
 {
     public static void TowerExport(Tower tower, string path, in ExportOverride exportOverride)
     {
-        // get the treasure mask
         Span<byte> treasureMask = stackalloc byte[21];
         treasureMask.Fill(48);
 

@@ -40,7 +40,7 @@ public class Level
     public ulong TotalIDs = 0;
     private Queue<ulong> unusedIds = new();
 
-    private History history = new History();
+    public readonly History History = new();
 
     public Level(string path) 
     {
@@ -61,34 +61,22 @@ public class Level
         Actors.Remove(actor);
     }
 
-    public void PushCommit(History.Commit commit, Layers layer, bool shouldClearRedo = false) 
+    public void Record(IEditCommand command)
     {
-        Unsaved = true;
-        history.PushCommit(commit, layer, false, shouldClearRedo);
-    }
-
-    public void PushRedoCommit(History.Commit commit, Layers layer) 
-    {
-        Unsaved = true;
-        history.PushCommit(commit, layer, true, false);
-    }
-
-    public bool PopCommit(out History.Commit commit, bool redo) 
-    {
-        if (history.PopCommit(out commit, redo)) 
+        if (History.Push(command))
         {
             Unsaved = true;
-            return true;
         }
-        return false;
     }
-
 
     public ulong GetID() 
     {
-        if (unusedIds.TryDequeue(out ulong result)) 
+        while (unusedIds.TryDequeue(out ulong result)) 
         {
-            return result;
+            if (!Actors.Exists(actor => actor.ID == result))
+            {
+                return result;
+            }
         }
         return TotalIDs++;
     }
@@ -116,6 +104,7 @@ public class Level
     {
         LoadedIn = true;
         Actors.Clear();
+        History.Clear();
         
         XmlDocument document = new XmlDocument();
         document.Load(Path);
@@ -127,28 +116,20 @@ public class Level
 
         if (Width == 420)
         {
-            if (!WorldUtils.TurnWide())
-            {
-                var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, theme.SolidTilesQuad, 10, 10);
-                var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, theme.BGTilesQuad, 10, 10);
-                Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, 42, 24);
-
-                BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, 42, 24);
-                SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, 42, 24);
-                BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, 42, 24);
-            }
+            WorldUtils.TurnWide();
         }
         else 
         {
             WorldUtils.TurnStandard();
-            var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, theme.SolidTilesQuad, 10, 10);
-            var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, theme.BGTilesQuad, 10, 10);
-            Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, 32, 24);
-
-            BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, 32, 24);
-            SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, 32, 24);
-            BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, 32, 24);
         }
+
+        int columns = Width / 10;
+        var solidSpriteSheet = new Spritesheet(Resource.TowerFallTexture, theme.SolidTilesQuad, 10, 10);
+        var bgSpriteSheet = new Spritesheet(Resource.TowerFallTexture, theme.BGTilesQuad, 10, 10);
+        Solids = new GridTiles(Resource.TowerFallTexture, solidSpriteSheet, columns, 24);
+        BGs = new GridTiles(Resource.TowerFallTexture, bgSpriteSheet, columns, 24);
+        SolidTiles = new Tiles(Resource.TowerFallTexture, solidSpriteSheet, columns, 24);
+        BGTiles = new Tiles(Resource.TowerFallTexture, bgSpriteSheet, columns, 24);
 
         var solid = loadingLevel["Solids"];
         Solids.SetGrid(solid.InnerText);
@@ -228,7 +209,6 @@ public class Level
                     }
                     else 
                     {
-                        // Need to prevent stackalloc stackoverflow
                         static void AddStringToData(string value, XmlAttribute attr, Dictionary<string, object> customDatas)
                         {
                             ReadOnlySpan<char> val = value;

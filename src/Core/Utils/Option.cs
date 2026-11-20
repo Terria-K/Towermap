@@ -21,8 +21,8 @@ where T : unmanaged
 
     public bool TryGetValue(out T value)
     {
-        value = Value; // No need for if checks since Value could be default anyway
-        return HasValue; // only important here is the HasValue
+        value = Value;
+        return HasValue;
     }
 
     public static implicit operator Option<T>(T value)

@@ -1,8 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
@@ -20,7 +21,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../Riateu/Riateu/Riateu.csproj" />
+    <ProjectReference Include="../Cosmiria/Riateu/Riateu/Riateu.csproj" />
+    <ProjectReference Include="../Cosmiria/src/Cosmiria.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="$(Configuration) == 'Release'">
@@ -32,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Entities/**/*">
+    <Content Include="Entities/**/*;Assets/**/*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

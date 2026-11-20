@@ -5,4 +5,3 @@ runtimes/
 obj/
 bin/
 *.code-workspace
-imgui.ini

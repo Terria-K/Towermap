@@ -4,14 +4,14 @@ using Riateu.Graphics;
 
 namespace Towermap;
 
-public static class WorldUtils 
+public static class WorldUtils
 {
-    public static int WorldX = 285;
-    public static int WorldY = 90;
+    public static float WorldX;
+    public static float WorldY;
+    public static double WorldSize = 2;
 
     public static float WorldWidth = 320;
     public static float WorldHeight = 240;
-    public const double WorldSize = 2;
 
     public const int TileSize = 10;
 
@@ -27,9 +27,9 @@ public static class WorldUtils
         return new Point(halfWidth + (halfWidth - gridX), gridY);
     }
 
-    public static int ToGrid(float num) 
+    public static int ToGrid(float num)
     {
-        return (int)Math.Floor(num / (5 * WorldSize));
+        return (int)Math.Floor(num / TileSize);
     }
 
     public static bool InBounds(Point point)
@@ -42,19 +42,18 @@ public static class WorldUtils
         return gridX > -1 && gridY > -1 && gridX < WorldWidth / 10 && gridY < WorldHeight / 10;
     }
 
-    public static bool TurnStandard()
+    public static void TurnStandard()
     {
-        bool isAlready = WorldWidth == 320;
         WorldWidth = 320;
-        WorldX = 285;
-        return isAlready;
     }
 
-    public static bool TurnWide()
+    public static void TurnWide()
     {
-        bool isAlready = WorldHeight == 420;
         WorldWidth = 420;
-        WorldX = 200;
-        return isAlready;
     }
+
+    public static float ToWorldX(float screenX) => (float)((screenX - WorldX) / WorldSize);
+    public static float ToWorldY(float screenY) => (float)((screenY - WorldY) / WorldSize);
+
+    public static int Snap(float worldPos, float step) => (int)(Math.Floor(worldPos / step) * step);
 }

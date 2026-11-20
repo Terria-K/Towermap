@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using System.Xml;
 using Riateu;
 using Riateu.Components;
@@ -85,7 +84,6 @@ public class GridTiles : Entity
         for (int i = 0; i < bitString.Length; i++) 
         {
             var c = bitString[i];
-            // can we just have \n instead? please, Windows?
             if (c == '\r' || c == '\n') 
             {
                 if (hasInclude)

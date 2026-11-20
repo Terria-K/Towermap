@@ -4,7 +4,7 @@ return {
     width: 12,
     height: 20,
     originX: 6,
-    originY: 10,
+    originY: 0,
     tags: ["Trials"],
     textureSize: [12, 20],
     onRender: "PlayerRender"

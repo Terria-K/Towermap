@@ -6,8 +6,8 @@ namespace Towermap;
 
 public struct EntityMenu() : IComponent
 {
-    private static readonly Style Grid = default(Style).FlexRow().FlexWrap().Gap(6);
-    private static readonly Style Cell = default(Style).FlexCol().ItemsCenter().Gap(4).W(96).Padding(6).Rounded(Styles.Radius).Bg(Styles.Raised).Border(1, Styles.Line);
+    private static readonly Style Grid = default(Style).GridColsFill(120).Gap(6);
+    private static readonly Style Cell = default(Style).FlexCol().ItemsCenter().Gap(4).MinW(0).Padding(6).Rounded(Styles.Radius).Bg(Styles.Raised).Border(1, Styles.Line);
     private static readonly Style CellHover = default(Style).Bg(Styles.Hover);
     private static readonly Style CellName = default(Style).TextSizeOf(12).TextCenter().MaxW(Length.Full);
 

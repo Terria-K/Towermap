@@ -90,6 +90,11 @@ public struct EditorView : IComponent
         list.Current = Editor.CurrentLevel;
         list.OnSelect = ev.Callback(static (ref EditorView v, Level level) => v.Editor.SetLevel(level));
         list.OnAdd = ev.Callback(static (ref EditorView v) => v.Editor.NewLevelOpen.Value = true);
+        list.OnDelete = ev.Callback(static (ref EditorView v, Level level) =>
+        {
+            v.Editor.ToDelete.Value = level;
+            v.Editor.DeleteLevelOpen.Value = true;
+        });
         return ui.Mount<LevelList>(0, keepAlive: true);
     }
 
@@ -188,6 +193,11 @@ public struct EditorView : IComponent
 
     private readonly Node Dialogs(UIStack ui, EventStack ev)
     {
+        ref var deleteLevel = ref ui.State(0, static () => new DeleteLevelDialog(), out _);
+        deleteLevel.Open = Editor.DeleteLevelOpen;
+        deleteLevel.Level = Editor.ToDelete;
+        deleteLevel.OnLevelDelete = ev.Callback(static (ref EditorView v) => v.Editor.DeleteLevel());
+
         ref var newLevel = ref ui.State(0, static () => new NewLevelDialog(), out _);
         newLevel.Open = Editor.NewLevelOpen;
         newLevel.Tower = Editor.Tower;
@@ -221,6 +231,7 @@ public struct EditorView : IComponent
         fallback.OnApply = ev.Callback(static (ref EditorView v, int theme) => v.Editor.ApplyFallbackTheme(theme));
 
         return ui.Fragment([
+            ui.Mount<DeleteLevelDialog>(0, keepAlive: true),
             ui.Mount<NewLevelDialog>(0, keepAlive: true),
             ui.Mount<CreateNewTower>(0, keepAlive: true),
             ui.Mount<ExportDialog>(0, keepAlive: true),

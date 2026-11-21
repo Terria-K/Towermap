@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using Cosmiria;
 
@@ -10,6 +9,7 @@ public struct LevelList : IComponent
     public Level Current;
     public Callback<Level> OnSelect;
     public Callback OnAdd;
+    public Callback<Level> OnDelete;
 
     public Node Render(UIStack ui, EventStack ev)
     {
@@ -21,11 +21,58 @@ public struct LevelList : IComponent
         Node list = ui.View(Styles.Column.Gap(2));
         foreach (var level in Tower.Levels)
         {
-            list.Child(ui.Selectable(level == Current, level.Unsaved ? level.FileName + "*" : level.FileName)
-                .OnClick(ev.Listener(static (ref LevelList l, Level level) => l.OnSelect.Invoke(level), level)));
+            var nodeLevel = ui.Selectable(level == Current, level.Unsaved ? level.FileName + "*" : level.FileName)
+                .OnClick(ev.Listener(static (ref LevelList l, Level level) => l.OnSelect.Invoke(level), level));
+            list.Child(nodeLevel);
+
+            var menu = ui.ContextMenu(nodeLevel);
+            if (menu.IsOpen)
+            {
+                menu.Item("Delete", ev.Listener(static (ref LevelList list, Level level) =>
+                {
+                    list.OnDelete.Invoke(level);
+                }, level));
+            }
+
+            nodeLevel.Child(menu.Popup);
         }
         return list.Child(ui.Selectable(false).OnClick(ev.Listener(static (ref LevelList l) => l.OnAdd.Invoke()))
             .Child([ui.Icon(FA6.Plus), "Add Level"]));
+    }
+}
+
+public struct DeleteLevelDialog() : IComponent
+{
+    public BindableValue<bool> Open;
+    public BindableValue<Level> Level;
+    public Callback OnLevelDelete;
+
+    public Node Render(UIStack ui, EventStack ev)
+    {
+        var modal = ui.Modal(Open, "Delete Level", style: ui.Style().W(320));
+        if (modal.IsOpen)
+        {
+            modal.Body.Child([
+                ui.View(ui.Style().Gap(4).FlexCol().JustifyBetween().ItemsCenter()).Child([
+                    ui.Text($"Are you sure you want to delete this level? {Level.Value.FileName}").Styled(ui.Style().TextBase()),
+                    ui.Separator(),
+                    ui.Separator(),
+                    ui.View(ui.Style().Gap(4))
+                        .Child([
+                            ui.Button("OK")
+                                .OnClick(ev.Listener(static (ref DeleteLevelDialog self) => 
+                                { 
+                                    self.OnLevelDelete.Invoke(); 
+                                    self.Open.Value = false;
+                                })),
+                            ui.Button("Cancel")
+                                .OnClick(ev.Listener(static (ref DeleteLevelDialog self) => self.Open.Value = false)),
+                        ])
+                ])
+            ]);
+        }
+
+        return modal;
     }
 }
 

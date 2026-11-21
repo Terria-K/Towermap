@@ -40,11 +40,14 @@ public partial class EditorScene : Scene
     private readonly SaveState saveState;
 
     public readonly BindableValue<bool> NewLevelOpen = new(false);
+    public readonly BindableValue<bool> DeleteLevelOpen = new(false);
     public readonly BindableValue<bool> NewTowerOpen = new(false);
     public readonly BindableValue<bool> ExportOpen = new(false);
     public readonly BindableValue<bool> SettingsOpen = new(false);
     public readonly BindableValue<bool> EntityMenuOpen = new(false);
     public readonly BindableValue<bool> FallbackOpen = new(false);
+
+    public readonly BindableValue<Level> ToDelete = new(null);
     public readonly bool[] Visibility = [true, true, true, true, true];
     public readonly QuestData Quest = new();
     public readonly ElementRef ViewportRef = new();
@@ -81,7 +84,6 @@ public partial class EditorScene : Scene
     private readonly TileSelection selection = new();
     private bool hasSelection;
     private readonly HashSet<ScreenWrapError> wrapErrors = [];
-    private Tool toolSelected;
     private RenderTarget canvas;
     private Batch canvasBatch;
 
@@ -89,11 +91,11 @@ public partial class EditorScene : Scene
 
     public Tool ToolSelected
     {
-        get => toolSelected;
+        get => field;
         set
         {
             ClearSelection();
-            toolSelected = value;
+            field = value;
             UI.Notify();
         }
     }
@@ -295,6 +297,17 @@ public partial class EditorScene : Scene
             Save();
         }
         SetTheme(tower.Theme);
+    }
+
+    public void DeleteLevel()
+    {
+        if (currentLevel == ToDelete.Value)
+        {
+            currentLevel = null;
+        }
+
+        Tower.DeleteLevel(ToDelete.Value);
+        UI.Notify();
     }
 
     public void OnCreateTower(CreateNewTowerCallback info)

@@ -90,6 +90,12 @@ public class Tower
         RefreshLevels();
     }
 
+    public void DeleteLevel(Level level)
+    {
+        File.Delete(level.Path);
+        RefreshLevels();
+    }
+
     public void SetTheme(Theme theme) 
     {
         Theme = theme;
